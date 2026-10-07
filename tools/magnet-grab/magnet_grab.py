@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -51,6 +52,20 @@ TRAILING_JUNK = ".,;:!?)'\""
 
 
 @dataclass
+class SourceStats:
+    """Per-input-file tallies, so multi-source runs stay auditable."""
+
+    path: str
+    raw: int = 0
+    unique: int = 0
+    magnets: list["Magnet"] = field(default_factory=list)
+
+    @property
+    def label(self) -> str:
+        return os.path.basename(self.path) or self.path
+
+
+@dataclass
 class Magnet:
     uri: str
     infohash: str
@@ -62,11 +77,8 @@ class Magnet:
     @property
     def clean_uri(self) -> str:
         """Magnet with the tracker list stripped off (xt + dn only)."""
-        kept = []
-        for part in self.uri.split("?", 1)[1].split("&"):
-            if part.startswith("tr="):
-                continue
-            kept.append(part)
+        query = self.uri.split("?", 1)[1] if "?" in self.uri else ""
+        kept = [p for p in query.split("&") if p and not p.startswith("tr=")]
         return "magnet:?" + "&".join(kept)
 
 
@@ -131,6 +143,13 @@ def build(uri: str, infohash: str, version: int) -> Magnet:
         name=decode_name(params.get("dn", [])),
         trackers=[unquote_smart(t) for t in params.get("tr", [])],
     )
+
+
+def rebuild_with_sources(m: Magnet, sources: list[str]) -> Magnet:
+    """Re-derive a Magnet from its URI, carrying over the source list."""
+    fresh = build(m.uri, m.infohash, m.version)
+    fresh.sources = sources
+    return fresh
 
 
 def extract(text: str, source: str = "<input>", dedupe: bool = True) -> list[Magnet]:
@@ -298,19 +317,48 @@ class QBittorrent:
 # ------------------------------------------------------------------- output
 
 
-def render_table(magnets: list[Magnet]) -> str:
+def render_table(magnets: list[Magnet], limit: int = 50) -> str:
     if not magnets:
         return "no magnet links found"
-    name_w = max([len("NAME")] + [min(len(m.name or "(unnamed)"), 60) for m in magnets])
+    shown = magnets if limit <= 0 else magnets[:limit]
+    name_w = max([len("NAME")] + [min(len(m.name or "(unnamed)"), 60) for m in shown])
     lines = [
         f"{'NAME':<{name_w}}  {'VER':<3} {'INFOHASH':<40}  SRC",
         "-" * (name_w + 3 + 40 + 8),
     ]
-    for m in magnets:
+    for m in shown:
         label = m.name or "(unnamed)"
-        lines.append(
-            f"{label[:60]:<{name_w}}  v{m.version:<2} {m.infohash:<40}  {m.sources[0]}"
-        )
+        src = m.sources[0] if m.sources else ""
+        if len(m.sources) > 1:
+            src += f" (+{len(m.sources) - 1})"
+        lines.append(f"{label[:60]:<{name_w}}  v{m.version:<2} {m.infohash:<40}  {src}")
+    if limit > 0 and len(magnets) > limit:
+        lines.append(f"... {len(magnets) - limit} more (use --limit 0 to show all)")
+    return "\n".join(lines)
+
+
+def render_summary(stats: list[SourceStats], merged: list[Magnet]) -> str:
+    name_w = max([len("SOURCE")] + [len(s.label) for s in stats]) if stats else len("SOURCE")
+    lines = [
+        f"{'SOURCE':<{name_w}}  {'RAW':>7} {'UNIQUE':>7} {'IN-SRC DUPES':>13}",
+        "-" * (name_w + 2 + 7 + 1 + 7 + 1 + 13),
+    ]
+    for s in stats:
+        lines.append(f"{s.label:<{name_w}}  {s.raw:>7} {s.unique:>7} {s.raw - s.unique:>13}")
+
+    if len(stats) > 1:
+        seen_in: dict[str, int] = {}
+        for s in stats:
+            for m in s.magnets:
+                seen_in[m.infohash] = seen_in.get(m.infohash, 0) + 1
+        overlap = [h for h, n in seen_in.items() if n > 1]
+        only = {s.label: sum(1 for m in s.magnets if seen_in[m.infohash] == 1) for s in stats}
+
+        lines += ["", f"{'CROSS-SOURCE':<{name_w}}", "-" * (name_w + 30)]
+        lines.append(f"{'unique across all sources':<{name_w}}  {len(merged):>7}")
+        lines.append(f"{'in 2+ sources':<{name_w}}  {len(overlap):>7}")
+        for label, count in only.items():
+            lines.append(f"{('exclusive to ' + label):<{name_w}}  {count:>7}")
     return "\n".join(lines)
 
 
@@ -318,15 +366,29 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Extract magnet links from HTML and compile them for a torrent client.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="With no --plain/--json, prints a summary table. Use --plain for a paste-ready list.",
+        epilog=(
+            "Handles pages with thousands of links across several source files.\n"
+            "  --summary            per-source counts and cross-source overlap\n"
+            "  --out-dir DIR        one paste-ready .txt per source file\n"
+            "  --plain              merged, deduped list (default cross-source)"
+        ),
     )
     ap.add_argument("inputs", nargs="*", help="HTML files, directories, or - for stdin")
     ap.add_argument("--url", action="append", default=[], help="fetch this URL and extract from it")
     ap.add_argument("--plain", "-1", action="store_true", help="one magnet per line, no decoration")
     ap.add_argument("--json", action="store_true", help="emit JSON")
+    ap.add_argument("--summary", action="store_true", help="per-source stats and overlap report")
+    ap.add_argument("--out-dir", metavar="DIR", help="write one .txt per source into DIR")
     ap.add_argument("--strip-trackers", action="store_true", help="drop tr= params (keep xt/dn)")
     ap.add_argument("--filter", metavar="REGEX", help="keep only magnets whose name matches")
-    ap.add_argument("--no-dedupe", action="store_true", help="keep duplicates")
+    ap.add_argument("--no-dedupe", action="store_true", help="keep every occurrence, in and across files")
+    ap.add_argument(
+        "--pick",
+        choices=("richest", "first"),
+        default="richest",
+        help="which URI to keep when a hash repeats across sources (default: richest)",
+    )
+    ap.add_argument("--limit", type=int, default=50, help="rows in the table; 0 = all (default 50)")
 
     push = ap.add_argument_group("push to qBittorrent")
     push.add_argument("--add", action="store_true", help="POST the magnets to the qBittorrent WebUI")
@@ -336,6 +398,8 @@ def main(argv: list[str] | None = None) -> int:
     push.add_argument("--savepath", default="")
     push.add_argument("--category", default="")
     push.add_argument("--paused", action="store_true")
+    push.add_argument("--batch", type=int, default=0, help="add at most N per request (0 = all)")
+    push.add_argument("--batch-delay", type=float, default=0.0, help="seconds between batches")
     ap.add_argument("--timeout", type=float, default=20.0)
 
     args = ap.parse_args(argv)
@@ -343,17 +407,46 @@ def main(argv: list[str] | None = None) -> int:
     if not args.inputs and not args.url:
         ap.error("give me at least one file, directory, --url, or - for stdin")
 
-    magnets: list[Magnet] = []
-    seen: set[str] = set()
+    stats: list[SourceStats] = []
+    index: dict[str, Magnet] = {}
+    order: list[str] = []
+    flat: list[Magnet] = []
     errors: list[str] = []
 
     def absorb(text: str, source: str) -> None:
-        for m in extract(text, source, dedupe=not args.no_dedupe):
-            if not args.no_dedupe:
-                if m.infohash in seen:
-                    continue
-                seen.add(m.infohash)
-            magnets.append(m)
+        matches = extract(text, source, dedupe=False)
+        entry = SourceStats(path=source, raw=len(matches))
+        local: dict[str, Magnet] = {}
+        local_order: list[str] = []
+
+        for m in matches:
+            if args.no_dedupe:
+                flat.append(m)
+            else:
+                # within this source
+                prev = local.get(m.infohash)
+                if prev is None:
+                    local[m.infohash] = m
+                    local_order.append(m.infohash)
+                elif len(m.uri) > len(prev.uri):
+                    local[m.infohash] = m
+                # across all sources
+                known = index.get(m.infohash)
+                if known is None:
+                    index[m.infohash] = rebuild_with_sources(m, [source])
+                    order.append(m.infohash)
+                else:
+                    if source not in known.sources:
+                        known.sources.append(source)
+                    # "richest": prefer the URI carrying the most information
+                    # (usually the one with the fullest tracker list).
+                    # "first": keep whatever was seen first, across all sources.
+                    if args.pick == "richest" and len(m.uri) > len(known.uri):
+                        index[m.infohash] = rebuild_with_sources(m, known.sources)
+
+        entry.magnets = [local[h] for h in local_order]
+        entry.unique = len(local)
+        stats.append(entry)
 
     if "-" in args.inputs:
         absorb(sys.stdin.read(), "<stdin>")
@@ -375,7 +468,34 @@ def main(argv: list[str] | None = None) -> int:
             rx = re.compile(args.filter, re.I)
         except re.error as exc:
             ap.error(f"invalid --filter regex: {exc}")
-        magnets = [m for m in magnets if rx.search(m.name or m.uri)]
+        keep = lambda m: bool(rx.search(m.name or m.uri))  # noqa: E731
+        for entry in stats:
+            entry.magnets = [m for m in entry.magnets if keep(m)]
+            entry.unique = len(entry.magnets)
+        flat = [m for m in flat if keep(m)]
+        order = [h for h in order if keep(index[h])]
+
+    merged = flat if args.no_dedupe else [index[h] for h in order]
+    uri_of = (lambda m: m.clean_uri) if args.strip_trackers else (lambda m: m.uri)  # noqa: E731
+
+    if args.out_dir:
+        try:
+            os.makedirs(args.out_dir, exist_ok=True)
+        except OSError as exc:
+            ap.error(f"cannot create --out-dir: {exc}")
+        written = 0
+        for entry in stats:
+            stem = os.path.splitext(os.path.basename(entry.path))[0] or "stdin"
+            stem = re.sub(r"[^\w.\-]+", "_", stem) or "source"
+            dest = os.path.join(args.out_dir, f"{stem}.txt")
+            with open(dest, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(uri_of(m) for m in entry.magnets))
+                if entry.magnets:
+                    fh.write("\n")
+            print(f"{dest}  {entry.unique} magnet(s)", file=sys.stderr)
+            written += 1
+        if not written:
+            print("no sources to write", file=sys.stderr)
 
     if args.json:
         print(
@@ -387,9 +507,9 @@ def main(argv: list[str] | None = None) -> int:
                         "name": m.name,
                         "trackers": len(m.trackers),
                         "sources": m.sources,
-                        "magnet": m.clean_uri if args.strip_trackers else m.uri,
+                        "magnet": uri_of(m),
                     }
-                    for m in magnets
+                    for m in merged
                 ],
                 indent=2,
                 ensure_ascii=False,
@@ -397,7 +517,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0 if not errors else 1
 
-    uris = [m.clean_uri if args.strip_trackers else m.uri for m in magnets]
+    if args.summary:
+        print(render_summary(stats, merged))
+        for err in errors:
+            print(f"warning: {err}", file=sys.stderr)
+        return 0 if not errors else 1
+
+    uris = [uri_of(m) for m in merged]
 
     if args.add:
         if not uris:
@@ -405,7 +531,15 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         try:
             client = QBittorrent(args.host, args.username, args.password, args.timeout)
-            client.add(uris, args.savepath, args.category, args.paused)
+            size = args.batch if args.batch > 0 else len(uris)
+            sent = 0
+            for start in range(0, len(uris), size):
+                chunk = uris[start : start + size]
+                client.add(chunk, args.savepath, args.category, args.paused)
+                sent += len(chunk)
+                print(f"  added {sent}/{len(uris)}", file=sys.stderr)
+                if args.batch_delay and start + size < len(uris):
+                    time.sleep(args.batch_delay)
         except (urllib.error.URLError, OSError, RuntimeError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
@@ -415,11 +549,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.plain:
         if uris:
             print("\n".join(uris))
+    elif not args.out_dir:
+        print(render_table(merged, args.limit))
+        print(f"\n{len(merged)} unique magnet link(s)", file=sys.stderr)
+        if len(stats) > 1:
+            print(f"from {len(stats)} source(s) — use --summary for the breakdown", file=sys.stderr)
     else:
-        print(render_table(magnets))
-        print(f"\n{len(magnets)} unique magnet link(s)", file=sys.stderr)
-        if magnets:
-            print("use --plain for a paste-ready list", file=sys.stderr)
+        print(f"\n{len(merged)} unique magnet link(s) across {len(stats)} source(s)", file=sys.stderr)
 
     for err in errors:
         print(f"warning: {err}", file=sys.stderr)

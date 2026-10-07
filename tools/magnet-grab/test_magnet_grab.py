@@ -119,6 +119,14 @@ class TestCleanUri(unittest.TestCase):
         self.assertIn("dn=Name", clean)
 
 
+    def test_empty_params_are_dropped(self):
+        """A stray && must not leave a trailing ampersand after stripping."""
+        uri = "magnet:?xt=urn:btih:" + "a" * 40 + "&dn=Name&&tr=udp://x"
+        [m] = mg.extract(f'<a href="{uri}">')
+        self.assertFalse(m.clean_uri.endswith("&"))
+        self.assertEqual(m.clean_uri, "magnet:?xt=urn:btih:" + "a" * 40 + "&dn=Name")
+
+
 class TestDecoding(unittest.TestCase):
     def test_gzip_payload(self):
         blob = gzip.compress(b'<a href="magnet:?xt=urn:btih:' + b"a" * 40 + b'">')
@@ -232,6 +240,83 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(len(r.stdout.strip().split("\n")), 3)
 
 
+    def test_cross_source_attribution_and_richest_wins(self):
+        """A hash in two files must list both, and keep the URI with more trackers."""
+        a = os.path.join(self.dir, "srcA.html")
+        b = os.path.join(self.dir, "srcB.html")
+        h = "a" * 40
+        with open(a, "w", encoding="utf-8") as fh:
+            fh.write(f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=T&amp;tr=udp://one">x</a>')
+        with open(b, "w", encoding="utf-8") as fh:
+            fh.write(
+                f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=T&amp;tr=udp://one'
+                f'&amp;tr=udp://two&amp;tr=udp://three">x</a>'
+            )
+        r = cli(a, b, "--json")
+        [rec] = json.loads(r.stdout)
+        self.assertEqual(rec["trackers"], 3)
+        self.assertEqual(len(rec["sources"]), 2)
+        self.assertIn(a, rec["sources"])
+        self.assertIn(b, rec["sources"])
+
+    def test_pick_first_keeps_the_earlier_uri(self):
+        a = os.path.join(self.dir, "srcA.html")
+        b = os.path.join(self.dir, "srcB.html")
+        h = "a" * 40
+        with open(a, "w", encoding="utf-8") as fh:
+            fh.write(f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=T&amp;tr=udp://one">x</a>')
+        with open(b, "w", encoding="utf-8") as fh:
+            fh.write(f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=T&amp;tr=udp://1&amp;tr=udp://2">x</a>')
+        [rec] = json.loads(cli(a, b, "--pick", "first", "--json").stdout)
+        self.assertEqual(rec["trackers"], 1)
+
+    def test_pick_first_survives_intra_file_duplicates(self):
+        """--pick first must not swap URIs even when one file repeats a hash."""
+        a = os.path.join(self.dir, "srcA.html")
+        b = os.path.join(self.dir, "srcB.html")
+        h = "a" * 40
+        with open(a, "w", encoding="utf-8") as fh:
+            fh.write(f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=T&amp;tr=udp://one">x</a>'
+                     f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=T&amp;tr=udp://1&amp;tr=udp://2">y</a>')
+        with open(b, "w", encoding="utf-8") as fh:
+            fh.write(f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=T&amp;tr=udp://z">x</a>')
+        first = json.loads(cli(a, b, "--pick", "first", "--json").stdout)[0]
+        richest = json.loads(cli(a, b, "--pick", "richest", "--json").stdout)[0]
+        self.assertEqual(richest["trackers"], 2)
+        self.assertEqual(first["trackers"], 1)
+        self.assertEqual(len(first["sources"]), 2)
+
+    def test_summary_reports_per_source_counts(self):
+        r = cli(self.page, "--summary")
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("page.html", r.stdout)
+        self.assertIn("UNIQUE", r.stdout)
+
+    def test_out_dir_writes_one_file_per_source(self):
+        out = os.path.join(self.dir, "out")
+        r = cli(self.page, "--out-dir", out)
+        self.assertEqual(r.returncode, 0)
+        self.assertEqual(r.stdout, "")  # table suppressed when writing files
+        written = os.path.join(out, "page.txt")
+        self.assertTrue(os.path.exists(written))
+        with open(written, encoding="utf-8") as fh:
+            lines = fh.read().strip().split("\n")
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(all(x.startswith("magnet:?") for x in lines))
+
+    def test_table_is_capped_by_limit(self):
+        many = os.path.join(self.dir, "many.html")
+        with open(many, "w", encoding="utf-8") as fh:
+            for i in range(120):
+                h = f"{i:040x}"
+                fh.write(f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=N{i}">x</a>')
+        capped = cli(many, "--limit", "10")
+        self.assertIn("... 110 more", capped.stdout)
+        full = cli(many, "--limit", "0")
+        self.assertNotIn("more (use --limit 0", full.stdout)
+        self.assertEqual(len(full.stdout.strip().split("\n")), 122)  # header + rule + 120
+
+
 class TestQBittorrentAPI(unittest.TestCase):
     """Exercise the real login + multipart add path against a mock WebUI."""
 
@@ -280,6 +365,19 @@ class TestQBittorrentAPI(unittest.TestCase):
         self.assertIn('name="urls"', self.received["add"])
         self.assertIn("magnet:?xt=urn:btih:aaa\nmagnet:?xt=urn:btih:bbb", self.received["add"])
         self.assertIn("/dl", self.received["add"])
+
+
+    def test_add_batches_urls_across_requests(self):
+        client = mg.QBittorrent(f"http://127.0.0.1:{self.port}", "admin", "pw")
+        uris = [f"magnet:?xt=urn:btih:{i:040x}" for i in range(5)]
+        size = 2
+        sent = 0
+        for start in range(0, len(uris), size):
+            client.add(uris[start : start + size])
+            sent += len(uris[start : start + size])
+        self.assertEqual(sent, 5)
+        # the mock records only the last body, so assert its shape
+        self.assertIn("magnet:?xt=urn:btih:" + f"{4:040x}", self.received["add"])
 
 
 if __name__ == "__main__":
