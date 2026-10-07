@@ -56,16 +56,23 @@ display names are left exactly as written.
 ```bash
 python3 magnet_excavator.py examples/raw_dump.txt --plain                 # full
 python3 magnet_excavator.py examples/raw_dump.txt --plain --strip-trackers
+python3 magnet_excavator.py examples/raw_dump.txt --plain --hints
 python3 magnet_excavator.py examples/raw_dump.txt --plain --bare
 ```
 
+Taking the Ubuntu line (the fixture's first link is a bare hash buried in prose,
+so it looks the same in every mode):
+
 ```
-full             magnet:?xt=urn:btih:0000…0001&dn=Ubuntu+24.04+Desktop+amd64&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce
---strip-trackers magnet:?xt=urn:btih:0000…0001&dn=Ubuntu+24.04+Desktop+amd64
---bare           magnet:?xt=urn:btih:0000000000000000000000000000000000000001
+default            magnet:?xt=urn:btih:0000…0001&dn=Ubuntu+24.04+Desktop+amd64&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce
+--strip-trackers   magnet:?xt=urn:btih:0000…0001&dn=Ubuntu+24.04+Desktop+amd64
+--hints            magnet:?xt=urn:btih:0000…0001&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce
+--bare             magnet:?xt=urn:btih:0000000000000000000000000000000000000001
 ```
 
-Longest line: **193 → 105 → 88 characters**.
+Longest line across the file: **193 → 105 → 163 → 88 characters**. Note that
+`--hints` is *longer* than `--strip-trackers` here — a tracker URL outweighs a
+display name. The modes differ in what they keep, not in how short they are.
 
 `--bare` keeps only `xt`, which is the part that actually identifies the
 torrent. Everything else is a hint the client re-derives anyway — the name comes
@@ -74,9 +81,39 @@ smallest, cleanest list to paste, pipe, or diff. Dual v1+v2 links keep both
 hashes. It works with `--add` and `--out-dir` too, and supersedes
 `--strip-trackers`.
 
-Note the trade-off: a bare link gives the client no tracker hints, so it relies
-on DHT to find peers. For dead or obscure torrents the full form resolves
-slightly faster.
+### If bare links sit at "Downloading metadata"
+
+That is the trade-off showing up. A bare link gives the client no tracker hints,
+so it has to find peers on the DHT alone. For anything dead or obscure that can
+take a very long time, or never finish — qBittorrent has no timeout on metadata
+resolution, so those torrents keep holding a download slot.
+
+`--hints` is the middle option: it keeps `xt` and the `tr=` tracker hints and
+drops only `dn`. You lose the pretty name (which the client recovers from the
+metadata anyway) but keep the part that actually gets peers.
+
+Some pages publish magnets with **no** `tr=` at all. For those `--hints` is no
+better than `--bare`, so add a tracker list:
+
+```bash
+# one tracker per line, # comments ignored - the ngosang/trackerslist format
+python3 magnet_excavator.py pages/ --hints --plain \
+  --trackers-url https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt
+
+# or a file you already have
+python3 magnet_excavator.py pages/ --hints --plain --trackers-file trackers_all.txt
+```
+
+Only magnets with no tracker of their own are touched — a page that supplied
+trackers knew which ones that torrent is on — and `--max-trackers` (default 5)
+caps how many are added so the list stays pasteable.
+
+| mode | keeps | use it when |
+|---|---|---|
+| `--bare` | `xt` | you want the shortest list and the torrents are healthy |
+| `--hints` | `xt` + `tr` | bare links stall at *Downloading metadata* |
+| `--strip-trackers` | `xt` + `dn` | you want names in the client and qBittorrent substitutes its own tracker list |
+| default | everything | you want exactly what the page published |
 
 ## 3. Check it before you trust it
 
@@ -193,5 +230,5 @@ Accepted: v1 40-hex, v1 32-char base32, and v2 `urn:btmh:1220…` hashes, in
 ## Run the tests
 
 ```bash
-python3 -m unittest test_magnet_excavator -v    # 70 tests
+python3 -m unittest test_magnet_excavator -v    # 90 tests
 ```

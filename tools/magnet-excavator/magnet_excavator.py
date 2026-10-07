@@ -145,6 +145,25 @@ class Magnet:
         return "magnet:?" + "&".join(kept)
 
     @property
+    def hints_uri(self) -> str:
+        """xt plus tracker hints, and nothing else - the middle option.
+
+        ``--bare`` leans entirely on the DHT, which is why those torrents can sit
+        at "Downloading metadata" for a long time or forever if no DHT peer has
+        the info dict. ``--strip-trackers`` keeps the name but drops exactly the
+        hints that fix that. This keeps the hints and drops the name, so the
+        client can still find peers without the URI carrying decoration.
+        """
+        query = self.uri.split("?", 1)[1] if "?" in self.uri else ""
+        kept = [
+            p for p in query.split("&")
+            if p and (p.lower().startswith("xt=") or p.lower().startswith("tr="))
+        ]
+        if not any(p.lower().startswith("xt=") for p in kept):
+            kept.insert(0, "xt=urn:btih:" + self.infohash)
+        return "magnet:?" + "&".join(kept)
+
+    @property
     def bare_uri(self) -> str:
         """The minimum that still identifies the torrent: xt and nothing else.
 
@@ -298,6 +317,55 @@ def iter_text_chunks(path: str, chunk_bytes: int = CHUNK_BYTES):
             if not buf:
                 break
             yield buf.decode(encoding, "replace")
+
+
+def load_trackers(path: str | None = None, url: str | None = None,
+                  timeout: float = 20.0) -> list[str]:
+    """Read a tracker list - one per line, blanks and # comments ignored.
+
+    This is the format published by ngosang/trackerslist and friends, so a
+    downloaded trackers_all.txt can be pointed at directly.
+    """
+    if not path and not url:
+        return []
+    if url:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            blob = resp.read()
+    else:
+        with open(path, "rb") as fh:
+            blob = fh.read()
+    seen: set[str] = set()
+    out: list[str] = []
+    for line in decode_bytes(blob).splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line in seen:
+            continue
+        seen.add(line)
+        out.append(line)
+    return out
+
+
+def augment_trackers(magnets: list[Magnet], trackers: list[str], cap: int = 5) -> int:
+    """Give trackerless magnets some hints, and say how many were touched.
+
+    Only magnets with no tr= of their own are touched: a page that supplied
+    trackers knew which ones that torrent is on, and overwriting that with a
+    generic list would be worse than leaving it alone.
+    """
+    if not trackers:
+        return 0
+    pool = trackers if cap <= 0 else trackers[:cap]
+    if not pool:
+        return 0
+    suffix = "&" + "&".join("tr=" + urllib.parse.quote(t, safe="") for t in pool)
+    touched = 0
+    for m in magnets:
+        if m.trackers:
+            continue
+        m.uri = m.uri + suffix
+        m.trackers = list(pool)
+        touched += 1
+    return touched
 
 
 def build(uri: str, infohash: str, version: int, size: int | None = None) -> Magnet:
@@ -989,6 +1057,34 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("--strip-trackers", action="store_true", help="drop tr= params (keep xt/dn)")
     ap.add_argument(
+        "--hints",
+        action="store_true",
+        help="keep xt and the tr= tracker hints, drop dn and everything else. "
+        "The middle ground between --bare and the full link: bare links have to "
+        "find peers on the DHT alone, which is what leaves a torrent sitting at "
+        "\"Downloading metadata\"",
+    )
+    ap.add_argument(
+        "--trackers-file",
+        metavar="FILE",
+        help="append tracker hints from FILE (one tracker per line, # comments ok) "
+        "to magnets that have none. Use with --hints for pages whose links carry no tr=",
+    )
+    ap.add_argument(
+        "--trackers-url",
+        metavar="URL",
+        help="same as --trackers-file but fetched over HTTP, e.g. the ngosang "
+        "trackerslist trackers_all.txt",
+    )
+    ap.add_argument(
+        "--max-trackers",
+        type=int,
+        default=5,
+        metavar="N",
+        help="cap trackers per magnet when using --trackers-file/--trackers-url "
+        "(default 5, 0 = no cap)",
+    )
+    ap.add_argument(
         "--bare",
         "--minimal",
         dest="bare",
@@ -1144,8 +1240,20 @@ def main(argv: list[str] | None = None) -> int:
         order = [h for h in order if sized(index[h])]
 
     merged = flat if args.no_dedupe else [index[h] for h in order]
+
+    augmented = 0
+    if args.trackers_file or args.trackers_url:
+        try:
+            trackers = load_trackers(args.trackers_file, args.trackers_url, args.timeout)
+        except (OSError, ValueError, urllib.error.URLError) as exc:
+            print(f"warning: could not load tracker list: {exc}", file=sys.stderr)
+            trackers = []
+        if trackers:
+            augmented = augment_trackers(merged, trackers, args.max_trackers)
     if args.bare:
         uri_of = lambda m: m.bare_uri  # noqa: E731
+    elif args.hints:
+        uri_of = lambda m: m.hints_uri  # noqa: E731
     elif args.strip_trackers:
         uri_of = lambda m: m.clean_uri  # noqa: E731
     else:
@@ -1168,13 +1276,13 @@ def main(argv: list[str] | None = None) -> int:
                 for i in range(parts):
                     chunk = items[i * args.split : (i + 1) * args.split]
                     dest = os.path.join(args.out_dir, f"{stem}.part{i + 1:0{width}d}.txt")
-                    with open(dest, "w", encoding="utf-8") as fh:
+                    with open(dest, "w", encoding="utf-8", newline="\n") as fh:
                         fh.write("\n".join(chunk) + "\n")
                     print(f"{dest}  {len(chunk)} magnet(s)", file=sys.stderr)
                     written += 1
             else:
                 dest = os.path.join(args.out_dir, f"{stem}.txt")
-                with open(dest, "w", encoding="utf-8") as fh:
+                with open(dest, "w", encoding="utf-8", newline="\n") as fh:
                     if items:
                         fh.write("\n".join(items) + "\n")
                 print(f"{dest}  {entry.unique} magnet(s)", file=sys.stderr)

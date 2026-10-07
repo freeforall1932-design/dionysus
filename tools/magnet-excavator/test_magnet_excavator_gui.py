@@ -49,6 +49,29 @@ class TestProcess(unittest.TestCase):
         self.assertEqual(up["count"], disk["count"])
         self.assertEqual(up["total_bytes"], disk["total_bytes"])
 
+    def test_hints_option_keeps_trackers_without_the_name(self):
+        res = gui.process([upload()], [], {"hints": True})
+        self.assertTrue(res["magnets"])
+        for m in res["magnets"]:
+            self.assertNotIn("dn=", m["magnet"])
+        # the fixture's links carry trackers, so hints must keep them
+        self.assertTrue(any("tr=" in m["magnet"] for m in res["magnets"]))
+        # names and sizes are still reported even though dn is gone from the link
+        self.assertTrue(any(m["name"] for m in res["magnets"]))
+
+    def test_bare_wins_over_hints(self):
+        res = gui.process([upload()], [], {"bare": True, "hints": True})
+        for m in res["magnets"]:
+            self.assertNotIn("&", m["magnet"])
+
+    def test_every_record_carries_all_three_variants(self):
+        """The front end builds bare/hints copies locally, so it needs them."""
+        res = gui.process([upload()], [], {})
+        for m in res["magnets"]:
+            self.assertNotIn("&", m["magnet_bare"])
+            self.assertNotIn("dn=", m["magnet_hints"])
+            self.assertIn("xt=", m["magnet_hints"])
+
     def test_bare_option_strips_parameters(self):
         res = gui.process([upload()], [], {"bare": True})
         for m in res["magnets"]:

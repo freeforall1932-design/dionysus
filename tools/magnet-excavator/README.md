@@ -30,10 +30,11 @@ What it does:
 - **Drag and drop** — multiple files, any format, dropped anywhere on the page
 - **…or a path** — a file or directory on the same machine, so you never have to
   upload a large page
-- **Options** — bare links, strip trackers, dedupe, name filter, min/max size
+- **Options** — bare links, hints (xt + trackers), strip trackers, an optional
+  tracker list file or URL, dedupe, name filter, min/max size
 - **Results** — name, size, BitTorrent version, infohash, source, plus the
   totals from `--summary`
-- **Copy list / Copy bare / Download .txt** — into the qBittorrent dialog
+- **Copy list / Copy bare / Copy hints / Download .txt** — into the qBittorrent dialog
 - **Add to qBittorrent** — host, credentials, category, save path, batch size
 - **Test connection** before you commit a batch
 
@@ -106,11 +107,29 @@ via `ut_metadata` — which is why qBittorrent shows "downloading metadata" firs
 
 So there are exactly two ways to know the size *before* adding anything:
 
-1. **Scrape it from the page**, which is what this does. Index pages list the
-   size beside each link; the text following each magnet is read up to the end of
-   the enclosing `<tr>`, so a size in the next row is never misattributed. Units
-   are read as 1024-based, because that is what index sites mean by MB/GB —
-   reporting a "1 MB" torrent as "976.6 KiB" would be more confusing than useful.
+1. **Scrape it from the page**, which is what this does. Units are read as
+   1024-based, because that is what index sites mean by MB/GB — reporting a
+   "1 MB" torrent as "976.6 KiB" would be more confusing than useful.
+
+   Pairing the size with the *right* link is the hard part, and it cannot be
+   done by measuring characters. A listing that puts the size **above** its link
+   and one that puts it **below** are mirror images of each other, so "nearest
+   value wins" shifts the whole list by one in one of them — the first link gets
+   nothing and every later link takes the previous entry's size. Instead the
+   page's own structure decides: one tag-stack pass records the nesting around
+   every magnet, and the search starts at the innermost element and walks
+   outward until it finds a size. It stops at the first element that also
+   contains a *different* magnet, and refuses a parent that spans more than one
+   entry, so a size never travels across an entry boundary. A preceding sibling
+   row is still used (a metadata row followed by a link row); a following one
+   never is. Where the entry is genuinely ambiguous — one size, two links — it
+   reports nothing rather than guess, because a wrong size corrupts the total.
+   Pages with no usable markup fall back to a short window bounded by the
+   neighbouring links.
+
+   The same pass supplies the **name** when the URI has no `dn=`, skipping
+   anchor captions so "Download" and "get" are not mistaken for titles.
+   `.name_source` records whether a name came from `dn` or from the page.
 2. **The legacy `xl=` parameter**, from the pre-BEP-9 magnet draft. Almost no
    site emits it, but when present it is authoritative, so it wins over scraping.
 
@@ -154,6 +173,18 @@ A one-liner looks like it works and quietly loses links:
 - `--out-dir DIR` — one paste-ready `.txt` per source, named after the source
 - `--summary` — the per-source, cross-source and size report above
 - `--json` — structured; each record carries `size_bytes`, `size` and `sources`
+- `--hints` — keep `xt` and the `tr=` tracker hints, drop `dn` and everything
+  else. The middle ground between `--bare` and the full link. A bare magnet has
+  to find peers on the DHT alone, which is what leaves a torrent sitting at
+  *Downloading metadata*; this keeps the hints that fix that without the name
+- `--trackers-file FILE` / `--trackers-url URL` — append tracker hints to magnets
+  that have **none** of their own, one tracker per line, `#` comments ignored.
+  This is the ngosang/trackerslist format, so a downloaded `trackers_all.txt`
+  can be pointed at directly. Pages that publish magnets with no `tr=` are
+  common, and for those `--hints` alone is no better than `--bare`. Only
+  trackerless magnets are touched: a page that supplied trackers knew which ones
+  that torrent is on
+- `--max-trackers N` — cap how many are added per magnet (default 5, `0` = no cap)
 - `--strip-trackers` — drop `tr=` params, keep `xt`/`dn` (qBittorrent substitutes its own list)
 - `--filter REGEX` — keep only magnets whose name matches (case-insensitive)
 - `--no-dedupe` — keep every occurrence, within and across files
@@ -250,7 +281,7 @@ oversized dump. Measured anyway: 50,000 magnets from an 18 MB page in ~2.9 s,
 python3 -m unittest discover -s . -p 'test_*.py' -v
 ```
 
-90 tests — 70 for the CLI and 20 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
+113 tests — 90 for the CLI and 23 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
 any-extension scanning, binary safety, size parsing and filters, CLI behaviour,
 and the qBittorrent login + multipart add path with batch chunking and
 queue-aware feeding, and the GUI's extract/add endpoints and batching

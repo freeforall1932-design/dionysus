@@ -836,3 +836,137 @@ class TestMetadataAttribution(unittest.TestCase):
         )
         [m] = mg.extract(html)
         self.assertEqual(m.size, 12345)
+
+
+class TestHintsMode(unittest.TestCase):
+    """--hints: the middle ground between --bare and the full link.
+
+    A bare magnet has to find peers on the DHT alone, which is what leaves a
+    torrent sitting at "Downloading metadata". --hints keeps the tracker hints
+    and drops only the name.
+    """
+
+    HASH = "a" * 40
+    WITH_TR = (
+        '<div><span>Named</span><span>1.0 GB</span>'
+        '<a href="magnet:?xt=urn:btih:' + HASH + '&dn=Named&tr=udp%3A%2F%2Fown.tracker%3A1337">m</a></div>'
+    )
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.page = os.path.join(self.dir, "p.html")
+        with open(self.page, "w", encoding="utf-8") as fh:
+            fh.write(self.WITH_TR)
+
+    def test_hints_keeps_trackers_and_drops_the_name(self):
+        [m] = mg.extract(self.WITH_TR)
+        hints = m.hints_uri
+        self.assertIn("xt=urn:btih:" + self.HASH, hints)
+        self.assertIn("tr=udp%3A%2F%2Fown.tracker%3A1337", hints)
+        self.assertNotIn("dn=", hints)
+        self.assertTrue(hints.startswith("magnet:?"))
+
+    def test_the_three_modes_keep_different_fields(self):
+        """Not a length ordering - a tracker URL can easily outweigh a name."""
+        [m] = mg.extract(self.WITH_TR)
+        def fields(uri):
+            q = uri.split("?", 1)[1]
+            return {p.split("=", 1)[0].lower() for p in q.split("&") if p}
+        self.assertEqual(fields(m.bare_uri), {"xt"})
+        self.assertEqual(fields(m.hints_uri), {"xt", "tr"})
+        self.assertEqual(fields(m.clean_uri), {"xt", "dn"})
+        self.assertEqual(fields(m.uri), {"xt", "dn", "tr"})
+
+    def test_hints_flag_emits_hints_uris(self):
+        out = cli(self.page, "--hints", "--plain").stdout.strip().split("\n")
+        self.assertEqual(len(out), 1)
+        self.assertIn("tr=", out[0])
+        self.assertNotIn("dn=", out[0])
+
+    def test_bare_still_supersedes_hints(self):
+        out = cli(self.page, "--hints", "--bare", "--plain").stdout.strip()
+        self.assertNotIn("tr=", out)
+        self.assertNotIn("dn=", out)
+
+
+class TestTrackerAugmentation(unittest.TestCase):
+    """Pages often publish magnets with no tr= at all; --hints alone cannot help those."""
+
+    HASH = "b" * 40
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.page = os.path.join(self.dir, "p.html")
+        with open(self.page, "w", encoding="utf-8") as fh:
+            fh.write('<a href="magnet:?xt=urn:btih:' + self.HASH + '">m</a>')
+        self.list_path = os.path.join(self.dir, "trackers.txt")
+
+    def write_list(self, text):
+        with open(self.list_path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        return self.list_path
+
+    def test_skips_blanks_comments_and_duplicates(self):
+        path = self.write_list(
+            "# a comment\n\nudp://one:1337/a\nudp://one:1337/a\nudp://two:1337/a\n"
+        )
+        self.assertEqual(
+            mg.load_trackers(path=path), ["udp://one:1337/a", "udp://two:1337/a"]
+        )
+
+    def test_augments_only_magnets_without_trackers(self):
+        magnets = mg.extract(
+            '<a href="magnet:?xt=urn:btih:' + self.HASH + '">a</a>'
+            '<a href="magnet:?xt=urn:btih:' + "c" * 40 + '&tr=udp%3A%2F%2Fown">b</a>'
+        )
+        touched = mg.augment_trackers(magnets, ["udp://new:1337/a"], cap=5)
+        self.assertEqual(touched, 1)
+        self.assertIn("tr=udp%3A%2F%2Fnew%3A1337%2Fa", magnets[0].uri)
+        self.assertEqual(magnets[1].trackers, ["udp://own"])
+        self.assertNotIn("new", magnets[1].uri)
+
+    def test_cap_limits_how_many_are_added(self):
+        [m] = mg.extract('<a href="magnet:?xt=urn:btih:' + self.HASH + '">a</a>')
+        mg.augment_trackers([m], [f"udp://t{i}:1337/a" for i in range(10)], cap=3)
+        self.assertEqual(len(m.trackers), 3)
+
+    def test_zero_cap_means_no_cap(self):
+        [m] = mg.extract('<a href="magnet:?xt=urn:btih:' + self.HASH + '">a</a>')
+        mg.augment_trackers([m], [f"udp://t{i}:1337/a" for i in range(10)], cap=0)
+        self.assertEqual(len(m.trackers), 10)
+
+    def test_cli_trackers_file_reaches_the_output(self):
+        path = self.write_list("udp://one:1337/a\nudp://two:1337/a\n")
+        out = cli(self.page, "--hints", "--trackers-file", path, "--plain").stdout.strip()
+        self.assertIn("tr=udp%3A%2F%2Fone%3A1337%2Fa", out)
+        self.assertIn("tr=udp%3A%2F%2Ftwo%3A1337%2Fa", out)
+
+    def test_cli_trackers_url_reaches_the_output(self):
+        body = b"# list\nudp://url.one:1337/announce\n\nudp://url.two:1337/announce\n"
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *a):
+                pass
+
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        port = srv.server_address[1]
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            out = cli(self.page, "--hints", "--trackers-url",
+                      f"http://127.0.0.1:{port}/t.txt", "--plain").stdout.strip()
+        finally:
+            srv.shutdown()
+            srv.server_close()
+        self.assertIn("tr=udp%3A%2F%2Furl.one%3A1337%2Fannounce", out)
+        self.assertIn("tr=udp%3A%2F%2Furl.two%3A1337%2Fannounce", out)
+
+    def test_missing_trackers_file_warns_but_still_extracts(self):
+        r = cli(os.path.join(self.dir, "nope.html"),
+                "--trackers-file", os.path.join(self.dir, "absent.txt"), "--plain")
+        self.assertIn("could not load tracker list", r.stderr)

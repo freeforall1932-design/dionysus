@@ -85,16 +85,29 @@
 
     <div class="row" style="margin-top:14px">
       <label for="path">…or a path on this machine</label>
-      <input type="text" id="path" class="grow" placeholder="/home/you/saved-pages  or  /home/you/page.html">
+      <input type="text" id="path" class="grow" placeholder="C:\Users\you\saved-pages  or  /home/you/saved-pages">
     </div>
 
     <div class="row">
       <label class="chk"><input type="checkbox" id="opt-bare"> bare links (xt only)</label>
+      <label class="chk" title="Keeps the tracker hints, drops the name. Use this if bare links sit at 'Downloading metadata'.">
+        <input type="checkbox" id="opt-hints"> hints (xt + trackers)
+      </label>
       <label class="chk"><input type="checkbox" id="opt-strip"> strip trackers</label>
       <label class="chk"><input type="checkbox" id="opt-dedupe" checked> dedupe</label>
       <label><input type="text" id="opt-filter" placeholder="filter name…" style="width:150px"></label>
       <label><input type="text" id="opt-min" placeholder="min size 1GB" style="width:120px"></label>
       <label><input type="text" id="opt-max" placeholder="max size 20GB" style="width:120px"></label>
+    </div>
+
+    <div class="row">
+      <label for="tk-path" title="A plain text list of trackers, one per line. Added to magnets that have no tracker of their own, which is what stops bare links sitting at 'Downloading metadata'.">tracker list file</label>
+      <input type="text" id="tk-path" class="grow" placeholder="C:\trackers_all.txt  (optional)">
+      <label for="tk-url">or URL</label>
+      <input type="text" id="tk-url" class="grow"
+             placeholder="https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt">
+      <label for="tk-cap">max/link</label>
+      <input type="number" id="tk-cap" value="5" min="0" style="width:70px">
     </div>
 
     <div class="row" style="margin-top:14px">
@@ -117,6 +130,7 @@
     <div class="row" style="margin:12px 0">
       <button id="copy">Copy list</button>
       <button id="copy-bare">Copy bare</button>
+      <button id="copy-hints">Copy hints</button>
       <button id="download">Download .txt</button>
       <button class="go" id="add">Add to qBittorrent</button>
       <span class="tag" id="add-info"></span>
@@ -205,7 +219,11 @@ drop.addEventListener("drop", (e) => { if (e.dataTransfer.files.length) addFiles
 function options() {
   return {
     bare: $("opt-bare").checked,
+    hints: $("opt-hints").checked,
     strip_trackers: $("opt-strip").checked,
+    trackers_path: $("tk-path").value.trim(),
+    trackers_url: $("tk-url").value.trim(),
+    max_trackers: $("tk-cap").value,
     no_dedupe: !$("opt-dedupe").checked,
     filter: $("opt-filter").value.trim(),
     min_size: $("opt-min").value.trim(),
@@ -249,7 +267,8 @@ function render(res) {
   $("s-sized").textContent = `${res.sized}/${res.count}`;
   $("s-total").textContent = res.total_text || "–";
   $("s-sources").textContent = res.sources
-    .map(s => `${s.name}: ${s.raw} found, ${s.unique} unique`).join("  ·  ");
+    .map(s => `${s.name}: ${s.raw} found, ${s.unique} unique`).join("  ·  ")
+    + (res.augmented ? `  ·  tracker hints added to ${res.augmented}` : "");
 
   const rows = res.magnets.slice(0, 500).map(m => {
     const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c =>
@@ -272,10 +291,18 @@ function render(res) {
   }
 }
 
-function currentList(bare) {
+function currentList(mode) {
   if (!last) return [];
-  if (!bare) return last.magnets.map(m => m.magnet);
-  return last.magnets.map(m => "magnet:?xt=urn:bt" + (m.version === 2 ? "mh:1220" : "ih:") + m.infohash);
+  if (mode === "bare") return last.magnets.map(m => m.magnet_bare);
+  if (mode === "hints") return last.magnets.map(m => m.magnet_hints);
+  return last.magnets.map(m => m.magnet);
+}
+
+// bare > hints > strip, matching the CLI's precedence
+function chosenMode() {
+  if ($("opt-bare").checked) return "bare";
+  if ($("opt-hints").checked) return "hints";
+  return "full";
 }
 
 async function copyText(text, label) {
@@ -287,11 +314,12 @@ async function copyText(text, label) {
   }
 }
 
-$("copy").onclick = () => copyText(currentList(false).join("\n"), "magnet link(s)");
-$("copy-bare").onclick = () => copyText(currentList(true).join("\n"), "bare magnet link(s)");
+$("copy").onclick = () => copyText(currentList("full").join("\n"), "magnet link(s)");
+$("copy-bare").onclick = () => copyText(currentList("bare").join("\n"), "bare magnet link(s)");
+$("copy-hints").onclick = () => copyText(currentList("hints").join("\n"), "hints magnet link(s)");
 
 $("download").onclick = () => {
-  const blob = new Blob([currentList($("opt-bare").checked).join("\n") + "\n"], { type: "text/plain" });
+  const blob = new Blob([currentList(chosenMode()).join("\n") + "\n"], { type: "text/plain" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "magnets.txt";
@@ -335,7 +363,7 @@ $("add").onclick = async () => {
   $("add").disabled = true;
   setStatus(`Adding ${last.count} magnet(s)…`);
   try {
-    const r = await post("/api/add", { config: qconfig(), magnets: currentList($("opt-bare").checked) });
+    const r = await post("/api/add", { config: qconfig(), magnets: currentList(chosenMode()) });
     setStatus(`Added ${r.sent} magnet(s) to ${$("q-host").value.trim()}.`, "ok");
   } catch (e) {
     setStatus(e.message, "err");

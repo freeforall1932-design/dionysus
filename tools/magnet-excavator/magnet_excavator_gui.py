@@ -34,9 +34,11 @@ PAGE = os.path.join(HERE, "gui.html")
 MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 
 
-def record_to_dict(m: mx.Magnet, bare: bool, strip: bool) -> dict:
+def record_to_dict(m: mx.Magnet, bare: bool, strip: bool, hints: bool = False) -> dict:
     if bare:
         uri = m.bare_uri
+    elif hints:
+        uri = m.hints_uri
     elif strip:
         uri = m.clean_uri
     else:
@@ -50,12 +52,17 @@ def record_to_dict(m: mx.Magnet, bare: bool, strip: bool) -> dict:
         "trackers": len(m.trackers),
         "sources": [os.path.basename(s) for s in m.sources],
         "magnet": uri,
+        # The front end offers bare/hints/full copies without a round trip, so
+        # it needs the variants rather than having to rebuild them in JS.
+        "magnet_hints": m.hints_uri,
+        "magnet_bare": m.bare_uri,
     }
 
 
 def process(files: list[dict], paths: list[str], options: dict) -> dict:
     """Run the same pipeline the CLI runs, over uploaded bytes and/or disk paths."""
     bare = bool(options.get("bare"))
+    hints = bool(options.get("hints"))
     strip = bool(options.get("strip_trackers"))
     dedupe = not options.get("no_dedupe")
 
@@ -141,9 +148,26 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
 
         magnets = [m for m in magnets if sized(m)]
 
+    # Tracker hints are added last, after filtering, so nothing is spent on
+    # magnets the user has already filtered out.
+    augmented = 0
+    t_path = (options.get("trackers_path") or "").strip()
+    t_url = (options.get("trackers_url") or "").strip()
+    if t_path or t_url:
+        try:
+            cap = int(options.get("max_trackers") or 5)
+        except (TypeError, ValueError):
+            cap = 5
+        try:
+            trackers = mx.load_trackers(t_path or None, t_url or None)
+            augmented = mx.augment_trackers(magnets, trackers, cap)
+        except Exception as exc:  # noqa: BLE001 - a bad list must not lose the scan
+            errors.append(f"could not load tracker list: {exc}")
+
     total = sum(m.size for m in magnets if m.size is not None)
     return {
-        "magnets": [record_to_dict(m, bare, strip) for m in magnets],
+        "augmented": augmented,
+        "magnets": [record_to_dict(m, bare, strip, hints) for m in magnets],
         "sources": sources,
         "count": len(magnets),
         "raw": sum(s["raw"] for s in sources),
