@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-magnet-grab — pull every magnet link out of saved HTML and hand it to a torrent client.
+Magnet Excavator — dig every magnet link out of saved HTML and hand it to a torrent client.
 
 Stdlib only. No BeautifulSoup, no requests.
 
-    ./magnet_grab.py page.html                 # table of what was found
-    ./magnet_grab.py page.html --plain         # one magnet per line -> paste into qBittorrent
-    ./magnet_grab.py dir/ *.html --plain > m.txt
-    cat page.html | ./magnet_grab.py -
-    ./magnet_grab.py page.html --add           # POST straight to the qBittorrent WebUI
-    ./magnet_grab.py --url https://site/list   # fetch + extract in one go
+    ./magnet_excavator.py page.html                 # table of what was found
+    ./magnet_excavator.py page.html --plain         # one magnet per line -> paste into qBittorrent
+    ./magnet_excavator.py dir/ *.html --plain > m.txt
+    cat page.html | ./magnet_excavator.py -
+    ./magnet_excavator.py page.html --add           # POST straight to the qBittorrent WebUI
+    ./magnet_excavator.py --url https://site/list   # fetch + extract in one go
 
 Why it is not just `grep -o 'magnet:...'`:
   * saved HTML escapes `&` as `&amp;`, so a naive regex truncates at the first tracker
@@ -54,10 +54,12 @@ ANY_XT = re.compile(r"(?i)[?&]xt=")
 
 TRAILING_JUNK = ".,;:!?)'\""
 
-# Streaming window. OVERLAP must exceed the longest magnet URI we expect, so a
-# link straddling a chunk boundary is re-found in the next chunk. Real magnets
-# run a few hundred bytes to a few KB even with dozens of trackers.
-CHUNK_BYTES = 1 << 20
+# Files are read in chunks with an overlap so a link straddling a boundary is
+# re-found whole. 16 MiB means any realistically saved page is a single pass and
+# never touches the boundary path at all; it stays as a safety net for a huge
+# dump. OVERLAP must exceed the longest magnet URI we expect — real magnets run
+# a few hundred bytes to a few KB even with dozens of trackers.
+CHUNK_BYTES = 16 << 20
 OVERLAP = 1 << 16
 
 # "1.4 GB", "700MB", "12,5 KiB", "4.2gb". Index pages put this next to the magnet
@@ -342,7 +344,7 @@ def fetch_chunks(url: str, timeout: float):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) magnet-grab",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) magnet-excavator",
             "Accept-Encoding": "identity",
         },
     )
@@ -429,7 +431,7 @@ class QBittorrent:
 
     def _request(self, path: str, data: bytes | None = None, content_type: str | None = None):
         req = urllib.request.Request(self.host + path, data=data)
-        req.add_header("User-Agent", "magnet-grab")
+        req.add_header("User-Agent", "magnet-excavator")
         if content_type:
             req.add_header("Content-Type", content_type)
         if self.sid:
@@ -448,6 +450,16 @@ class QBittorrent:
         )
         if status != 200 or text.strip() != "Ok.":
             raise RuntimeError(f"qBittorrent login failed (HTTP {status}): {text.strip()[:80]}")
+
+    def get_json(self, path: str):
+        status, text = self._request(path)
+        if status != 200:
+            raise RuntimeError(f"{path} failed (HTTP {status})")
+        return json.loads(text)
+
+    def active_count(self, state: str = "downloading") -> int:
+        """How many torrents are currently in `state` (see /torrents/info filter)."""
+        return len(self.get_json(f"/api/v2/torrents/info?filter={state}"))
 
     def add(self, magnets: list[str], savepath: str = "", category: str = "", paused: bool = False):
         fields = {"urls": "\n".join(magnets)}
@@ -550,6 +562,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", action="store_true", help="emit JSON")
     ap.add_argument("--summary", action="store_true", help="per-source stats and overlap report")
     ap.add_argument("--out-dir", metavar="DIR", help="write one .txt per source into DIR")
+    ap.add_argument(
+        "--split",
+        type=int,
+        metavar="N",
+        help="with --out-dir, break each source into part files of N links for manual pasting",
+    )
     ap.add_argument("--strip-trackers", action="store_true", help="drop tr= params (keep xt/dn)")
     ap.add_argument("--filter", metavar="REGEX", help="keep only magnets whose name matches")
     ap.add_argument("--no-dedupe", action="store_true", help="keep every occurrence, in and across files")
@@ -592,6 +610,16 @@ def main(argv: list[str] | None = None) -> int:
     push.add_argument("--paused", action="store_true")
     push.add_argument("--batch", type=int, default=0, help="add at most N per request (0 = all)")
     push.add_argument("--batch-delay", type=float, default=0.0, help="seconds between batches")
+    push.add_argument(
+        "--max-active",
+        type=int,
+        default=0,
+        help="keep at most N torrents downloading: add into the headroom, then wait "
+        "and top up. This is how you feed in thousands without wedging the client",
+    )
+    push.add_argument(
+        "--poll-interval", type=float, default=30.0, help="seconds between queue polls (default 30)"
+    )
     ap.add_argument("--timeout", type=float, default=20.0)
 
     args = ap.parse_args(argv)
@@ -700,13 +728,25 @@ def main(argv: list[str] | None = None) -> int:
         for entry in stats:
             stem = os.path.splitext(os.path.basename(entry.path))[0] or "stdin"
             stem = re.sub(r"[^\w.\-]+", "_", stem) or "source"
-            dest = os.path.join(args.out_dir, f"{stem}.txt")
-            with open(dest, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(uri_of(m) for m in entry.magnets))
-                if entry.magnets:
-                    fh.write("\n")
-            print(f"{dest}  {entry.unique} magnet(s)", file=sys.stderr)
-            written += 1
+            items = [uri_of(m) for m in entry.magnets]
+
+            if args.split and args.split > 0:
+                parts = (len(items) + args.split - 1) // args.split
+                width = max(2, len(str(parts)))
+                for i in range(parts):
+                    chunk = items[i * args.split : (i + 1) * args.split]
+                    dest = os.path.join(args.out_dir, f"{stem}.part{i + 1:0{width}d}.txt")
+                    with open(dest, "w", encoding="utf-8") as fh:
+                        fh.write("\n".join(chunk) + "\n")
+                    print(f"{dest}  {len(chunk)} magnet(s)", file=sys.stderr)
+                    written += 1
+            else:
+                dest = os.path.join(args.out_dir, f"{stem}.txt")
+                with open(dest, "w", encoding="utf-8") as fh:
+                    if items:
+                        fh.write("\n".join(items) + "\n")
+                print(f"{dest}  {entry.unique} magnet(s)", file=sys.stderr)
+                written += 1
         if not written:
             print("no sources to write", file=sys.stderr)
 
@@ -746,19 +786,51 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         try:
             client = QBittorrent(args.host, args.username, args.password, args.timeout)
-            size = args.batch if args.batch > 0 else len(uris)
             sent = 0
-            for start in range(0, len(uris), size):
-                chunk = uris[start : start + size]
-                client.add(chunk, args.savepath, args.category, args.paused)
-                sent += len(chunk)
-                print(f"  added {sent}/{len(uris)}", file=sys.stderr)
-                if args.batch_delay and start + size < len(uris):
-                    time.sleep(args.batch_delay)
+            queue = list(uris)
+
+            if args.max_active > 0:
+                # Queue-aware feeding. Magnets are cheap to add but expensive to
+                # resolve: each one sits at "Downloading metadata" until a peer
+                # answers, and qBittorrent counts those towards its active
+                # download limit. Dumping thousands in at once locks the GUI and
+                # starves the queue, so add only into the available headroom.
+                while queue:
+                    active = client.active_count("downloading")
+                    headroom = args.max_active - active
+                    if headroom <= 0:
+                        print(
+                            f"  {active} downloading, holding at --max-active "
+                            f"{args.max_active}; retrying in {args.poll_interval:g}s "
+                            f"({len(queue)} queued)",
+                            file=sys.stderr,
+                        )
+                        time.sleep(args.poll_interval)
+                        continue
+                    take = min(headroom, args.batch if args.batch > 0 else headroom)
+                    chunk = queue[:take]
+                    client.add(chunk, args.savepath, args.category, args.paused)
+                    queue = queue[take:]
+                    sent += len(chunk)
+                    print(f"  added {sent}/{len(uris)} ({len(queue)} left)", file=sys.stderr)
+                    if args.batch_delay and queue:
+                        time.sleep(args.batch_delay)
+            else:
+                size = args.batch if args.batch > 0 else len(queue)
+                for start in range(0, len(queue), size):
+                    chunk = queue[start : start + size]
+                    client.add(chunk, args.savepath, args.category, args.paused)
+                    sent += len(chunk)
+                    print(f"  added {sent}/{len(uris)}", file=sys.stderr)
+                    if args.batch_delay and start + size < len(queue):
+                        time.sleep(args.batch_delay)
+        except KeyboardInterrupt:
+            print(f"\ninterrupted; {sent} added, {len(queue)} not yet sent", file=sys.stderr)
+            return 130
         except (urllib.error.URLError, OSError, RuntimeError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
-        print(f"added {len(uris)} magnet(s) to {args.host}", file=sys.stderr)
+        print(f"added {sent} magnet(s) to {args.host}", file=sys.stderr)
         return 0
 
     if args.plain:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for magnet_grab. Run with:  python3 -m unittest test_magnet_grab -v"""
+"""Tests for magnet_excavator. Run with:  python3 -m unittest test_magnet_excavator -v"""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ import io
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,15 +19,21 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import magnet_grab as mg
+import magnet_excavator as mg
 
-SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "magnet_grab.py")
+SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "magnet_excavator.py")
 
 
 def cli(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, SCRIPT, *args], capture_output=True, text=True
     )
+
+
+def _chunks(text: str, size: int):
+    """Split text into fixed-size pieces, as iter_text_chunks would."""
+    for i in range(0, len(text), size):
+        yield text[i : i + size]
 
 
 class TestExtract(unittest.TestCase):
@@ -305,6 +312,23 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(len(lines), 2)
         self.assertTrue(all(x.startswith("magnet:?") for x in lines))
 
+    def test_split_writes_part_files(self):
+        many = os.path.join(self.dir, "many2.html")
+        with open(many, "w", encoding="utf-8") as fh:
+            for i in range(25):
+                fh.write(f'<a href="magnet:?xt=urn:btih:{i:040x}&amp;dn=N{i}">x</a>')
+        out = os.path.join(self.dir, "parts")
+        r = cli(many, "--out-dir", out, "--split", "10")
+        self.assertEqual(r.returncode, 0)
+        names = sorted(os.listdir(out))
+        self.assertEqual(names, ["many2.part01.txt", "many2.part02.txt", "many2.part03.txt"])
+        counts = []
+        for n in names:
+            with open(os.path.join(out, n), encoding="utf-8") as fh:
+                counts.append(len([x for x in fh.read().split("\n") if x]))
+        self.assertEqual(counts, [10, 10, 5])
+        self.assertEqual(sum(counts), 25)
+
     def test_table_is_capped_by_limit(self):
         many = os.path.join(self.dir, "many.html")
         with open(many, "w", encoding="utf-8") as fh:
@@ -324,25 +348,45 @@ class TestStreaming(unittest.TestCase):
     def test_magnet_straddling_chunk_boundary_is_found_once(self):
         h = "ab" * 20
         link = "magnet:?xt=urn:btih:" + h + "&dn=Straddle"
-        text = "x" * (mg.CHUNK_BYTES - 100) + link + '">' + "y" * 500
-        got = list(mg.iter_matches([text]))
+        text = "x" * 900 + link + '">' + "y" * 500
+        # chunk at 1024 so the link is guaranteed to straddle the cut
+        got = list(mg.iter_matches(_chunks(text, 1024)))
         self.assertEqual(len(got), 1)
         self.assertEqual(got[0].name, "Straddle")
 
     def test_no_match_lost_across_many_chunks(self):
+        """Force many boundaries with a tiny chunk size — deterministic, no big fixture."""
         d = tempfile.mkdtemp()
         path = os.path.join(d, "multi.html")
-        n = 20000
+        n = 3000
         with open(path, "w", encoding="utf-8") as fh:
             for i in range(n):
                 fh.write(
                     f'<tr><td><a href="magnet:?xt=urn:btih:{i:040x}&amp;dn=N{i}">m</a></td>'
                     f"<td>{i % 900 + 1} MB</td></tr>"
                 )
-        self.assertGreater(os.path.getsize(path), mg.CHUNK_BYTES)
-        got = list(mg.iter_matches_with_size(mg.iter_text_chunks(path)))
+        small = 4096
+        self.assertGreater(os.path.getsize(path), small)
+        got = list(
+            mg.iter_matches_with_size(mg.iter_text_chunks(path, chunk_bytes=small))
+        )
         self.assertEqual(len(got), n)
         self.assertEqual(len({m.infohash for m in got}), n)
+
+    def test_magnet_at_every_boundary_offset(self):
+        """Sweep a link across every byte offset around a chunk boundary."""
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "sweep.html")
+        h = "ab" * 20
+        link = "magnet:?xt=urn:btih:" + h + "&dn=Sweep"
+        found = 0
+        for offset in range(0, 300, 7):
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("x" * offset + link + "\n")
+            got = list(mg.iter_matches(mg.iter_text_chunks(path, chunk_bytes=64)))
+            if len(got) == 1 and got[0].name == "Sweep":
+                found += 1
+        self.assertEqual(found, len(range(0, 300, 7)))
 
     def test_any_extension_is_scanned(self):
         d = tempfile.mkdtemp()
@@ -450,11 +494,25 @@ class TestQBittorrentAPI(unittest.TestCase):
 
     def setUp(self):
         self.received = {}
+        self.active = 3          # how many torrents /torrents/info reports
+        self.add_sizes = []      # urls per /torrents/add call
         outer = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
             def log_message(self, *a):
                 pass
+
+            def do_GET(self):
+                if self.path.startswith("/api/v2/torrents/info"):
+                    payload = json.dumps([{"hash": f"{i:040x}"} for i in range(outer.active)]).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(payload)))
+                    self.end_headers()
+                    self.wfile.write(payload)
+                else:
+                    self.send_response(404)
+                    self.end_headers()
 
             def do_POST(self):
                 body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
@@ -469,6 +527,11 @@ class TestQBittorrentAPI(unittest.TestCase):
                     outer.received["add_cookie"] = self.headers.get("Cookie")
                     outer.received["ctype"] = self.headers.get("Content-Type")
                     outer.received["add"] = body.decode()
+                    m = re.search(rb'name="urls"\r\n\r\n(.*?)\r\n------', body, re.S)
+                    n = len(m.group(1).decode().split("\n")) if m else 0
+                    outer.add_sizes.append(n)
+                    # simulate the queue draining as those links start and finish
+                    outer.active = max(0, outer.active - n)
                     self.send_response(200)
                     self.end_headers()
                     self.wfile.write(b"Ok.")
@@ -494,6 +557,35 @@ class TestQBittorrentAPI(unittest.TestCase):
         self.assertIn("magnet:?xt=urn:btih:aaa\nmagnet:?xt=urn:btih:bbb", self.received["add"])
         self.assertIn("/dl", self.received["add"])
 
+
+    def test_active_count_reads_torrent_list(self):
+        client = mg.QBittorrent(f"http://127.0.0.1:{self.port}", "admin", "pw")
+        self.active = 3
+        self.assertEqual(client.active_count("downloading"), 3)
+        self.active = 0
+        self.assertEqual(client.active_count("downloading"), 0)
+
+    def test_feeder_adds_only_into_available_headroom(self):
+        """--max-active must add into the headroom and no further."""
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "many.html")
+        with open(path, "w", encoding="utf-8") as fh:
+            for i in range(10):
+                fh.write(f'<a href="magnet:?xt=urn:btih:{i:040x}&amp;dn=N{i}">x</a>')
+
+        # 4 already downloading, cap of 6 -> only 2 fit on the first pass.
+        # The mock drains as links are added, so the run terminates.
+        self.active = 4
+        r = subprocess.run(
+            [sys.executable, SCRIPT, path, "--add",
+             "--host", f"http://127.0.0.1:{self.port}",
+             "--username", "a", "--password", "b",
+             "--max-active", "6", "--poll-interval", "0.1"],
+            capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.add_sizes, [2, 4, 4])
+        self.assertEqual(sum(self.add_sizes), 10)
 
     def test_add_batches_urls_across_requests(self):
         client = mg.QBittorrent(f"http://127.0.0.1:{self.port}", "admin", "pw")

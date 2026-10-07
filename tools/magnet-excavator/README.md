@@ -1,14 +1,14 @@
-# magnet-grab
+# Magnet Excavator
 
 Pull every magnet link out of saved pages and hand them to a torrent client.
 Stdlib only — no BeautifulSoup, no `requests`, nothing to install.
 
 ```bash
-./magnet_grab.py page.html                 # what was found
-./magnet_grab.py pages/ --summary          # per-source counts, overlap, size totals
-./magnet_grab.py pages/ --out-dir lists/   # one paste-ready .txt per source
-./magnet_grab.py pages/ --plain > all.txt  # merged, deduped across every source
-./magnet_grab.py pages/ --add --batch 500  # POST straight to the qBittorrent WebUI
+./magnet_excavator.py page.html                 # what was found
+./magnet_excavator.py pages/ --summary          # per-source counts, overlap, size totals
+./magnet_excavator.py pages/ --out-dir lists/   # one paste-ready .txt per source
+./magnet_excavator.py pages/ --plain > all.txt  # merged, deduped across every source
+./magnet_excavator.py pages/ --add --batch 500  # POST straight to the qBittorrent WebUI
 ```
 
 ## Any file, not just HTML
@@ -73,15 +73,15 @@ size somewhere unusual it will be low, and the total is then only partial —
 the count tells you how much to trust it.
 
 ```bash
-./magnet_grab.py pages/ --min-size 5GB --max-size 20GB --plain   # filter first
-./magnet_grab.py pages/ --json | jq '.[].size'                   # pipe the sizes
+./magnet_excavator.py pages/ --min-size 5GB --max-size 20GB --plain   # filter first
+./magnet_excavator.py pages/ --json | jq '.[].size'                   # pipe the sizes
 ```
 
 ## Why not just `grep -o 'magnet:...'`
 
 A one-liner looks like it works and quietly loses links:
 
-| Trap in real saved pages | Naive regex | magnet-grab |
+| Trap in real saved pages | Naive regex | Magnet Excavator |
 |---|---|---|
 | `&` written as `&amp;`, so the URI is cut at the first tracker | truncated | unescaped, full URI kept |
 | magnet inside `<script>` or a JSON string | often missed | found |
@@ -106,18 +106,76 @@ A one-liner looks like it works and quietly loses links:
 - `--filter REGEX` — keep only magnets whose name matches (case-insensitive)
 - `--no-dedupe` — keep every occurrence, within and across files
 
+## Getting thousands of links into a client
+
+Pasting is the easy part. qBittorrent's *File → Add Torrent Link* (Ctrl+Shift+O)
+takes many URLs at once, one per line — hundreds is fine. The problem is what
+happens next: every magnet sits at **"Downloading metadata"** until a peer
+answers, and qBittorrent counts those against its active-download limit. Paste
+thousands and the GUI locks up while it resolves them, and dead magnets can sit
+there indefinitely holding queue slots.
+
+So the bottleneck is resolution, not the paste. Three ways to handle it:
+
+### 1. Feed the queue (recommended)
+
+`--max-active` adds only into the space the client actually has, then polls and
+tops up as torrents start and finish:
+
+```bash
+./magnet_excavator.py pages/ --add --max-active 40 --batch 10 --poll-interval 60
+```
+
+```
+  38 downloading, holding at --max-active 40; retrying in 60s (4960 queued)
+  added 512/5000 (4488 left)
+```
+
+This runs unattended. Ctrl+C reports how many went in and how many did not.
+
+### 2. Split into paste-sized files
+
+```bash
+./magnet_excavator.py pages/ --out-dir lists/ --split 100
+```
+
+Writes `index_a.part01.txt`, `index_a.part02.txt`, … each holding 100 links —
+small enough to paste into the dialog by hand and let the queue absorb.
+
+### 3. Plain batching
+
+```bash
+./magnet_excavator.py pages/ --add --batch 500 --batch-delay 5
+```
+
+Verified: 500 magnets arrive as three requests of 200/200/100 rather than one
+giant POST.
+
+### Other clients
+
+- **Transmission** — no bulk add, and its watch folder ignores magnets. Loop
+  `transmission-remote --add` over a `--plain` list:
+  `./magnet_excavator.py pages/ --plain | while read -r l; do transmission-remote -a "$l"; done`
+- **Deluge** — the watch folder *does* pick up `.magnet` files, so split a list
+  into one-magnet-per-file and drop them in
+- **ruTorrent** — still has no bulk import ([issue #1966](https://github.com/Novik/ruTorrent/issues/1966),
+  open since 2019); use its RPC or the API path instead
+
+Whichever client: set its active-download limit low and let the queue do the
+pacing. Adding everything at once is never faster than adding it steadily.
+
 ## Pushing to qBittorrent
 
 ```bash
 export QBT_HOST=http://localhost:8080 QBT_USER=admin QBT_PASS=secret
 
-./magnet_grab.py pages/index-a.html --add --category index-a --savepath /downloads/a
-./magnet_grab.py pages/ --add --batch 500 --batch-delay 2
+./magnet_excavator.py pages/index-a.html --add --category index-a --savepath /downloads/a
 ```
 
 Logs in at `/api/v2/auth/login`, then POSTs newline-separated `urls` to
 `/api/v2/torrents/add` (multipart form-data), the same shape the WebUI sends.
-qBittorrent 4.1+ WebAPI v2. Use `--batch` for thousands of links.
+qBittorrent 4.1+ WebAPI v2. `--max-active` polls
+`/api/v2/torrents/info?filter=downloading`.
 
 ## Validation
 
@@ -128,19 +186,22 @@ rather than pasted into your client.
 
 ## Scale
 
-Measured here: 50,000 magnets from an 18 MB page in ~2.9 s, ~137 MB peak RSS.
-Two sources totalling 750 links with sizes in well under a second.
+Tuned for 1-10 MB saved pages, which is what you actually deal with. Files read
+in 16 MiB chunks, so anything that size is a single pass and never touches the
+chunk-boundary logic at all — that code stays only as a safety net for an
+oversized dump. Measured anyway: 50,000 magnets from an 18 MB page in ~2.9 s,
+~137 MB peak RSS.
 
 ## Tests
 
 ```bash
-python3 -m unittest test_magnet_grab -v
+python3 -m unittest test_magnet_excavator -v
 ```
 
-52 tests covering extraction, rejection, encodings, chunk-boundary streaming,
+56 tests covering extraction, rejection, encodings, chunk-boundary streaming,
 any-extension scanning, binary safety, size parsing and filters, CLI behaviour,
-and the qBittorrent login + multipart add path with batch chunking (against a
-mock WebUI, so no client is needed).
+and the qBittorrent login + multipart add path with batch chunking and
+queue-aware feeding (against a mock WebUI, so no client is needed).
 
 ## Alternatives worth knowing
 
