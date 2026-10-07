@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import http.server
 import io
 import json
@@ -315,6 +316,133 @@ class TestCLI(unittest.TestCase):
         full = cli(many, "--limit", "0")
         self.assertNotIn("more (use --limit 0", full.stdout)
         self.assertEqual(len(full.stdout.strip().split("\n")), 122)  # header + rule + 120
+
+
+class TestStreaming(unittest.TestCase):
+    """The chunked reader must not lose or duplicate links at a boundary."""
+
+    def test_magnet_straddling_chunk_boundary_is_found_once(self):
+        h = "ab" * 20
+        link = "magnet:?xt=urn:btih:" + h + "&dn=Straddle"
+        text = "x" * (mg.CHUNK_BYTES - 100) + link + '">' + "y" * 500
+        got = list(mg.iter_matches([text]))
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0].name, "Straddle")
+
+    def test_no_match_lost_across_many_chunks(self):
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "multi.html")
+        n = 20000
+        with open(path, "w", encoding="utf-8") as fh:
+            for i in range(n):
+                fh.write(
+                    f'<tr><td><a href="magnet:?xt=urn:btih:{i:040x}&amp;dn=N{i}">m</a></td>'
+                    f"<td>{i % 900 + 1} MB</td></tr>"
+                )
+        self.assertGreater(os.path.getsize(path), mg.CHUNK_BYTES)
+        got = list(mg.iter_matches_with_size(mg.iter_text_chunks(path)))
+        self.assertEqual(len(got), n)
+        self.assertEqual(len({m.infohash for m in got}), n)
+
+    def test_any_extension_is_scanned(self):
+        d = tempfile.mkdtemp()
+        for name in ("list.txt", "weird.xyz123", "dump.log"):
+            with open(os.path.join(d, name), "w", encoding="utf-8") as fh:
+                h = hashlib.sha1(name.encode()).hexdigest()
+                fh.write(f"noise magnet:?xt=urn:btih:{h}&dn={name} noise")
+        paths = mg.collect_paths([d])
+        self.assertEqual(len(paths), 3)
+
+    def test_binary_file_yields_clean_uri(self):
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "blob.bin")
+        h = "cd" * 20
+        with open(path, "wb") as fh:
+            fh.write(b"\x00\x01\xff\xfe" * 500)
+            fh.write(f"magnet:?xt=urn:btih:{h}&dn=InBinary".encode())
+            fh.write(b"\x00\xff\xfe" * 500)
+        [m] = list(mg.iter_matches(mg.iter_text_chunks(path)))
+        self.assertEqual(m.name, "InBinary")
+        self.assertFalse(any(ord(c) > 126 for c in m.uri))
+
+    def test_ext_filter_prunes_walk_only(self):
+        d = tempfile.mkdtemp()
+        for n in ("a.html", "b.txt"):
+            with open(os.path.join(d, n), "w", encoding="utf-8") as fh:
+                fh.write("x")
+        self.assertEqual(len(mg.collect_paths([d], {".html"})), 1)
+        # an explicitly named file is never pruned, so typos surface as errors
+        named = os.path.join(d, "b.txt")
+        self.assertEqual(mg.collect_paths([named], {".html"}), [named])
+
+
+class TestSizes(unittest.TestCase):
+    def test_parse_size_units_are_binary(self):
+        self.assertEqual(mg.parse_size("1 MB"), 1 << 20)
+        self.assertEqual(mg.parse_size("700MB"), 700 * (1 << 20))
+        self.assertEqual(mg.parse_size("1.4 GB"), int(1.4 * (1 << 30)))
+        self.assertEqual(mg.parse_size("12,5 KiB"), 12800)
+        self.assertEqual(mg.parse_size("100 B"), 100)
+        self.assertEqual(mg.parse_size("2 TB"), 2 * (1 << 40))
+        self.assertIsNone(mg.parse_size("no size here"))
+
+    def test_size_scraped_from_table_row(self):
+        html = (
+            '<tr><td><a href="magnet:?xt=urn:btih:' + "a" * 40 + '&amp;dn=X">m</a></td>'
+            "<td>1.4 GB</td><td>52</td></tr>"
+        )
+        [m] = mg.extract(html)
+        self.assertEqual(m.size, int(1.4 * (1 << 30)))
+
+    def test_size_scrape_stops_at_row_end(self):
+        """A size in the NEXT row must not be attributed to this link."""
+        html = (
+            '<tr><td><a href="magnet:?xt=urn:btih:' + "a" * 40 + '&amp;dn=X">m</a></td></tr>'
+            "<tr><td>9.9 GB</td></tr>"
+        )
+        [m] = mg.extract(html)
+        self.assertIsNone(m.size)
+
+    def test_xl_param_wins_over_nothing(self):
+        html = '<a href="magnet:?xt=urn:btih:' + "a" * 40 + '&xl=1234567&dn=X">'
+        [m] = mg.extract(html)
+        self.assertEqual(m.size, 1234567)
+
+    def test_min_and_max_size_filters(self):
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "p.html")
+        with open(path, "w", encoding="utf-8") as fh:
+            for i, size in enumerate(["100 MB", "5 GB", "900 GB"]):
+                fh.write(
+                    f'<tr><td><a href="magnet:?xt=urn:btih:{i:040x}&amp;dn=S{i}">m</a></td>'
+                    f"<td>{size}</td></tr>"
+                )
+        kept = cli(path, "--min-size", "1GB", "--max-size", "10GB", "--json")
+        names = [r["name"] for r in json.loads(kept.stdout)]
+        self.assertEqual(names, ["S1"])
+
+    def test_summary_reports_total_size(self):
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "p.html")
+        with open(path, "w", encoding="utf-8") as fh:
+            for i, size in enumerate(["1 GB", "2 GB"]):
+                fh.write(
+                    f'<tr><td><a href="magnet:?xt=urn:btih:{i:040x}&amp;dn=S{i}">m</a></td>'
+                    f"<td>{size}</td></tr>"
+                )
+        out = cli(path, "--summary").stdout
+        self.assertIn("ESTIMATED TOTAL", out)
+        self.assertIn("3.0 GiB", out)
+
+
+class TestRegexAnchoring(unittest.TestCase):
+    def test_magnet_preceded_by_word_character_still_matches(self):
+        got = mg.extract('{"url":"magnet:?xt=urn:btih:' + "a" * 40 + '&dn=J"}')
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0].name, "J")
+
+    def test_plain_text_has_no_false_positives(self):
+        self.assertEqual(mg.extract("just prose about magnet links and magnets"), [])
 
 
 class TestQBittorrentAPI(unittest.TestCase):

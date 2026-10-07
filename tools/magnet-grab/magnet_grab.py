@@ -34,11 +34,15 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 
-# A magnet URI is a scheme plus a query string. Everything up to whitespace or a
-# quoting/delimiting character belongs to the URI. Backslash is excluded because
-# magnets embedded in JS string literals are often followed by a closing quote
-# that we want to leave behind.
-MAGNET_RE = re.compile(r"(?i)\bmagnet:\?[^\s\"'<>\\]+")
+# A magnet URI is a scheme plus a query string, and per RFC 3986 every character
+# in it is printable ASCII. Restricting to the allowed URI set means a magnet
+# embedded in a binary file stops cleanly at the first null byte or non-ASCII
+# byte instead of dragging garbage into the link.
+_URI_CHARS = r"[0-9A-Za-z\-._~:/?#\[\]@!$&()*+,;=%]"
+# No \b anchor: a magnet is often preceded by a word character ("url":"magnet:, xmagnet:)
+# and \b would refuse to match there. False positives are prevented downstream by
+# requiring a well-formed infohash, not by the anchor.
+MAGNET_RE = re.compile(r"(?i)magnet:\?" + _URI_CHARS + r"+")
 
 # Accepted infohash encodings:
 #   v1  40 hex chars, or 32 chars of base32
@@ -49,6 +53,60 @@ BTMH_V2 = re.compile(r"(?i)xt=urn:btmh:1220([0-9a-f]{64})\b")
 ANY_XT = re.compile(r"(?i)[?&]xt=")
 
 TRAILING_JUNK = ".,;:!?)'\""
+
+# Streaming window. OVERLAP must exceed the longest magnet URI we expect, so a
+# link straddling a chunk boundary is re-found in the next chunk. Real magnets
+# run a few hundred bytes to a few KB even with dozens of trackers.
+CHUNK_BYTES = 1 << 20
+OVERLAP = 1 << 16
+
+# "1.4 GB", "700MB", "12,5 KiB", "4.2gb". Index pages put this next to the magnet
+# and it is the only size available before metadata is resolved.
+SIZE_RE = re.compile(
+    r"(?<![0-9a-zA-Z])"
+    r"(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?)"
+    r"\s*"
+    r"(KiB|MiB|GiB|TiB|PiB|KB|MB|GB|TB|PB|B)\b",
+    re.I,
+)
+
+# Index sites write "MB"/"GB" but mean 1024-based units, so read every unit as
+# binary. Treating MB as 10^6 would report a "1 MB" torrent as "976.6 KiB".
+SIZE_UNITS = {"b": 1, "kb": 1 << 10, "kib": 1 << 10, "mb": 1 << 20, "mib": 1 << 20,
+              "gb": 1 << 30, "gib": 1 << 30, "tb": 1 << 40, "tib": 1 << 40,
+              "pb": 1 << 50, "pib": 1 << 50}
+
+
+def parse_size(text: str) -> int | None:
+    """Turn '1.4 GB' / '700MB' / '12,5 KiB' into a byte count."""
+    m = SIZE_RE.search(text)
+    if not m:
+        return None
+    raw, unit = m.group(1), m.group(2).lower()
+    factor = SIZE_UNITS.get(unit)
+    if factor is None:
+        return None
+    # Handle both "1,234.5" (en) and "1.234,5" (id/de) separators.
+    if "," in raw and "." in raw:
+        raw = raw.replace(",", "") if raw.rfind(".") > raw.rfind(",") else raw.replace(".", "").replace(",", ".")
+    else:
+        raw = raw.replace(",", ".") if "," in raw else raw
+    try:
+        return int(float(raw) * factor)
+    except ValueError:
+        return None
+
+
+def human_size(n: int | None) -> str:
+    if n is None:
+        return "-"
+    units = ("B", "KiB", "MiB", "GiB", "TiB", "PiB")
+    value = float(n)
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            return f"{value:.0f} {unit}" if unit == "B" else f"{value:.1f} {unit}"
+        value /= 1024
+    return f"{value:.1f} PiB"
 
 
 @dataclass
@@ -73,6 +131,7 @@ class Magnet:
     name: str = ""
     trackers: list[str] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
+    size: int | None = None  # bytes, from xl= if present or scraped from the page
 
     @property
     def clean_uri(self) -> str:
@@ -134,25 +193,127 @@ def decode_name(values: list[str]) -> str:
     return unquote_smart(values[0]).strip()
 
 
-def build(uri: str, infohash: str, version: int) -> Magnet:
+def build(uri: str, infohash: str, version: int, size: int | None = None) -> Magnet:
     params = parse_query(uri)
+    # `xl` (exact length) predates BEP 9 and index sites rarely emit it, but when
+    # present it is authoritative, so it beats anything scraped from the page.
+    if size is None:
+        for candidate in params.get("xl", []):
+            try:
+                size = int(candidate)
+                break
+            except ValueError:
+                continue
     return Magnet(
         uri=uri,
         infohash=infohash,
         version=version,
         name=decode_name(params.get("dn", [])),
         trackers=[unquote_smart(t) for t in params.get("tr", [])],
+        size=size,
     )
 
 
 def rebuild_with_sources(m: Magnet, sources: list[str]) -> Magnet:
-    """Re-derive a Magnet from its URI, carrying over the source list."""
+    """Re-derive a Magnet from its URI, carrying over source list and scraped size."""
     fresh = build(m.uri, m.infohash, m.version)
     fresh.sources = sources
+    if fresh.size is None:
+        fresh.size = m.size
     return fresh
 
 
-def extract(text: str, source: str = "<input>", dedupe: bool = True) -> list[Magnet]:
+def detect_encoding(sample: bytes) -> str:
+    """Pick a decoder from a leading <meta charset>, else fall back to utf-8."""
+    head = sample[:4096].decode("ascii", "ignore").lower()
+    m = re.search(r'charset=["\']?\s*([a-z0-9_\-]+)', head)
+    if m:
+        try:
+            "".encode(m.group(1))
+            return m.group(1)
+        except LookupError:
+            pass
+    return "utf-8"
+
+
+def iter_text_chunks(path: str, chunk_bytes: int = CHUNK_BYTES):
+    """Yield decoded text for any file on disk, gunzipping transparently.
+
+    No extension filter and no assumption about format: the bytes are decoded
+    with errors='replace' so a .txt, an .mhtml, a log, or a binary that happens
+    to contain a magnet all work.
+    """
+    with open(path, "rb") as fh:
+        magic = fh.read(2)
+        fh.seek(0)
+        raw = gzip.GzipFile(fileobj=fh) if magic == b"\x1f\x8b" else fh
+        first = raw.read(chunk_bytes)
+        if not first:
+            return
+        encoding = detect_encoding(first)
+        yield first.decode(encoding, "replace")
+        while True:
+            buf = raw.read(chunk_bytes)
+            if not buf:
+                break
+            yield buf.decode(encoding, "replace")
+
+
+def iter_matches_with_size(chunks, source: str = "<input>", window: int = 400,
+                           want_size: bool = True):
+    """Yield every Magnet in a stream of text chunks, safe across chunk edges.
+
+    A match is held back when it *starts* inside the trailing OVERLAP, and carry
+    is exactly OVERLAP long — so any held-back match is guaranteed to be present
+    in full on the next pass. Keying off the start matters: a match can begin
+    before the carry window and still run past the cut, and testing its end
+    would drop it permanently.
+
+    When want_size is on, a file size is scraped from the text following each
+    magnet (up to the end of the enclosing table row).
+    """
+    carry = ""
+    pending = None
+
+    def scan(text: str, final: bool):
+        limit_start = len(text) if final else len(text) - OVERLAP
+        for m in MAGNET_RE.finditer(text):
+            if m.start() >= limit_start:
+                break
+            uri = normalize(m.group(0))
+            info = classify(uri)
+            if info is None:
+                continue
+            infohash, version = info
+            magnet = build(uri, infohash, version)
+            magnet.sources = [source]
+            if want_size and magnet.size is None:
+                context = text[m.end() : m.end() + window]
+                row = context.find("</tr>")
+                if row != -1:
+                    context = context[:row]
+                magnet.size = parse_size(context)
+            yield magnet
+
+    for chunk in chunks:
+        if pending is None:
+            pending = chunk
+            continue
+        text = carry + pending
+        yield from scan(text, False)
+        carry = text[-OVERLAP:]
+        pending = chunk
+    if pending is not None:
+        yield from scan(carry + pending, True)
+
+
+def iter_matches(chunks, source: str = "<input>"):
+    """Same traversal without the size scrape."""
+    return iter_matches_with_size(chunks, source, want_size=False)
+
+
+def extract(text: str, source: str = "<input>", dedupe: bool = True,
+            with_size: bool = True) -> list[Magnet]:
     """Find every magnet URI in `text`.
 
     With dedupe=True (default) each infohash appears once, keeping the richest URI.
@@ -162,81 +323,70 @@ def extract(text: str, source: str = "<input>", dedupe: bool = True) -> list[Mag
     order: list[str] = []
     all_matches: list[Magnet] = []
 
-    for raw in MAGNET_RE.findall(text):
-        uri = normalize(raw)
-        info = classify(uri)
-        if info is None:
-            continue
-        infohash, version = info
-        magnet = build(uri, infohash, version)
-        magnet.sources = [source]
-
+    for magnet in iter_matches_with_size([text], source, want_size=with_size):
         if not dedupe:
             all_matches.append(magnet)
             continue
-
-        if infohash in found:
-            existing = found[infohash]
-            if source not in existing.sources:
-                existing.sources.append(source)
-            # Prefer the longest URI seen: it usually carries more trackers.
-            # Rebuild so name/trackers reflect the URI we actually keep.
-            if len(uri) > len(existing.uri):
-                replacement = build(uri, infohash, version)
-                replacement.sources = existing.sources
-                found[infohash] = replacement
-            continue
-
-        found[infohash] = magnet
-        order.append(infohash)
+        known = found.get(magnet.infohash)
+        if known is None:
+            found[magnet.infohash] = magnet
+            order.append(magnet.infohash)
+        elif len(magnet.uri) > len(known.uri):
+            found[magnet.infohash] = rebuild_with_sources(magnet, known.sources)
 
     return all_matches if not dedupe else [found[h] for h in order]
 
 
-def read_file(path: str) -> str:
-    with open(path, "rb") as fh:
-        blob = fh.read()
-    return decode_bytes(blob)
-
-
-def decode_bytes(blob: bytes) -> str:
-    """Decode saved-page bytes, honouring gzip and any <meta charset>."""
-    if blob[:2] == b"\x1f\x8b":
-        blob = gzip.decompress(blob)
-
-    # Peek at a leading meta charset before committing to a decoder.
-    head = blob[:4096].decode("ascii", "ignore").lower()
-    m = re.search(r'charset=["\']?\s*([a-z0-9_\-]+)', head)
-    if m:
-        try:
-            return blob.decode(m.group(1), "replace")
-        except LookupError:
-            pass
-    for encoding in ("utf-8", "cp1252"):
-        try:
-            return blob.decode(encoding)
-        except UnicodeDecodeError:
-            continue
-    return blob.decode("utf-8", "replace")
-
-
-def fetch(url: str, timeout: float) -> str:
+def fetch_chunks(url: str, timeout: float):
+    """Stream a URL as decoded text chunks."""
     req = urllib.request.Request(
         url,
         headers={
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) magnet-grab",
-            "Accept-Encoding": "gzip",
+            "Accept-Encoding": "identity",
         },
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        blob = resp.read()
-        if resp.headers.get("Content-Encoding") == "gzip":
-            blob = gzip.decompress(blob)
-    return decode_bytes(blob)
+        first = resp.read(CHUNK_BYTES)
+        if not first:
+            return
+        encoding = detect_encoding(first)
+        yield first.decode(encoding, "replace")
+        while True:
+            buf = resp.read(CHUNK_BYTES)
+            if not buf:
+                break
+            yield buf.decode(encoding, "replace")
 
 
-def collect_paths(inputs: list[str]) -> list[str]:
+def decode_bytes(blob: bytes) -> str:
+    """Decode a whole in-memory payload (kept for tests and small buffers)."""
+    if blob[:2] == b"\x1f\x8b":
+        blob = gzip.decompress(blob)
+    return blob.decode(detect_encoding(blob), "replace")
+
+
+def collect_paths(inputs: list[str], only_ext: set[str] | None = None,
+                  max_bytes: int | None = None):
+    """Expand inputs into a file list. Every file is a candidate unless filtered.
+
+    --ext and --max-file-size prune a *directory walk* only. A file named
+    explicitly is always attempted, so a typo surfaces as an error instead of
+    being silently dropped.
+    """
     paths: list[str] = []
+
+    def walk_ok(path: str) -> bool:
+        if only_ext and not path.lower().endswith(tuple(only_ext)):
+            return False
+        if max_bytes is not None:
+            try:
+                if os.path.getsize(path) > max_bytes:
+                    return False
+            except OSError:
+                return False
+        return True
+
     for item in inputs:
         if item == "-":
             paths.append(item)
@@ -244,9 +394,9 @@ def collect_paths(inputs: list[str]) -> list[str]:
         if os.path.isdir(item):
             for root, _dirs, files in os.walk(item):
                 for name in sorted(files):
-                    low = name.lower()
-                    if low.endswith((".html", ".htm", ".xhtml", ".mhtml", ".mht", ".html.gz")):
-                        paths.append(os.path.join(root, name))
+                    full = os.path.join(root, name)
+                    if walk_ok(full):
+                        paths.append(full)
         else:
             paths.append(item)
     return paths
@@ -323,15 +473,16 @@ def render_table(magnets: list[Magnet], limit: int = 50) -> str:
     shown = magnets if limit <= 0 else magnets[:limit]
     name_w = max([len("NAME")] + [min(len(m.name or "(unnamed)"), 60) for m in shown])
     lines = [
-        f"{'NAME':<{name_w}}  {'VER':<3} {'INFOHASH':<40}  SRC",
-        "-" * (name_w + 3 + 40 + 8),
+        f"{'NAME':<{name_w}}  {'SIZE':>9}  {'VER':<3} {'INFOHASH':<40}  SRC",
+        "-" * (name_w + 2 + 9 + 2 + 3 + 1 + 40 + 8),
     ]
     for m in shown:
         label = m.name or "(unnamed)"
         src = m.sources[0] if m.sources else ""
         if len(m.sources) > 1:
             src += f" (+{len(m.sources) - 1})"
-        lines.append(f"{label[:60]:<{name_w}}  v{m.version:<2} {m.infohash:<40}  {src}")
+        size = human_size(m.size)
+        lines.append(f"{label[:60]:<{name_w}}  {size:>9}  v{m.version:<2} {m.infohash:<40}  {src}")
     if limit > 0 and len(magnets) > limit:
         lines.append(f"... {len(magnets) - limit} more (use --limit 0 to show all)")
     return "\n".join(lines)
@@ -340,11 +491,16 @@ def render_table(magnets: list[Magnet], limit: int = 50) -> str:
 def render_summary(stats: list[SourceStats], merged: list[Magnet]) -> str:
     name_w = max([len("SOURCE")] + [len(s.label) for s in stats]) if stats else len("SOURCE")
     lines = [
-        f"{'SOURCE':<{name_w}}  {'RAW':>7} {'UNIQUE':>7} {'IN-SRC DUPES':>13}",
-        "-" * (name_w + 2 + 7 + 1 + 7 + 1 + 13),
+        f"{'SOURCE':<{name_w}}  {'RAW':>7} {'UNIQUE':>7} {'DUPES':>6} {'SIZED':>6} {'EST. TOTAL':>11}",
+        "-" * (name_w + 2 + 7 + 1 + 7 + 1 + 6 + 1 + 6 + 1 + 11),
     ]
     for s in stats:
-        lines.append(f"{s.label:<{name_w}}  {s.raw:>7} {s.unique:>7} {s.raw - s.unique:>13}")
+        total = sum(m.size for m in s.magnets if m.size is not None)
+        sized = sum(1 for m in s.magnets if m.size is not None)
+        lines.append(
+            f"{s.label:<{name_w}}  {s.raw:>7} {s.unique:>7} {s.raw - s.unique:>6} "
+            f"{sized:>6} {human_size(total) if sized else '-':>11}"
+        )
 
     if len(stats) > 1:
         seen_in: dict[str, int] = {}
@@ -359,6 +515,21 @@ def render_summary(stats: list[SourceStats], merged: list[Magnet]) -> str:
         lines.append(f"{'in 2+ sources':<{name_w}}  {len(overlap):>7}")
         for label, count in only.items():
             lines.append(f"{('exclusive to ' + label):<{name_w}}  {count:>7}")
+
+    sized = [m for m in merged if m.size is not None]
+    lines += ["", "ESTIMATED TOTAL (merged, deduped)", "-" * 46]
+    lines.append(f"{'links with a size':<34}  {len(sized):>7} / {len(merged)}")
+    lines.append(f"{'links with no size found':<34}  {len(merged) - len(sized):>7}")
+    if sized:
+        lines.append(f"{'total bytes':<34}  {sum(m.size for m in sized):>7}")
+        lines.append(f"{'total (human)':<34}  {human_size(sum(m.size for m in sized)):>7}")
+        biggest = max(sized, key=lambda m: m.size)
+        lines.append(f"{'largest single link':<34}  {human_size(biggest.size):>7}  {biggest.name[:40]}")
+    else:
+        lines.append(
+            "no sizes could be scraped — sizes come from the page markup, and a "
+            "magnet URI carries none"
+        )
     return "\n".join(lines)
 
 
@@ -389,6 +560,27 @@ def main(argv: list[str] | None = None) -> int:
         help="which URI to keep when a hash repeats across sources (default: richest)",
     )
     ap.add_argument("--limit", type=int, default=50, help="rows in the table; 0 = all (default 50)")
+    ap.add_argument(
+        "--ext",
+        action="append",
+        metavar="EXT",
+        help="only scan these extensions (repeatable). Default: scan every file",
+    )
+    ap.add_argument(
+        "--max-file-size",
+        type=int,
+        default=512 * 1024 * 1024,
+        help="skip files larger than N bytes in a directory walk (default 512 MiB, 0 = no limit)",
+    )
+
+    sizes = ap.add_argument_group("size filtering (scraped from the page)")
+    sizes.add_argument("--min-size", metavar="SIZE", help='e.g. "500MB", "1.5GB"')
+    sizes.add_argument("--max-size", metavar="SIZE", help='e.g. "20GB"')
+    sizes.add_argument(
+        "--keep-unknown-size",
+        action="store_true",
+        help="with --min-size/--max-size, keep links whose size could not be scraped",
+    )
 
     push = ap.add_argument_group("push to qBittorrent")
     push.add_argument("--add", action="store_true", help="POST the magnets to the qBittorrent WebUI")
@@ -413,53 +605,60 @@ def main(argv: list[str] | None = None) -> int:
     flat: list[Magnet] = []
     errors: list[str] = []
 
-    def absorb(text: str, source: str) -> None:
-        matches = extract(text, source, dedupe=False)
-        entry = SourceStats(path=source, raw=len(matches))
+    def absorb(chunks, source: str) -> None:
+        entry = SourceStats(path=source)
         local: dict[str, Magnet] = {}
         local_order: list[str] = []
 
-        for m in matches:
+        for m in iter_matches_with_size(chunks, source):
+            entry.raw += 1
             if args.no_dedupe:
                 flat.append(m)
+                continue
+            # within this source
+            prev = local.get(m.infohash)
+            if prev is None:
+                local[m.infohash] = m
+                local_order.append(m.infohash)
+            elif len(m.uri) > len(prev.uri):
+                local[m.infohash] = m
+            # across all sources
+            known = index.get(m.infohash)
+            if known is None:
+                index[m.infohash] = rebuild_with_sources(m, [source])
+                order.append(m.infohash)
             else:
-                # within this source
-                prev = local.get(m.infohash)
-                if prev is None:
-                    local[m.infohash] = m
-                    local_order.append(m.infohash)
-                elif len(m.uri) > len(prev.uri):
-                    local[m.infohash] = m
-                # across all sources
-                known = index.get(m.infohash)
-                if known is None:
-                    index[m.infohash] = rebuild_with_sources(m, [source])
-                    order.append(m.infohash)
-                else:
-                    if source not in known.sources:
-                        known.sources.append(source)
-                    # "richest": prefer the URI carrying the most information
-                    # (usually the one with the fullest tracker list).
-                    # "first": keep whatever was seen first, across all sources.
-                    if args.pick == "richest" and len(m.uri) > len(known.uri):
-                        index[m.infohash] = rebuild_with_sources(m, known.sources)
+                if source not in known.sources:
+                    known.sources.append(source)
+                if known.size is None and m.size is not None:
+                    known.size = m.size
+                # "richest": prefer the URI carrying the most information
+                # (usually the one with the fullest tracker list).
+                # "first": keep whatever was seen first, across all sources.
+                if args.pick == "richest" and len(m.uri) > len(known.uri):
+                    index[m.infohash] = rebuild_with_sources(m, known.sources)
 
         entry.magnets = [local[h] for h in local_order]
         entry.unique = len(local)
         stats.append(entry)
 
     if "-" in args.inputs:
-        absorb(sys.stdin.read(), "<stdin>")
+        absorb([sys.stdin.read()], "<stdin>")
 
-    for path in collect_paths([p for p in args.inputs if p != "-"]):
+    only_ext = None
+    if args.ext:
+        only_ext = {("." + e.lstrip(".").lower()) for e in args.ext}
+
+    cap = args.max_file_size or None
+    for path in collect_paths([p for p in args.inputs if p != "-"], only_ext, cap):
         try:
-            absorb(read_file(path), path)
+            absorb(iter_text_chunks(path), path)
         except OSError as exc:
             errors.append(f"{path}: {exc}")
 
     for url in args.url:
         try:
-            absorb(fetch(url, args.timeout), url)
+            absorb(fetch_chunks(url, args.timeout), url)
         except (urllib.error.URLError, OSError) as exc:
             errors.append(f"{url}: {exc}")
 
@@ -474,6 +673,20 @@ def main(argv: list[str] | None = None) -> int:
             entry.unique = len(entry.magnets)
         flat = [m for m in flat if keep(m)]
         order = [h for h in order if keep(index[h])]
+
+    lo = parse_size(args.min_size) if args.min_size else None
+    hi = parse_size(args.max_size) if args.max_size else None
+    if lo is not None or hi is not None:
+        def sized(m: Magnet) -> bool:
+            if m.size is None:
+                return args.keep_unknown_size
+            return (lo is None or m.size >= lo) and (hi is None or m.size <= hi)
+
+        for entry in stats:
+            entry.magnets = [m for m in entry.magnets if sized(m)]
+            entry.unique = len(entry.magnets)
+        flat = [m for m in flat if sized(m)]
+        order = [h for h in order if sized(index[h])]
 
     merged = flat if args.no_dedupe else [index[h] for h in order]
     uri_of = (lambda m: m.clean_uri) if args.strip_trackers else (lambda m: m.uri)  # noqa: E731
@@ -505,6 +718,8 @@ def main(argv: list[str] | None = None) -> int:
                         "infohash": m.infohash,
                         "version": m.version,
                         "name": m.name,
+                        "size_bytes": m.size,
+                        "size": human_size(m.size),
                         "trackers": len(m.trackers),
                         "sources": m.sources,
                         "magnet": uri_of(m),
