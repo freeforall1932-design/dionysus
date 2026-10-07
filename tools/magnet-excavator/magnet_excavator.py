@@ -21,6 +21,7 @@ Why it is not just `grep -o 'magnet:...'`:
 from __future__ import annotations
 
 import argparse
+import bisect
 import gzip
 import html
 import io
@@ -134,6 +135,7 @@ class Magnet:
     trackers: list[str] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
     size: int | None = None  # bytes, from xl= if present or scraped from the page
+    name_source: str = ""    # "dn" if from the URI, "page" if scraped, "" if unknown
 
     @property
     def clean_uri(self) -> str:
@@ -234,58 +236,23 @@ def canonicalize(uri: str) -> str:
     return scheme.lower() + "?" + "&".join(out)
 
 
-def _blank_uris(region: str) -> str:
-    """Blank out magnet URIs so a size inside a dn= name is not taken as the row's."""
-    for uri_match in MAGNET_RE.finditer(region):
-        start, end = uri_match.span()
-        region = region[:start] + " " * (end - start) + region[end:]
-    return region
+META_WINDOW = 600
+TAG_RE = re.compile(r"<[^>]*>")
+# Closing tags that end an *entry*. Counting these between a candidate value and
+# a link is what tells us whether they belong to the same listing item — raw
+# character distance cannot, because markup padding varies wildly.
+_VOID = {"br", "hr", "img", "input", "link", "meta", "source", "track", "wbr", "area", "base", "col", "embed", "param"}
 
+ENTRY_CLOSE_RE = re.compile(
+    r"(?i)</(tr|li|div|article|section|p|dl|dd|table|ul|ol|h[1-6]|figure|details)\b"
+)
+# Elements that end a whole *entry*. Walking up out of a <td> into its <tr> is
+# safe; walking up out of a <tr> into the <table> is not, because the table also
+# holds every other row's size. </div> is deliberately absent: nested divs are
+# normal inside one entry.
+ENTRY_BOUNDARY_RE = re.compile(r"</(?:tr|li|article|table|ul|ol|dl|dd)\b", re.I)
 
-def scrape_size(text: str, match: "re.Match", window: int = 400) -> int | None:
-    """Find the file size belonging to one magnet link.
-
-    Listings disagree about where the size sits: some put it before the link
-    (Name | Size | Seeds | Magnet), some after. So when the link is genuinely
-    inside a table row, read the whole row. When it is not — a link in a JSON
-    blob, a comment, plain prose — only look forward a short way, and never
-    reach back into a row the link does not belong to. Getting this wrong is
-    worse than reporting no size at all.
-    """
-    row_start = text.rfind("<tr", 0, match.start())
-    if row_start != -1:
-        # The link is inside that row only if no other </tr> closed it first.
-        if text.find("</tr>", row_start, match.start()) == -1:
-            row_close = text.find("</tr>", match.end())
-            if row_close != -1:
-                return parse_size(_blank_uris(text[row_start : row_close + 5]))
-
-    end = min(len(text), match.end() + window)
-    next_row = text.find("<tr", match.end(), end)
-    if next_row != -1:
-        end = next_row
-    return parse_size(_blank_uris(text[match.end() : end]))
-
-
-def build(uri: str, infohash: str, version: int, size: int | None = None) -> Magnet:
-    params = parse_query(uri)
-    # `xl` (exact length) predates BEP 9 and index sites rarely emit it, but when
-    # present it is authoritative, so it beats anything scraped from the page.
-    if size is None:
-        for candidate in params.get("xl", []):
-            try:
-                size = int(candidate)
-                break
-            except ValueError:
-                continue
-    return Magnet(
-        uri=canonicalize(uri),
-        infohash=infohash,
-        version=version,
-        name=decode_name(params.get("dn", [])),
-        trackers=[unquote_smart(t) for t in params.get("tr", [])],
-        size=size,
-    )
+_NOT_A_NAME = re.compile(r"^[\s\d.,:;%/\\|+*#()\[\]{}<>=~-]*$")
 
 
 def rebuild_with_sources(m: Magnet, sources: list[str]) -> Magnet:
@@ -333,6 +300,358 @@ def iter_text_chunks(path: str, chunk_bytes: int = CHUNK_BYTES):
             yield buf.decode(encoding, "replace")
 
 
+def build(uri: str, infohash: str, version: int, size: int | None = None) -> Magnet:
+    params = parse_query(uri)
+    # `xl` (exact length) predates BEP 9 and index sites rarely emit it, but when
+    # present it is authoritative, so it beats anything scraped from the page.
+    if size is None:
+        for candidate in params.get("xl", []):
+            try:
+                size = int(candidate)
+                break
+            except ValueError:
+                continue
+    name = decode_name(params.get("dn", []))
+    return Magnet(
+        uri=canonicalize(uri),
+        infohash=infohash,
+        version=version,
+        name=name,
+        trackers=[unquote_smart(t) for t in params.get("tr", [])],
+        size=size,
+        name_source="dn" if name else "",
+    )
+
+
+def _clean_text(fragment: str) -> str:
+    text = TAG_RE.sub(" ", fragment)
+    text = html.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+_ENTITY_RE = re.compile(r"&(?:nbsp|mdash|ndash|middot|bull|amp|lt|gt|#\d+|#x[0-9a-fA-F]+);")
+_TRAILING_SEP = " \t\r\n—–-|,;:·•»»/"
+
+
+def _clean_name(value: str) -> str:
+    """Tidy a name scraped out of the page.
+
+    Drops HTML entities and any size that got glued to the end, so a listing
+    cell reading ``Ubuntu 24.04 &mdash; 4.7 GB`` yields ``Ubuntu 24.04``.
+    """
+    stripped = _ENTITY_RE.sub(" ", value)
+    for _ in range(3):
+        m = SIZE_RE.search(stripped)
+        if not m or m.end() < len(stripped.rstrip()) - 2:
+            break
+        stripped = stripped[: m.start()]
+    stripped = stripped.strip(_TRAILING_SEP)
+    return stripped or value.strip()
+
+
+def _candidates(segment: str, base: int, link_edge: int, side: str):
+    """Yield (entry_closes, distance, kind, value) for sizes and text in a segment."""
+    cleaned = segment
+    for uri in MAGNET_RE.finditer(cleaned):
+        a, b = uri.span()
+        cleaned = cleaned[:a] + " " * (b - a) + cleaned[b:]
+
+    out = []
+    for sm in SIZE_RE.finditer(cleaned):
+        value = parse_size(sm.group(0))
+        if value is None:
+            continue
+        gap = cleaned[: sm.start()] if side == "before" else cleaned[sm.end() :]
+        closes = len(ENTRY_CLOSE_RE.findall(gap))
+        dist = abs((base + sm.start()) - link_edge)
+        out.append((closes, dist, "size", value))
+
+    pos = 0
+    for piece in re.split(r"(<[^>]*>)", cleaned):
+        if piece.startswith("<"):
+            pos += len(piece)
+            continue
+        stripped = _clean_text(piece)
+        advance = piece.find(stripped[:1]) if stripped else 0
+        abs_pos = base + pos + max(advance, 0)
+        pos += len(piece)
+        if not stripped or len(stripped) > 80 or _NOT_A_NAME.match(stripped):
+            continue
+        if SIZE_RE.fullmatch(stripped):
+            continue
+        cleaned_name = _clean_name(stripped)
+        if not cleaned_name:
+            continue
+        gap = cleaned[: abs_pos - base] if side == "before" else cleaned[abs_pos - base :]
+        closes = len(ENTRY_CLOSE_RE.findall(gap))
+        out.append((closes, abs(abs_pos - link_edge), "name", cleaned_name))
+    return out
+
+
+def _after_anchor(text: str, edge: int, limit: int) -> int:
+    """Move past a link's own </a>, so its anchor text is not taken for its name."""
+    close = text.find("</a>", edge)
+    if close != -1 and close - edge < 200:
+        return min(close + 4, limit)
+    gt = text.find(">", edge)
+    return min(gt + 1, limit) if gt != -1 else edge
+
+
+# An <a> element holds nothing but the link and its caption, so it is useless as
+# a container to read metadata from. Ignoring it makes the innermost block the
+# real entry: the <div>, <td> or <p> the listing actually built.
+_TRANSPARENT = {"a", "span", "font", "b", "i", "em", "strong", "small", "code"}
+
+
+def analyze_blocks(
+    text: str, positions: list[int]
+) -> tuple[list[list[tuple[int, int, int]]], list[list[tuple[int, int]]]]:
+    """One pass over the tags -> the nesting chain each position sits in.
+
+    Returns ``(chains, by_depth)``:
+      * ``chains[i]`` — the enclosing elements around ``positions[i]``,
+        innermost first, as ``(start, end, depth)``.
+      * ``by_depth[d]`` — the ``(start, end)`` pairs at depth ``d``, sorted and
+        non-overlapping, so the sibling beside an entry is a binary search.
+
+    This is a tag stack, not an HTML parser: unclosed elements simply run to the
+    end of the text, and the bounded-window fallback below takes over from there.
+    Positions must already be sorted.
+    """
+    all_blocks: list[tuple[int, int, int]] = []
+    stack: list[tuple[int, str]] = []
+    pending: list[list[int]] = [[] for _ in positions]
+    pi = 0
+    length = len(text)
+
+    def answer(up_to: int):
+        nonlocal pi
+        snapshot = [start for start, _name in stack]
+        while pi < len(positions) and positions[pi] <= up_to:
+            pending[pi] = snapshot
+            pi += 1
+
+    pos = text.find("<")
+    while pos != -1:
+        answer(pos)
+        gt = text.find(">", pos)
+        if gt == -1:
+            break
+        tag = text[pos + 1 : gt]
+        if tag.startswith("!--"):
+            close = text.find("-->", pos)
+            pos = text.find("<", pos + 1 if close == -1 else close + 3)
+            continue
+        closing = tag.startswith("/")
+        name = (tag[1:] if closing else tag).split(None, 1)[0].lower().rstrip("/")
+        self_closing = tag.endswith("/") or name in _VOID
+        if name and name not in _TRANSPARENT:
+            if closing:
+                for i in range(len(stack) - 1, -1, -1):
+                    if stack[i][1] == name:
+                        for k in range(len(stack) - 1, i - 1, -1):
+                            all_blocks.append((stack[k][0], gt + 1, k))
+                        del stack[i:]
+                        break
+            elif not self_closing:
+                stack.append((pos, name))
+        pos = text.find("<", gt + 1)
+
+    answer(length)
+    for k in range(len(stack) - 1, -1, -1):
+        all_blocks.append((stack[k][0], length, k))
+
+    ends = {b_start: (b_end, depth) for b_start, b_end, depth in all_blocks}
+    chains: list[list[tuple[int, int, int]]] = []
+    for snapshot in pending:
+        chain = []
+        for b_start in reversed(snapshot):
+            if b_start in ends:
+                b_end, depth = ends[b_start]
+                chain.append((b_start, b_end, depth))
+        chains.append(chain)
+
+    all_blocks.sort()
+    by_depth: list[list[tuple[int, int]]] = []
+    for b_start, b_end, depth in all_blocks:
+        while len(by_depth) <= depth:
+            by_depth.append([])
+        by_depth[depth].append((b_start, b_end))
+    return chains, by_depth
+
+
+def sibling_before(
+    start: int, depth: int, by_depth: list[list[tuple[int, int]]]
+) -> tuple[int, int] | None:
+    """The element at ``depth`` that ends immediately before ``start``."""
+    if depth >= len(by_depth):
+        return None
+    pairs = by_depth[depth]
+    i = bisect.bisect_left(pairs, (start, start))
+    for j in range(i - 1, max(-1, i - 8), -1):
+        b_start, b_end = pairs[j]
+        if b_end <= start:
+            return (b_start, b_end)
+    return None
+
+
+def _holds_other(spans: list[tuple[int, int]], starts: list[int],
+                 lo: int, hi: int, mine: tuple[int, int]) -> bool:
+    """True if ``[lo, hi)`` overlaps any magnet span other than ``mine``.
+
+    Spans are sorted and never overlap each other, so this is a binary search
+    plus the handful of spans that actually intersect - not a scan of every
+    link on the page, which is what made large files quadratic.
+    """
+    i = bisect.bisect_left(starts, lo)
+    if i > 0 and spans[i - 1][1] > lo:
+        i -= 1
+    while i < len(spans) and spans[i][0] < hi:
+        if spans[i] != mine and spans[i][0] < hi and spans[i][1] > lo:
+            return True
+        i += 1
+    return False
+
+
+def _search(text: str, start: int, end: int):
+    """First size and first usable name inside ``text[start:end]``.
+
+    The window is *sliced* rather than passed to ``finditer`` as pos/endpos.
+    That is not a micro-optimisation: with pos/endpos the scanner's cost tracks
+    the distance to the end of the string, not the window, so reading a 150-byte
+    cell near the top of a 10 MB page measured ~8.5 ms against ~9 us for the
+    same cell sliced. Across 50,000 links that is the difference between seconds
+    and minutes.
+    """
+    if start >= end:
+        return None, None
+    window = text[start:end]
+    size = None
+    name = None
+    for m in SIZE_RE.finditer(window):
+        size = parse_size(m.group(0))
+        if size is not None:
+            break
+    for m in TAG_RE.finditer(window):
+        tag_name = m.group(0)[1:].split(None, 1)[0].lower().rstrip("/")
+        if tag_name in ("a", "button"):
+            continue
+        inner = window[m.end() : window.find("<", m.end())]
+        inner = inner.replace("&nbsp;", " ").strip()
+        if (2 <= len(inner) <= 200 and not _NOT_A_NAME.search(inner)
+                and not SIZE_RE.fullmatch(inner)):
+            name = _clean_name(inner)
+            break
+    return size, name
+
+
+def scrape_meta(
+    text: str,
+    chain: list[tuple[int, int, int]],
+    by_depth: list[list[tuple[int, int]]],
+    spans: list[tuple[int, int]],
+    starts: list[int],
+    match: "re.Match[str]",
+    prev_end: int,
+    next_start: int,
+    window: int,
+) -> tuple[int | None, str | None]:
+    """The size and name for one magnet.
+
+    Metadata is usually in the same entry as the link — above it, below it, or in
+    a cell beside it — so the search starts at the innermost element around the
+    link and walks outward, one level at a time. It stops at the first element
+    that also contains a *different* magnet: past that point any size found
+    would belong to another torrent, and a wrong size is worse than no size.
+
+    If the whole entry is bare, the sibling entry just before it is tried, which
+    is how a "metadata row, then link row" listing still pairs up. A following
+    sibling is never used.
+    """
+    size = None
+    name = None
+    last_safe: tuple[int, int, int] | None = None
+
+    mine = (match.start(), match.end())
+    child: tuple[int, int, int] | None = None
+    for b_start, b_end, depth in chain:
+        if _holds_other(spans, starts, b_start, b_end, mine):
+            if child is None:
+                # The very element around the link already holds another magnet,
+                # so any size nearby is shared and could belong to either link.
+                # Guessing would corrupt the estimated total, so report nothing.
+                return None, None
+            break
+        if child is not None:
+            # Refuse a parent that spans more than one entry: the part of it
+            # outside the child we came from belongs to other rows. The parent's
+            # own closing tag is trimmed first, or every parent would look like
+            # it ends an entry.
+            head = text[b_start:child[0]]
+            tail = text[child[1]:b_end]
+            cut = tail.rfind("<")
+            if cut != -1:
+                tail = tail[:cut]
+            if ENTRY_BOUNDARY_RE.search(head + tail):
+                break
+        last_safe = (b_start, b_end, depth)
+        b_size, b_name = _search(text, b_start, b_end)
+        if b_size is not None:
+            return b_size, b_name or name
+        if b_name and not name:
+            name = b_name
+        child = (b_start, b_end, depth)
+
+    if last_safe is not None:
+        sibling = sibling_before(last_safe[0], last_safe[2], by_depth)
+        if sibling is not None:
+            s_start, s_end = sibling
+            if not _holds_other(spans, starts, s_start, s_end, (0, 0)):
+                s_size, s_name = _search(text, s_start, s_end)
+                if s_size is not None:
+                    return s_size, s_name or name
+
+    if chain:
+        # There was markup and it did not yield a safe region. Trusting a raw
+        # character window here is how one entry's size leaks into the next.
+        return None, name
+
+    # --- bounded window: no usable markup (plain text, minified dumps) ---
+    before_start = max(prev_end, match.start() - window)
+    before_start = _after_anchor(text, before_start, match.start()) if prev_end else before_start
+    after_limit = min(next_start, match.end() + window)
+    after_start = _after_anchor(text, match.end(), after_limit)
+    # Never reach past the end of the current entry: a size in a following row
+    # belongs to whatever link that row is for, not to this one.
+    stop = ENTRY_CLOSE_RE.search(text[after_start:after_limit])
+    if stop:
+        after_limit = after_start + stop.start()
+
+    def collect(start: int, end: int, side: str):
+        if start >= end:
+            return []
+        edge = match.start() if side == "before" else match.end()
+        return _candidates(text[start:end], start, edge, side)
+
+    size = None
+    for _closes, _dist, kind, value in sorted(collect(before_start, match.start(), "before")):
+        if size is None and kind == "size":
+            size = value
+        elif name is None and kind == "name":
+            name = value
+        if size is not None and name:
+            break
+    if size is None or name is None:
+        for _closes, _dist, kind, value in sorted(collect(after_start, after_limit, "after")):
+            if size is None and kind == "size":
+                size = value
+            elif name is None and kind == "name":
+                name = value
+            if size is not None and name:
+                break
+    return size, name
+
+
 def iter_matches_with_size(chunks, source: str = "<input>", window: int = 400,
                            want_size: bool = True):
     """Yield every Magnet in a stream of text chunks, safe across chunk edges.
@@ -351,9 +670,24 @@ def iter_matches_with_size(chunks, source: str = "<input>", window: int = 400,
 
     def scan(text: str, final: bool):
         limit_start = len(text) if final else len(text) - OVERLAP
+        # Collect first so each link knows where its neighbours are: that is what
+        # keeps one entry's metadata from being attributed to the next one.
+        found = []
         for m in MAGNET_RE.finditer(text):
             if m.start() >= limit_start:
                 break
+            found.append(m)
+
+        by_depth: list[list[tuple[int, int]]] = []
+        chains: list[list[tuple[int, int, int]]] = [[] for _ in found]
+        spans: list[tuple[int, int]] = []
+        starts: list[int] = []
+        if want_size and found:
+            spans = [(x.start(), x.end()) for x in found]
+            starts = [a for a, _b in spans]
+            chains, by_depth = analyze_blocks(text, starts)
+
+        for i, m in enumerate(found):
             uri = normalize(m.group(0))
             info = classify(uri)
             if info is None:
@@ -361,8 +695,25 @@ def iter_matches_with_size(chunks, source: str = "<input>", window: int = 400,
             infohash, version = info
             magnet = build(uri, infohash, version)
             magnet.sources = [source]
-            if want_size and magnet.size is None:
-                magnet.size = scrape_size(text, m, window)
+            if want_size:
+                prev_end = found[i - 1].end() if i > 0 else 0
+                next_start = found[i + 1].start() if i + 1 < len(found) else len(text)
+                size, name = scrape_meta(
+                    text,
+                    chains[i],
+                    by_depth,
+                    spans,
+                    starts,
+                    m,
+                    prev_end,
+                    next_start,
+                    window,
+                )
+                if magnet.size is None:
+                    magnet.size = size
+                if not magnet.name and name:
+                    magnet.name = name
+                    magnet.name_source = "page"
             yield magnet
 
     for chunk in chunks:

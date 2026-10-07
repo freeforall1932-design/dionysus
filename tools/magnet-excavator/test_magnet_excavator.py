@@ -726,3 +726,113 @@ class TestQBittorrentAPI(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestMetadataAttribution(unittest.TestCase):
+    """A name and size must reach the right link wherever the page puts them.
+
+    These five layouts are the ones that broke: metadata above the link, below
+    it, in a separate table row, in the same row after the link, and inline in a
+    paragraph. The old scraper keyed off character distance, which cannot tell
+    "4.7 GB" sitting above a link from "4.7 GB" sitting below the previous one.
+    """
+
+    HASHES = ["%040x" % i for i in range(1, 4)]
+    NAMES = ["Ubuntu 24.04", "Fedora 41", "Blender 4.2"]
+    SIZES = ["4.7 GB", "2.3 GB", "340 MB"]
+    EXPECTED = ["4.7 GiB", "2.3 GiB", "340.0 MiB"]
+
+    def rows(self):
+        return list(zip(self.HASHES, self.NAMES, self.SIZES))
+
+    def assert_pairs(self, html):
+        magnets = mg.extract(html)
+        self.assertEqual(len(magnets), 3)
+        for m, name, size in zip(magnets, self.NAMES, self.EXPECTED):
+            self.assertEqual(m.name, name)
+            self.assertEqual(mg.human_size(m.size), size)
+            self.assertEqual(m.name_source, "page")
+
+    def test_metadata_above_the_link(self):
+        parts = []
+        for h, n, s in self.rows():
+            parts.append(
+                f'<div class="item"><div class="title">{n}</div>'
+                f'<div class="size">{s}</div>'
+                f'<a href="magnet:?xt=urn:btih:{h}">Download</a></div>'
+            )
+        self.assert_pairs("".join(parts))
+
+    def test_metadata_below_the_link(self):
+        parts = []
+        for h, n, s in self.rows():
+            parts.append(
+                f'<div class="item"><a href="magnet:?xt=urn:btih:{h}">Download</a>'
+                f'<div class="title">{n}</div>'
+                f'<div class="size">{s}</div></div>'
+            )
+        self.assert_pairs("".join(parts))
+
+    def test_metadata_in_the_previous_table_row(self):
+        parts = []
+        for h, n, s in self.rows():
+            parts.append(
+                f"<tr><td>{n}</td><td>{s}</td></tr>"
+                f'<tr><td><a href="magnet:?xt=urn:btih:{h}">get</a></td></tr>'
+            )
+        self.assert_pairs("<table>" + "".join(parts) + "</table>")
+
+    def test_metadata_in_the_same_row_after_the_link(self):
+        parts = []
+        for h, n, s in self.rows():
+            parts.append(
+                f'<tr><td><a href="magnet:?xt=urn:btih:{h}">m</a></td>'
+                f"<td>{n}</td><td>{s}</td></tr>"
+            )
+        self.assert_pairs("<table>" + "".join(parts) + "</table>")
+
+    def test_metadata_inline_in_a_paragraph(self):
+        parts = []
+        for h, n, s in self.rows():
+            parts.append(
+                f'<p>{n} &mdash; {s}<br><a href="magnet:?xt=urn:btih:{h}">dl</a></p>'
+            )
+        self.assert_pairs("".join(parts))
+
+    def test_size_in_a_following_row_is_not_taken(self):
+        """A preceding row may feed a link; a following one must never feed it."""
+        html = (
+            '<table><tr><td><a href="magnet:?xt=urn:btih:' + "a" * 40 + '">m</a></td></tr>'
+            "<tr><td>9.9 GB</td></tr></table>"
+        )
+        [m] = mg.extract(html)
+        self.assertIsNone(m.size)
+
+    def test_a_block_holding_two_links_gets_neither_size(self):
+        """Crossing into another entry's magnet would risk a wrong total."""
+        html = (
+            '<div class="row"><a href="magnet:?xt=urn:btih:' + "a" * 40 + '">a</a>'
+            '<a href="magnet:?xt=urn:btih:' + "b" * 40 + '">b</a>'
+            "<span>5.0 GB</span></div>"
+        )
+        magnets = mg.extract(html)
+        self.assertEqual(len(magnets), 2)
+        self.assertTrue(all(m.size is None for m in magnets))
+
+    def test_dn_in_the_uri_beats_the_page(self):
+        html = (
+            '<div><span>Page Name</span><span>1.0 GB</span>'
+            '<a href="magnet:?xt=urn:btih:' + "c" * 40 + '&dn=URI+Name">dl</a></div>'
+        )
+        [m] = mg.extract(html)
+        self.assertEqual(m.name, "URI Name")
+        self.assertEqual(m.name_source, "dn")
+        self.assertEqual(mg.human_size(m.size), "1.0 GiB")
+
+    def test_xl_in_the_uri_beats_the_page(self):
+        html = (
+            '<div><span>7.0 GB</span>'
+            '<a href="magnet:?xt=urn:btih:' + "d" * 40 + '&xl=12345">dl</a></div>'
+        )
+        [m] = mg.extract(html)
+        self.assertEqual(m.size, 12345)
