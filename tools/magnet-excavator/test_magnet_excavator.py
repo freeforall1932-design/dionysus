@@ -452,6 +452,35 @@ class TestSizes(unittest.TestCase):
         [m] = mg.extract(html)
         self.assertEqual(m.size, 1234567)
 
+    def test_size_listed_before_the_link_in_same_row(self):
+        """Common layout: Name | Size | Seeds | Magnet."""
+        html = (
+            "<tr><td>Ubuntu 24.04</td><td>4.7 GB</td><td>1204</td>"
+            '<td><a href="magnet:?xt=urn:btih:' + "a" * 40 + '&amp;dn=X">Magnet</a></td></tr>'
+        )
+        [m] = mg.extract(html)
+        self.assertEqual(m.size, int(4.7 * (1 << 30)))
+
+    def test_link_outside_a_table_does_not_inherit_a_row_size(self):
+        """A link after the table must not borrow the last row's size."""
+        html = (
+            "<table><tr><td>Thing</td><td>340 MB</td>"
+            '<td><a href="magnet:?xt=urn:btih:' + "a" * 40 + '&amp;dn=InRow">m</a></td></tr></table>'
+            '<p><a href="magnet:?xt=urn:btih:' + "b" * 40 + '&amp;dn=Outside">outside</a></p>'
+        )
+        found = {m.name: m.size for m in mg.extract(html)}
+        self.assertEqual(found["InRow"], 340 * (1 << 20))
+        self.assertIsNone(found["Outside"])
+
+    def test_link_in_script_does_not_inherit_a_row_size(self):
+        html = (
+            "<table><tr><td>500 MB</td>"
+            '<td><a href="magnet:?xt=urn:btih:' + "a" * 40 + '&amp;dn=InRow">m</a></td></tr></table>'
+            '<script>var u = "magnet:?xt=urn:btih:' + "b" * 40 + '&dn=InJS";</script>'
+        )
+        found = {m.name: m.size for m in mg.extract(html)}
+        self.assertIsNone(found["InJS"])
+
     def test_min_and_max_size_filters(self):
         d = tempfile.mkdtemp()
         path = os.path.join(d, "p.html")
@@ -477,6 +506,35 @@ class TestSizes(unittest.TestCase):
         out = cli(path, "--summary").stdout
         self.assertIn("ESTIMATED TOTAL", out)
         self.assertIn("3.0 GiB", out)
+
+
+class TestCanonicalization(unittest.TestCase):
+    """Parameter names are case-sensitive, so an uppercase link must be fixed."""
+
+    def test_all_uppercase_link_is_normalized(self):
+        h = "a" * 40
+        [m] = mg.extract(f'<a href="MAGNET:?XT=URN:BTIH:{h}&DN=Blender+4.2+LTS">')
+        self.assertTrue(m.uri.startswith("magnet:?xt=urn:btih:" + h))
+        self.assertIn("&dn=Blender+4.2+LTS", m.uri)
+
+    def test_display_name_case_is_preserved(self):
+        h = "a" * 40
+        [m] = mg.extract(f'<a href="magnet:?xt=urn:btih:{h}&dn=MiXeD+CaSe+Name">')
+        self.assertIn("dn=MiXeD+CaSe+Name", m.uri)
+
+    def test_v2_namespace_is_normalized(self):
+        h = "c" * 64
+        [m] = mg.extract(f'<a href="magnet:?XT=URN:BTMH:1220{h}">')
+        self.assertTrue(m.uri.startswith("magnet:?xt=urn:btmh:1220" + h))
+
+    def test_every_emitted_line_is_paste_ready(self):
+        h = "a" * 40
+        text = (
+            f'<a href="MAGNET:?XT=URN:BTIH:{h}&DN=Upper">x</a>'
+            f'<a href="magnet:?xt=urn:btih:{"b" * 40}&dn=Lower">y</a>'
+        )
+        for m in mg.extract(text):
+            self.assertRegex(m.uri, r"^magnet:\?xt=urn:bt(ih|mh):")
 
 
 class TestRegexAnchoring(unittest.TestCase):

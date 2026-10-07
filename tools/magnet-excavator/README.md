@@ -3,6 +3,9 @@
 Pull every magnet link out of saved pages and hand them to a torrent client.
 Stdlib only — no BeautifulSoup, no `requests`, nothing to install.
 
+**New here?** Start with [WALKTHROUGH.md](WALKTHROUGH.md) — a raw messy file all
+the way to a running download, with real output at every step.
+
 ```bash
 ./magnet_excavator.py page.html                 # what was found
 ./magnet_excavator.py pages/ --summary          # per-source counts, overlap, size totals

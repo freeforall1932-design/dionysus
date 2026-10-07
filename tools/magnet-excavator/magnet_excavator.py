@@ -195,6 +195,64 @@ def decode_name(values: list[str]) -> str:
     return unquote_smart(values[0]).strip()
 
 
+def canonicalize(uri: str) -> str:
+    """Lowercase the scheme, parameter names and URN prefix of a magnet URI.
+
+    URI schemes are case-insensitive but query parameter *names* are not, so an
+    all-uppercase link written as MAGNET:?XT=URN:BTIH:... would not be read by a
+    strict parser looking for `xt`. Parameter *values* are left byte-for-byte
+    alone — the display name is not ours to rewrite.
+    """
+    scheme, sep, query = uri.partition("?")
+    if not sep:
+        return scheme.lower()
+
+    out = []
+    for part in query.split("&"):
+        if not part:
+            continue
+        key, eq, value = part.partition("=")
+        key = key.lower()
+        if eq and key == "xt":
+            # urn:btih:<hash> / urn:btmh:<hash> — the namespace is case-insensitive
+            value = re.sub(r"(?i)^urn:bt(ih|mh):", lambda m: "urn:bt" + m.group(1).lower() + ":", value)
+        out.append(key + eq + value)
+    return scheme.lower() + "?" + "&".join(out)
+
+
+def _blank_uris(region: str) -> str:
+    """Blank out magnet URIs so a size inside a dn= name is not taken as the row's."""
+    for uri_match in MAGNET_RE.finditer(region):
+        start, end = uri_match.span()
+        region = region[:start] + " " * (end - start) + region[end:]
+    return region
+
+
+def scrape_size(text: str, match: "re.Match", window: int = 400) -> int | None:
+    """Find the file size belonging to one magnet link.
+
+    Listings disagree about where the size sits: some put it before the link
+    (Name | Size | Seeds | Magnet), some after. So when the link is genuinely
+    inside a table row, read the whole row. When it is not — a link in a JSON
+    blob, a comment, plain prose — only look forward a short way, and never
+    reach back into a row the link does not belong to. Getting this wrong is
+    worse than reporting no size at all.
+    """
+    row_start = text.rfind("<tr", 0, match.start())
+    if row_start != -1:
+        # The link is inside that row only if no other </tr> closed it first.
+        if text.find("</tr>", row_start, match.start()) == -1:
+            row_close = text.find("</tr>", match.end())
+            if row_close != -1:
+                return parse_size(_blank_uris(text[row_start : row_close + 5]))
+
+    end = min(len(text), match.end() + window)
+    next_row = text.find("<tr", match.end(), end)
+    if next_row != -1:
+        end = next_row
+    return parse_size(_blank_uris(text[match.end() : end]))
+
+
 def build(uri: str, infohash: str, version: int, size: int | None = None) -> Magnet:
     params = parse_query(uri)
     # `xl` (exact length) predates BEP 9 and index sites rarely emit it, but when
@@ -207,7 +265,7 @@ def build(uri: str, infohash: str, version: int, size: int | None = None) -> Mag
             except ValueError:
                 continue
     return Magnet(
-        uri=uri,
+        uri=canonicalize(uri),
         infohash=infohash,
         version=version,
         name=decode_name(params.get("dn", [])),
@@ -290,11 +348,7 @@ def iter_matches_with_size(chunks, source: str = "<input>", window: int = 400,
             magnet = build(uri, infohash, version)
             magnet.sources = [source]
             if want_size and magnet.size is None:
-                context = text[m.end() : m.end() + window]
-                row = context.find("</tr>")
-                if row != -1:
-                    context = context[:row]
-                magnet.size = parse_size(context)
+                magnet.size = scrape_size(text, m, window)
             yield magnet
 
     for chunk in chunks:
