@@ -102,6 +102,12 @@ A one-liner looks like it works and quietly loses links:
   Capped at 50 rows; `--limit 0` shows all
 - `--plain` / `-1` — bare magnet URIs, one per line. This is what you paste into
   qBittorrent's *File → Add Torrent Link* (Ctrl+Shift+O), which accepts many at once
+- `--bare` / `--minimal` — only `magnet:?xt=urn:btih:HASH`, nothing else. No
+  display name, no trackers, no `xl`. Everything in a magnet besides `xt` is
+  decoration or a hint — the client resolves the name and finds peers itself —
+  so this is the shortest string that still works. Longest line on the example
+  file drops from 193 characters to 88. Dual v1+v2 links keep both hashes.
+  Supersedes `--strip-trackers`
 - `--out-dir DIR` — one paste-ready `.txt` per source, named after the source
 - `--summary` — the per-source, cross-source and size report above
 - `--json` — structured; each record carries `size_bytes`, `size` and `sources`
@@ -201,7 +207,7 @@ oversized dump. Measured anyway: 50,000 magnets from an 18 MB page in ~2.9 s,
 python3 -m unittest test_magnet_excavator -v
 ```
 
-56 tests covering extraction, rejection, encodings, chunk-boundary streaming,
+70 tests covering extraction, rejection, encodings, chunk-boundary streaming,
 any-extension scanning, binary safety, size parsing and filters, CLI behaviour,
 and the qBittorrent login + multipart add path with batch chunking and
 queue-aware feeding (against a mock WebUI, so no client is needed).

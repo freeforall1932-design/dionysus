@@ -508,6 +508,72 @@ class TestSizes(unittest.TestCase):
         self.assertIn("3.0 GiB", out)
 
 
+class TestBareMode(unittest.TestCase):
+    """--bare emits only what identifies the torrent."""
+
+    def test_bare_keeps_only_xt(self):
+        h = "a" * 40
+        html = f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=Some+Name&amp;tr=udp://x&amp;xl=999">'
+        [m] = mg.extract(html)
+        self.assertEqual(m.bare_uri, "magnet:?xt=urn:btih:" + h)
+
+    def test_bare_preserves_v2_hash(self):
+        h = "c" * 64
+        [m] = mg.extract(f'<a href="magnet:?xt=urn:btmh:1220{h}&amp;dn=X">')
+        self.assertEqual(m.bare_uri, "magnet:?xt=urn:btmh:1220" + h)
+
+    def test_bare_keeps_every_xt_on_a_dual_link(self):
+        h1, h2 = "a" * 40, "c" * 64
+        [m] = mg.extract(
+            f'<a href="magnet:?xt=urn:btih:{h1}&amp;xt=urn:btmh:1220{h2}&amp;dn=Dual">'
+        )
+        self.assertIn("xt=urn:btih:" + h1, m.bare_uri)
+        self.assertIn("xt=urn:btmh:1220" + h2, m.bare_uri)
+        self.assertNotIn("dn=", m.bare_uri)
+
+    def test_bare_flag_emits_one_bare_link_per_line(self):
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "p.html")
+        with open(path, "w", encoding="utf-8") as fh:
+            for i in range(3):
+                fh.write(
+                    f'<tr><td><a href="magnet:?xt=urn:btih:{i:040x}&amp;dn=N{i}&amp;tr=udp://t">m</a></td>'
+                    "<td>1 GB</td></tr>"
+                )
+        lines = cli(path, "--plain", "--bare").stdout.strip().split("\n")
+        self.assertEqual(len(lines), 3)
+        for i, line in enumerate(lines):
+            self.assertEqual(line, f"magnet:?xt=urn:btih:{i:040x}")
+
+    def test_bare_supersedes_strip_trackers(self):
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "p.html")
+        h = "a" * 40
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=Name&amp;tr=udp://t">x</a>')
+        out = cli(path, "--plain", "--bare", "--strip-trackers").stdout.strip()
+        self.assertEqual(out, "magnet:?xt=urn:btih:" + h)
+
+    def test_bare_in_json_output(self):
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "p.html")
+        h = "a" * 40
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=Name&amp;tr=udp://t">x</a>')
+        [rec] = json.loads(cli(path, "--json", "--bare").stdout)
+        self.assertEqual(rec["magnet"], "magnet:?xt=urn:btih:" + h)
+        # metadata is still reported even though the emitted link is bare
+        self.assertEqual(rec["name"], "Name")
+        self.assertEqual(rec["trackers"], 1)
+
+    def test_bare_is_shorter_than_full(self):
+        h = "a" * 40
+        html = f'<a href="magnet:?xt=urn:btih:{h}&amp;dn=A+Fairly+Long+Name&amp;tr=udp://tracker">'
+        [m] = mg.extract(html)
+        self.assertLess(len(m.bare_uri), len(m.clean_uri))
+        self.assertLess(len(m.clean_uri), len(m.uri))
+
+
 class TestCanonicalization(unittest.TestCase):
     """Parameter names are case-sensitive, so an uppercase link must be fixed."""
 

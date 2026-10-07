@@ -51,6 +51,33 @@ lowercase (a link written `MAGNET:?XT=URN:BTIH:` becomes `magnet:?xt=urn:btih:`,
 because parameter *names* are case-sensitive even though schemes are not), and
 display names are left exactly as written.
 
+### How much of the link do you want?
+
+```bash
+python3 magnet_excavator.py examples/raw_dump.txt --plain                 # full
+python3 magnet_excavator.py examples/raw_dump.txt --plain --strip-trackers
+python3 magnet_excavator.py examples/raw_dump.txt --plain --bare
+```
+
+```
+full             magnet:?xt=urn:btih:0000…0001&dn=Ubuntu+24.04+Desktop+amd64&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce
+--strip-trackers magnet:?xt=urn:btih:0000…0001&dn=Ubuntu+24.04+Desktop+amd64
+--bare           magnet:?xt=urn:btih:0000000000000000000000000000000000000001
+```
+
+Longest line: **193 → 105 → 88 characters**.
+
+`--bare` keeps only `xt`, which is the part that actually identifies the
+torrent. Everything else is a hint the client re-derives anyway — the name comes
+back from the metadata, and trackers are found via DHT. Use it when you want the
+smallest, cleanest list to paste, pipe, or diff. Dual v1+v2 links keep both
+hashes. It works with `--add` and `--out-dir` too, and supersedes
+`--strip-trackers`.
+
+Note the trade-off: a bare link gives the client no tracker hints, so it relies
+on DHT to find peers. For dead or obscure torrents the full form resolves
+slightly faster.
+
 ## 3. Check it before you trust it
 
 ```bash
@@ -166,5 +193,5 @@ Accepted: v1 40-hex, v1 32-char base32, and v2 `urn:btmh:1220…` hashes, in
 ## Run the tests
 
 ```bash
-python3 -m unittest test_magnet_excavator -v    # 63 tests
+python3 -m unittest test_magnet_excavator -v    # 70 tests
 ```

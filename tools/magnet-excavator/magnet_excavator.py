@@ -142,6 +142,20 @@ class Magnet:
         kept = [p for p in query.split("&") if p and not p.startswith("tr=")]
         return "magnet:?" + "&".join(kept)
 
+    @property
+    def bare_uri(self) -> str:
+        """The minimum that still identifies the torrent: xt and nothing else.
+
+        Everything else in a magnet is decoration or a hint. The client resolves
+        the name and finds peers on its own, so for pasting or piping this is the
+        shortest string that still works.
+        """
+        query = self.uri.split("?", 1)[1] if "?" in self.uri else ""
+        xts = [p for p in query.split("&") if p.lower().startswith("xt=")]
+        if not xts:
+            return "magnet:?xt=urn:btih:" + self.infohash
+        return "magnet:?" + "&".join(xts)
+
 
 def classify(uri: str) -> tuple[str, int] | None:
     """Return (infohash, bittorrent_version) or None if this is not a valid magnet."""
@@ -623,6 +637,14 @@ def main(argv: list[str] | None = None) -> int:
         help="with --out-dir, break each source into part files of N links for manual pasting",
     )
     ap.add_argument("--strip-trackers", action="store_true", help="drop tr= params (keep xt/dn)")
+    ap.add_argument(
+        "--bare",
+        "--minimal",
+        dest="bare",
+        action="store_true",
+        help="emit only magnet:?xt=urn:btih:HASH — no dn, no trackers, nothing added. "
+        "Supersedes --strip-trackers",
+    )
     ap.add_argument("--filter", metavar="REGEX", help="keep only magnets whose name matches")
     ap.add_argument("--no-dedupe", action="store_true", help="keep every occurrence, in and across files")
     ap.add_argument(
@@ -771,7 +793,12 @@ def main(argv: list[str] | None = None) -> int:
         order = [h for h in order if sized(index[h])]
 
     merged = flat if args.no_dedupe else [index[h] for h in order]
-    uri_of = (lambda m: m.clean_uri) if args.strip_trackers else (lambda m: m.uri)  # noqa: E731
+    if args.bare:
+        uri_of = lambda m: m.bare_uri  # noqa: E731
+    elif args.strip_trackers:
+        uri_of = lambda m: m.clean_uri  # noqa: E731
+    else:
+        uri_of = lambda m: m.uri  # noqa: E731
 
     if args.out_dir:
         try:
