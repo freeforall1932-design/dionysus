@@ -1,0 +1,234 @@
+#!/usr/bin/env python3
+"""Tests for the GUI backend. Run with:  python3 -m unittest test_magnet_excavator_gui -v"""
+
+from __future__ import annotations
+
+import base64
+import http.server
+import json
+import os
+import sys
+import tempfile
+import threading
+import unittest
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+
+import magnet_excavator as mx  # noqa: E402
+import magnet_excavator_gui as gui  # noqa: E402
+
+FIXTURE = os.path.join(HERE, "examples", "raw_dump.txt")
+
+
+def upload(path: str = FIXTURE) -> dict:
+    with open(path, "rb") as fh:
+        return {"name": os.path.basename(path), "b64": base64.b64encode(fh.read()).decode()}
+
+
+class TestProcess(unittest.TestCase):
+    def test_upload_matches_the_cli(self):
+        """The GUI must not disagree with the CLI about what is in the file."""
+        res = gui.process([upload()], [], {})
+        with open(FIXTURE, encoding="utf-8", errors="replace") as fh:
+            cli = mx.extract(fh.read())
+        self.assertEqual(res["count"], len(cli))
+        self.assertEqual(
+            {m["infohash"] for m in res["magnets"]}, {m.infohash for m in cli}
+        )
+        self.assertEqual(res["raw"], 11)
+        self.assertEqual(res["sized"], 3)
+        self.assertEqual(res["total_text"], mx.human_size(7872708607))
+
+    def test_disk_path_matches_upload(self):
+        up = gui.process([upload()], [], {})
+        disk = gui.process([], [FIXTURE], {})
+        self.assertEqual(up["count"], disk["count"])
+        self.assertEqual(up["total_bytes"], disk["total_bytes"])
+
+    def test_bare_option_strips_parameters(self):
+        res = gui.process([upload()], [], {"bare": True})
+        for m in res["magnets"]:
+            self.assertRegex(m["magnet"], r"^magnet:\?xt=urn:bt(ih|mh):")
+            self.assertNotIn("&", m["magnet"])
+            # metadata is still reported even though the link is bare
+        self.assertTrue(any(m["name"] for m in res["magnets"]))
+
+    def test_strip_trackers_keeps_name(self):
+        res = gui.process([upload()], [], {"strip_trackers": True})
+        named = [m for m in res["magnets"] if m["name"]]
+        self.assertTrue(named)
+        self.assertIn("dn=", named[0]["magnet"])
+        self.assertNotIn("tr=", named[0]["magnet"])
+
+    def test_no_dedupe_keeps_duplicates(self):
+        deduped = gui.process([upload()], [], {})
+        raw = gui.process([upload()], [], {"no_dedupe": True})
+        self.assertEqual(raw["count"], raw["raw"])
+        self.assertGreater(raw["count"], deduped["count"])
+
+    def test_name_filter(self):
+        res = gui.process([upload()], [], {"filter": "ubuntu|fedora"})
+        self.assertEqual(res["count"], 2)
+        self.assertTrue(all(m["name"] for m in res["magnets"]))
+
+    def test_size_filter(self):
+        res = gui.process([upload()], [], {"min_size": "1GB"})
+        self.assertEqual(res["count"], 2)
+
+    def test_bad_base64_is_reported_not_fatal(self):
+        res = gui.process([{"name": "broken.txt", "b64": "!!!not base64!!!"}], [], {})
+        self.assertEqual(res["count"], 0)
+        self.assertTrue(any("could not decode" in e for e in res["errors"]))
+
+    def test_missing_path_is_reported(self):
+        res = gui.process([], ["/nonexistent/nope.html"], {})
+        self.assertEqual(res["count"], 0)
+        self.assertTrue(res["errors"])
+
+    def test_invalid_filter_regex_is_reported(self):
+        res = gui.process([upload()], [], {"filter": "["})
+        self.assertTrue(any("invalid filter regex" in e for e in res["errors"]))
+
+    def test_multiple_sources_are_separate(self):
+        res = gui.process([upload(), upload()], [], {})
+        self.assertEqual(len(res["sources"]), 2)
+        # same file twice still dedupes to one set of magnets
+        self.assertEqual(res["count"], 9)
+
+
+class TestHTTP(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), gui.Handler)
+        cls.port = cls.server.server_address[1]
+        cls.base = f"http://127.0.0.1:{cls.port}"
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+
+    def get(self, path):
+        with urllib.request.urlopen(self.base + path, timeout=10) as r:
+            return r.status, r.read()
+
+    def post(self, path, payload):
+        req = urllib.request.Request(
+            self.base + path,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read())
+
+    def test_index_page_is_served(self):
+        status, body = self.get("/")
+        self.assertEqual(status, 200)
+        self.assertIn(b"<title>Magnet Excavator</title>", body)
+        self.assertIn(b"id=\"drop\"", body)
+
+    def test_healthz(self):
+        status, body = self.get("/healthz")
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(body)["ok"])
+
+    def test_unknown_path_404s(self):
+        status, body = self.post("/api/nope", {})
+        self.assertEqual(status, 404)
+        self.assertIn("error", body)
+
+    def test_extract_endpoint(self):
+        status, body = self.post("/api/extract", {"files": [upload()], "paths": [], "options": {}})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["count"], 9)
+
+    def test_extract_with_path_endpoint(self):
+        status, body = self.post("/api/extract", {"files": [], "paths": [FIXTURE], "options": {}})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["count"], 9)
+
+    def test_add_rejects_empty_list(self):
+        status, body = self.post("/api/add", {"config": {}, "magnets": []})
+        self.assertEqual(status, 400)
+        self.assertIn("no magnets", body["error"])
+
+    def test_add_reports_unreachable_client(self):
+        status, body = self.post(
+            "/api/add",
+            {"config": {"host": "http://127.0.0.1:9", "timeout": 2},
+             "magnets": ["magnet:?xt=urn:btih:" + "a" * 40]},
+        )
+        self.assertEqual(status, 502)
+        self.assertIn("qBittorrent", body["error"])
+
+    def test_malformed_json_is_400(self):
+        req = urllib.request.Request(
+            self.base + "/api/extract", data=b"{not json",
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            urllib.request.urlopen(req, timeout=10)
+            self.fail("expected 400")
+        except urllib.error.HTTPError as e:
+            self.assertEqual(e.code, 400)
+
+
+class TestAddFlow(unittest.TestCase):
+    """The GUI's add path must send what the CLI sends."""
+
+    def setUp(self):
+        self.got = {"urls": [], "cookie": None}
+        outer = self
+
+        class Mock(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                if self.path == "/api/v2/auth/login":
+                    self.send_response(200)
+                    self.send_header("Set-Cookie", "SID=mock; path=/")
+                    self.end_headers()
+                    self.wfile.write(b"Ok.")
+                else:
+                    outer.got["cookie"] = self.headers.get("Cookie")
+                    import re as _re
+                    m = _re.search(rb'name="urls"\r\n\r\n(.*?)\r\n------', body, _re.S)
+                    outer.got["urls"] += m.group(1).decode().split("\n") if m else []
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(b"Ok.")
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Mock)
+        self.port = self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+    def test_add_batches_and_carries_session(self):
+        res = gui.process([upload()], [], {"bare": True})
+        magnets = [m["magnet"] for m in res["magnets"]]
+        out = gui.add_to_qbittorrent(
+            {"host": f"http://127.0.0.1:{self.port}", "username": "u",
+             "password": "p", "batch": 4, "category": "c"},
+            magnets,
+        )
+        self.assertEqual(out["sent"], 9)
+        self.assertEqual(self.got["urls"], magnets)
+        self.assertEqual(self.got["cookie"], "SID=mock")
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

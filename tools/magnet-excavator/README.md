@@ -6,6 +6,49 @@ Stdlib only — no BeautifulSoup, no `requests`, nothing to install.
 **New here?** Start with [WALKTHROUGH.md](WALKTHROUGH.md) — a raw messy file all
 the way to a running download, with real output at every step.
 
+Prefer clicking to typing? There is a GUI:
+
+```bash
+python3 magnet_excavator_gui.py        # opens http://127.0.0.1:8765
+```
+
+## GUI
+
+A local web app — drag files onto the page, get a clean list, push it to
+qBittorrent. Standard library only, same as the CLI, and it imports
+`magnet_excavator.py` so the two cannot disagree about what a magnet is.
+
+```bash
+python3 magnet_excavator_gui.py                    # 127.0.0.1:8765, opens a browser
+python3 magnet_excavator_gui.py --port 9000
+python3 magnet_excavator_gui.py --host 0.0.0.0     # reachable from another machine
+python3 magnet_excavator_gui.py --no-browser       # do not auto-open
+```
+
+What it does:
+
+- **Drag and drop** — multiple files, any format, dropped anywhere on the page
+- **…or a path** — a file or directory on the same machine, so you never have to
+  upload a large page
+- **Options** — bare links, strip trackers, dedupe, name filter, min/max size
+- **Results** — name, size, BitTorrent version, infohash, source, plus the
+  totals from `--summary`
+- **Copy list / Copy bare / Download .txt** — into the qBittorrent dialog
+- **Add to qBittorrent** — host, credentials, category, save path, batch size
+- **Test connection** before you commit a batch
+
+Files never leave your machine: the page talks only to the local server, and the
+local server only to the qBittorrent host you type in.
+
+Two things to know:
+
+- It binds `127.0.0.1` by default. `--host 0.0.0.0` exposes it on your network,
+  and the add endpoint will then accept requests from anyone who can reach that
+  port — only do that on a network you trust.
+- The browser sends file contents to the local server as base64, so a very large
+  page costs roughly 1.3× its size in transit. For big dumps, use the path field
+  or the CLI instead.
+
 ```bash
 ./magnet_excavator.py page.html                 # what was found
 ./magnet_excavator.py pages/ --summary          # per-source counts, overlap, size totals
@@ -204,13 +247,14 @@ oversized dump. Measured anyway: 50,000 magnets from an 18 MB page in ~2.9 s,
 ## Tests
 
 ```bash
-python3 -m unittest test_magnet_excavator -v
+python3 -m unittest discover -s . -p 'test_*.py' -v
 ```
 
-70 tests covering extraction, rejection, encodings, chunk-boundary streaming,
+90 tests — 70 for the CLI and 20 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
 any-extension scanning, binary safety, size parsing and filters, CLI behaviour,
 and the qBittorrent login + multipart add path with batch chunking and
-queue-aware feeding (against a mock WebUI, so no client is needed).
+queue-aware feeding, and the GUI's extract/add endpoints and batching
+(against a mock WebUI, so no client is needed).
 
 ## Alternatives worth knowing
 
