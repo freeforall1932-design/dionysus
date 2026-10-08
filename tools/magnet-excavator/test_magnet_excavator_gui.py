@@ -7,8 +7,10 @@ import base64
 import http.server
 import json
 import os
+import re
 import sys
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -80,11 +82,21 @@ class TestProcess(unittest.TestCase):
         self.assertTrue(any(m["name"] for m in res["magnets"]))
 
     def test_strip_trackers_keeps_name(self):
+        """Pick a magnet whose name came from dn=; a scraped name has no dn to keep.
+
+        Scraped names now survive dedupe, so "first magnet with a name" is no
+        longer necessarily one that carries dn= in its URI.
+        """
         res = gui.process([upload()], [], {"strip_trackers": True})
-        named = [m for m in res["magnets"] if m["name"]]
-        self.assertTrue(named)
-        self.assertIn("dn=", named[0]["magnet"])
-        self.assertNotIn("tr=", named[0]["magnet"])
+        from_dn = [m for m in res["magnets"] if m["name_source"] == "dn"]
+        self.assertTrue(from_dn)
+        self.assertIn("dn=", from_dn[0]["magnet"])
+        self.assertNotIn("tr=", from_dn[0]["magnet"])
+        # and a scraped name still shows in the table even though the URI has no dn
+        scraped = [m for m in res["magnets"] if m["name_source"] == "page"]
+        self.assertTrue(scraped)
+        self.assertTrue(scraped[0]["name"])
+        self.assertNotIn("dn=", scraped[0]["magnet"])
 
     def test_no_dedupe_keeps_duplicates(self):
         deduped = gui.process([upload()], [], {})
@@ -140,6 +152,24 @@ class TestHTTP(unittest.TestCase):
         with urllib.request.urlopen(self.base + path, timeout=10) as r:
             return r.status, r.read()
 
+    def get_json(self, path):
+        """GET that survives a 4xx, since urlopen raises on those."""
+        try:
+            with urllib.request.urlopen(self.base + path, timeout=10) as r:
+                return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read())
+
+    def wait_job(self, job_id, timeout=15.0):
+        """Poll /api/add/status the way the page does."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            _status, body = self.get_json(f"/api/add/status?id={job_id}")
+            if body.get("done"):
+                return body
+            time.sleep(0.02)
+        raise AssertionError(f"job {job_id} did not finish within {timeout}s")
+
     def post(self, path, payload):
         req = urllib.request.Request(
             self.base + path,
@@ -184,13 +214,45 @@ class TestHTTP(unittest.TestCase):
         self.assertIn("no magnets", body["error"])
 
     def test_add_reports_unreachable_client(self):
+        """/api/add now returns a job handle at once, so the failure surfaces
+        when the job is polled rather than in the POST status."""
         status, body = self.post(
             "/api/add",
             {"config": {"host": "http://127.0.0.1:9", "timeout": 2},
              "magnets": ["magnet:?xt=urn:btih:" + "a" * 40]},
         )
+        self.assertEqual(status, 200)
+        job = self.wait_job(body["id"])
+        self.assertTrue(job["done"])
+        self.assertIn("qBittorrent", job["error"])
+        self.assertEqual(job["sent"], 0)
+
+    def test_name_source_is_reported(self):
+        """The page marks scraped names as guesses, so name_source must ship."""
+        _status, body = self.post("/api/extract", {"files": [upload()], "paths": [], "options": {}})
+        for m in body["magnets"]:
+            self.assertIn(m["name_source"], ("dn", "page", ""))
+        self.assertTrue(any(m["name_source"] == "dn" for m in body["magnets"]))
+
+    def test_duplicate_count_is_reported(self):
+        _status, body = self.post("/api/extract", {"files": [upload()], "paths": [], "options": {}})
+        self.assertEqual(body["dupes"], body["raw"] - body["count"])
+        self.assertEqual(body["dupes"], 2)  # the fixture has 11 raw, 9 unique
+
+    def test_test_endpoint_fails_for_an_unreachable_host(self):
+        """Test connection must actually reach the network. It used to post an
+        empty magnet list, which is rejected before any request, so it reported
+        success for a host that was not even there."""
+        status, body = self.post(
+            "/api/test", {"config": {"host": "http://127.0.0.1:9", "timeout": 2}}
+        )
         self.assertEqual(status, 502)
         self.assertIn("qBittorrent", body["error"])
+
+    def test_add_status_for_unknown_job_is_404(self):
+        status, body = self.get_json("/api/add/status?id=nope")
+        self.assertEqual(status, 404)
+        self.assertIn("unknown job", body["error"])
 
     def test_malformed_json_is_400(self):
         req = urllib.request.Request(
@@ -239,17 +301,121 @@ class TestAddFlow(unittest.TestCase):
         self.server.shutdown()
         self.server.server_close()
 
+    @staticmethod
+    def wait(job, timeout=10.0):
+        """Block until a job finishes; a GUI add is a background job now."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            snap = gui.job_snapshot(gui.JOBS[job["id"]])
+            if snap["done"]:
+                return snap
+            time.sleep(0.01)
+        raise AssertionError(f"job did not finish: {gui.job_snapshot(gui.JOBS[job['id']])}")
+
     def test_add_batches_and_carries_session(self):
         res = gui.process([upload()], [], {"bare": True})
         magnets = [m["magnet"] for m in res["magnets"]]
-        out = gui.add_to_qbittorrent(
+        job = gui.start_add(
             {"host": f"http://127.0.0.1:{self.port}", "username": "u",
              "password": "p", "batch": 4, "category": "c"},
             magnets,
         )
+        out = self.wait(job)
         self.assertEqual(out["sent"], 9)
+        self.assertEqual(out["error"], "")
         self.assertEqual(self.got["urls"], magnets)
         self.assertEqual(self.got["cookie"], "SID=mock")
+
+
+class TestQueueAwareAdd(unittest.TestCase):
+    """max_active must pace the feed, exactly as the CLI's --max-active does.
+
+    Dumping thousands of magnets in at once is the documented failure mode:
+    each one sits at "Downloading metadata" and counts against the client's
+    active download limit, so the queue starves and the GUI locks up.
+    """
+
+    def setUp(self):
+        self.state = {"added": 0, "drained": 0, "add_sizes": []}
+        outer = self
+
+        class Mock(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                if self.path == "/api/v2/auth/login":
+                    self.send_response(200)
+                    self.send_header("Set-Cookie", "SID=mock; path=/")
+                    self.end_headers()
+                    self.wfile.write(b"Ok.")
+                    return
+                n = len(re.search(rb'name="urls"\r\n\r\n(.*?)\r\n------', body, re.S)
+                        .group(1).decode().split("\n"))
+                outer.state["added"] += n
+                outer.state["add_sizes"].append(n)
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"Ok.")
+
+            def do_GET(self):
+                # every added torrent becomes active, and one drains per poll,
+                # so the feeder has to keep waiting for headroom
+                outer.state["drained"] += 1
+                active = max(0, outer.state["added"] - outer.state["drained"])
+                payload = json.dumps([{"hash": str(i)} for i in range(active)]).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Mock)
+        self.port = self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+    def test_feed_respects_max_active_headroom(self):
+        magnets = ["magnet:?xt=urn:btih:%040x" % i for i in range(9)]
+        job = gui.start_add(
+            {"host": f"http://127.0.0.1:{self.port}", "max_active": 5,
+             "poll_interval": 0.01, "batch": 0},
+            magnets,
+        )
+        self.assertTrue(job["queue_aware"])
+        deadline = time.time() + 20
+        while time.time() < deadline:
+            snap = gui.job_snapshot(gui.JOBS[job["id"]])
+            if snap["done"]:
+                break
+            time.sleep(0.01)
+        self.assertTrue(snap["done"], f"job never finished: {snap}")
+        self.assertEqual(snap["error"], "")
+        self.assertEqual(snap["sent"], 9)
+        self.assertEqual(sum(self.state["add_sizes"]), 9)
+        # it must have paced, not dumped all nine in one request
+        self.assertGreater(len(self.state["add_sizes"]), 1, self.state["add_sizes"])
+        self.assertLessEqual(max(self.state["add_sizes"]), 5, self.state["add_sizes"])
+
+    def test_without_max_active_it_still_sends_everything(self):
+        magnets = ["magnet:?xt=urn:btih:%040x" % i for i in range(9)]
+        job = gui.start_add(
+            {"host": f"http://127.0.0.1:{self.port}", "batch": 4}, magnets
+        )
+        self.assertFalse(job["queue_aware"])
+        deadline = time.time() + 20
+        while time.time() < deadline:
+            snap = gui.job_snapshot(gui.JOBS[job["id"]])
+            if snap["done"]:
+                break
+            time.sleep(0.01)
+        self.assertEqual(snap["error"], "")
+        self.assertEqual(snap["sent"], 9)
+        self.assertEqual(self.state["add_sizes"], [4, 4, 1])
 
 
 if __name__ == "__main__":

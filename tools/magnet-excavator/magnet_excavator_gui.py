@@ -21,7 +21,10 @@ import os
 import re
 import sys
 import threading
+import time
 import urllib.error
+import urllib.parse
+import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -47,6 +50,10 @@ def record_to_dict(m: mx.Magnet, bare: bool, strip: bool, hints: bool = False) -
         "infohash": m.infohash,
         "version": m.version,
         "name": m.name,
+        # "dn" = the URI carried it; "page" = scraped from the markup, so it is a
+        # best guess. The page shows the difference because a wrong name is the
+        # thing worth doubting.
+        "name_source": m.name_source,
         "size": m.size,
         "size_text": mx.human_size(m.size),
         "trackers": len(m.trackers),
@@ -171,6 +178,7 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
         "sources": sources,
         "count": len(magnets),
         "raw": sum(s["raw"] for s in sources),
+        "dupes": sum(s["raw"] for s in sources) - len(magnets),
         "sized": sum(1 for m in magnets if m.size is not None),
         "total_bytes": total,
         "total_text": mx.human_size(total) if total else None,
@@ -178,26 +186,126 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
     }
 
 
-def add_to_qbittorrent(cfg: dict, magnets: list[str]) -> dict:
+# Add jobs run in the background so a queue-aware feed - which can wait minutes
+# or hours for headroom - does not hold an HTTP request open. The page polls.
+JOBS: dict[str, dict] = {}
+JOBS_LOCK = threading.Lock()
+
+
+def _job_update(job: dict, **fields) -> None:
+    with JOBS_LOCK:
+        job.update(fields)
+
+
+def job_snapshot(job: dict) -> dict:
+    with JOBS_LOCK:
+        return dict(job)
+
+
+def _run_add(job: dict, cfg: dict, magnets: list[str]) -> None:
+    """Feed magnets into qBittorrent, optionally queue-aware.
+
+    This mirrors the CLI's --max-active loop exactly. Magnets are cheap to add
+    but expensive to resolve: each sits at "Downloading metadata" until a peer
+    answers, and qBittorrent counts those towards its active download limit.
+    Dumping thousands in at once locks the GUI and starves the queue, so when a
+    cap is set we add only into the available headroom and wait for the rest.
+    """
+    max_active = int(cfg.get("max_active", 0) or 0)
+    poll = float(cfg.get("poll_interval", 30) or 30)
+    delay = float(cfg.get("batch_delay", 0) or 0)
+    batch = int(cfg.get("batch", 0) or 0)
+    savepath = cfg.get("savepath", "")
+    category = cfg.get("category", "")
+    paused = bool(cfg.get("paused"))
+    queue = list(magnets)
+    sent = 0
+
+    try:
+        client = mx.QBittorrent(
+            cfg.get("host", "http://localhost:8080"),
+            cfg.get("username", ""),
+            cfg.get("password", ""),
+            float(cfg.get("timeout", 20) or 20),
+        )
+        if max_active > 0:
+            while queue:
+                active = client.active_count("downloading")
+                headroom = max_active - active
+                if headroom <= 0:
+                    _job_update(job, waiting=True, active=active, queued=len(queue))
+                    time.sleep(poll)
+                    continue
+                take = min(headroom, batch if batch > 0 else headroom)
+                chunk, queue = queue[:take], queue[take:]
+                client.add(chunk, savepath, category, paused)
+                sent += len(chunk)
+                _job_update(job, sent=sent, queued=len(queue), active=active, waiting=False)
+                if delay and queue:
+                    time.sleep(delay)
+        else:
+            size = batch if batch > 0 else len(queue)
+            while queue:
+                chunk, queue = queue[:size], queue[size:]
+                client.add(chunk, savepath, category, paused)
+                sent += len(chunk)
+                _job_update(job, sent=sent, queued=len(queue))
+                if delay and queue:
+                    time.sleep(delay)
+        _job_update(job, done=True, sent=sent, queued=0, waiting=False)
+    except (urllib.error.URLError, OSError, RuntimeError) as exc:
+        _job_update(job, done=True, sent=sent, error=f"could not reach qBittorrent: {exc}")
+    except Exception as exc:  # noqa: BLE001 - a job must never die silently
+        _job_update(job, done=True, sent=sent, error=f"{type(exc).__name__}: {exc}")
+
+
+def test_connection(cfg: dict) -> dict:
+    """Actually reach qBittorrent: log in, read the version, count the queue.
+
+    The page used to "test" by posting an empty magnet list, which the API
+    rejects before any network call - so it always reported success, even for a
+    wrong host or bad credentials. Reporting queue depth here also tells the
+    user what max_active has to work with before they commit a big batch.
+    """
     client = mx.QBittorrent(
         cfg.get("host", "http://localhost:8080"),
         cfg.get("username", ""),
         cfg.get("password", ""),
         float(cfg.get("timeout", 20) or 20),
     )
-    batch = int(cfg.get("batch", 0) or 0)
-    size = batch if batch > 0 else len(magnets)
-    sent = 0
-    for start in range(0, len(magnets), size):
-        chunk = magnets[start : start + size]
-        client.add(
-            chunk,
-            cfg.get("savepath", ""),
-            cfg.get("category", ""),
-            bool(cfg.get("paused")),
-        )
-        sent += len(chunk)
-    return {"sent": sent}
+    out = {"ok": True, "host": client.host, "logged_in": bool(client.sid)}
+    # This call is the actual probe. A network failure must propagate so the
+    # handler can answer 502 - swallowing it here is what made the old "test"
+    # report success for a host that was not there. Only a non-200 from a host
+    # that *did* answer is treated as merely missing the endpoint.
+    try:
+        out["version"] = client.get_json("/api/v2/app/version")
+    except (RuntimeError, ValueError):
+        out["version"] = None  # reachable, but no version endpoint
+    try:
+        out["downloading"] = client.active_count("downloading")
+    except (RuntimeError, ValueError, urllib.error.URLError, OSError):
+        out["downloading"] = None
+    return out
+
+
+def start_add(cfg: dict, magnets: list[str]) -> dict:
+    """Kick off an add job and return its handle immediately."""
+    job = {
+        "id": uuid.uuid4().hex[:12],
+        "total": len(magnets),
+        "sent": 0,
+        "queued": len(magnets),
+        "active": None,
+        "waiting": False,
+        "done": False,
+        "error": "",
+        "queue_aware": int(cfg.get("max_active", 0) or 0) > 0,
+    }
+    with JOBS_LOCK:
+        JOBS[job["id"]] = job
+    threading.Thread(target=_run_add, args=(job, cfg, magnets), daemon=True).start()
+    return job_snapshot(job)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -230,6 +338,15 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, fh.read(), "text/html; charset=utf-8")
             except OSError as exc:
                 self._send(500, f"gui.html missing: {exc}".encode(), "text/plain")
+        elif urllib.parse.urlparse(self.path).path == "/api/add/status":
+            job_id = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("id", [""])[0]
+            with JOBS_LOCK:
+                job = JOBS.get(job_id)
+                snapshot = dict(job) if job else None
+            if snapshot is None:
+                self._json(404, {"error": "unknown job"})
+            else:
+                self._json(200, snapshot)
         elif self.path == "/healthz":
             self._json(200, {"ok": True, "count": 0})
         else:
@@ -257,8 +374,12 @@ class Handler(BaseHTTPRequestHandler):
                 if not magnets:
                     self._json(400, {"error": "no magnets to add"})
                     return
-                result = add_to_qbittorrent(payload.get("config", {}), magnets)
-                self._json(200, result)
+                # Returns immediately; the page polls /api/add/status. A
+                # queue-aware feed can wait a long time for headroom and must
+                # not hold the request open.
+                self._json(200, start_add(payload.get("config", {}), magnets))
+            elif self.path == "/api/test":
+                self._json(200, test_connection(payload.get("config", {})))
             else:
                 self._json(404, {"error": "not found"})
         except urllib.error.URLError as exc:

@@ -123,6 +123,7 @@
       <div class="stat"><b id="s-raw">0</b><span>found in source</span></div>
       <div class="stat"><b id="s-sized">0</b><span>with a size</span></div>
       <div class="stat"><b id="s-total">–</b><span>estimated total</span></div>
+      <div class="stat"><b id="s-dupes">0</b><span>duplicates dropped</span></div>
     </div>
 
     <div class="srcs" id="s-sources"></div>
@@ -132,13 +133,16 @@
       <button id="copy-bare">Copy bare</button>
       <button id="copy-hints">Copy hints</button>
       <button id="download">Download .txt</button>
+      <label title="Split the list into files of N links, for a client that balks at thousands at once. 0 = one file.">
+        &times;<input type="number" id="dl-split" value="0" min="0" style="width:70px">
+      </label>
       <button class="go" id="add">Add to qBittorrent</button>
       <span class="tag" id="add-info"></span>
     </div>
 
     <div class="tablewrap">
       <table>
-        <thead><tr><th>Name</th><th class="num">Size</th><th>Ver</th><th>Infohash</th><th>From</th></tr></thead>
+        <thead><tr><th>Name</th><th class="num">Size</th><th>Ver</th><th>Infohash</th><th>From</th><th>Name from</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -158,6 +162,13 @@
         <label>Batch <input type="number" id="q-batch" value="100" min="0" style="width:80px"></label>
         <label class="chk"><input type="checkbox" id="q-paused"> add paused</label>
         <button id="q-test">Test connection</button>
+      </div>
+      <div class="row">
+        <label title="Keep at most this many downloading. Adds only into the free headroom and waits for the rest, instead of dumping everything in at once and starving the queue.">
+          Max active <input type="number" id="q-max-active" value="0" min="0" style="width:80px">
+        </label>
+        <label>Poll every (s) <input type="number" id="q-poll" value="30" min="1" style="width:80px"></label>
+        <label>Delay between batches (s) <input type="number" id="q-delay" value="0" min="0" step="0.5" style="width:80px"></label>
       </div>
       <div class="sub" style="margin:10px 0 0">
         Enable the WebUI in qBittorrent under Tools &rarr; Options &rarr; Web User Interface.
@@ -266,6 +277,7 @@ function render(res) {
   $("s-raw").textContent = res.raw;
   $("s-sized").textContent = `${res.sized}/${res.count}`;
   $("s-total").textContent = res.total_text || "–";
+  $("s-dupes").textContent = res.dupes ?? 0;
   $("s-sources").textContent = res.sources
     .map(s => `${s.name}: ${s.raw} found, ${s.unique} unique`).join("  ·  ")
     + (res.augmented ? `  ·  tracker hints added to ${res.augmented}` : "");
@@ -279,6 +291,9 @@ function render(res) {
       <td><span class="tag">v${m.version}</span></td>
       <td class="hash" title="${esc(m.infohash)}">${esc(m.infohash.slice(0, 16))}…</td>
       <td class="src">${esc(m.sources.join(", "))}</td>
+      <td class="src" title="${m.name_source === "page" ? "scraped from the page markup - a best guess" : "carried in the magnet URI"}">${
+        m.name_source === "page" ? "<span style='color:var(--dim)'>page</span>"
+        : m.name_source === "dn" ? "uri" : "—"}</td>
     </tr>`;
   }).join("");
   $("rows").innerHTML = rows + (res.count > 500
@@ -305,6 +320,13 @@ function chosenMode() {
   return "full";
 }
 
+async function getJSON(url) {
+  const r = await fetch(url);
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
+  return body;
+}
+
 async function copyText(text, label) {
   try {
     await navigator.clipboard.writeText(text);
@@ -319,10 +341,24 @@ $("copy-bare").onclick = () => copyText(currentList("bare").join("\n"), "bare ma
 $("copy-hints").onclick = () => copyText(currentList("hints").join("\n"), "hints magnet link(s)");
 
 $("download").onclick = () => {
-  const blob = new Blob([currentList(chosenMode()).join("\n") + "\n"], { type: "text/plain" });
+  const list = currentList(chosenMode());
+  const n = parseInt($("dl-split").value || "0", 10);
+  if (!(n > 0) || list.length <= n) { saveText(list.join("\n") + "\n", "magnets.txt"); return; }
+  // one file per N links, for a client that balks at thousands at once
+  const parts = Math.ceil(list.length / n);
+  const width = String(parts).length;
+  for (let i = 0; i < parts; i++) {
+    saveText(list.slice(i * n, (i + 1) * n).join("\n") + "\n",
+             `magnets.part${String(i + 1).padStart(width, "0")}.txt`);
+  }
+  setStatus(`Downloaded ${parts} file(s) of up to ${n} links each.`, "ok");
+};
+
+function saveText(text, name) {
+  const blob = new Blob([text], { type: "text/plain" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "magnets.txt";
+  a.download = name;
   a.click();
   URL.revokeObjectURL(a.href);
 };
@@ -344,31 +380,57 @@ function qconfig() {
     savepath: $("q-path").value.trim(),
     batch: parseInt($("q-batch").value || "0", 10),
     paused: $("q-paused").checked,
+    max_active: parseInt($("q-max-active").value || "0", 10),
+    poll_interval: parseFloat($("q-poll").value || "30"),
+    batch_delay: parseFloat($("q-delay").value || "0"),
   };
 }
 
 $("q-test").onclick = async () => {
   setStatus("Testing connection…");
   try {
-    await post("/api/add", { config: qconfig(), magnets: [] });
+    const r = await post("/api/test", { config: qconfig() });
+    const bits = [r.version ? `qBittorrent ${r.version}` : "connected"];
+    if (typeof r.downloading === "number") bits.push(`${r.downloading} downloading now`);
+    if (!r.logged_in) bits.push("no login (username blank)");
+    setStatus(`Reachable at ${r.host} — ${bits.join(", ")}.`, "ok");
   } catch (e) {
-    // an empty list is rejected before any network call, so probe with the login only
-    if (/no magnets/i.test(e.message)) { setStatus("Settings look usable.", "ok"); return; }
-    setStatus(e.message, "err"); return;
+    setStatus(`Not reachable: ${e.message}`, "err");
   }
 };
 
 $("add").onclick = async () => {
   if (!last || !last.count) { setStatus("Nothing to add yet.", "err"); return; }
+  const list = currentList(chosenMode());
   $("add").disabled = true;
-  setStatus(`Adding ${last.count} magnet(s)…`);
+  setStatus(`Adding ${list.length} magnet(s)…`);
   try {
-    const r = await post("/api/add", { config: qconfig(), magnets: currentList(chosenMode()) });
-    setStatus(`Added ${r.sent} magnet(s) to ${$("q-host").value.trim()}.`, "ok");
+    const job = await post("/api/add", { config: qconfig(), magnets: list });
+    await pollJob(job.id);
   } catch (e) {
     setStatus(e.message, "err");
   } finally {
     $("add").disabled = false;
+  }
+};
+
+async function pollJob(id) {
+  // A queue-aware feed can run a long time; the page follows it rather than
+  // holding one request open.
+  for (;;) {
+    await new Promise(r => setTimeout(r, 1000));
+    let s;
+    try { s = await getJSON(`/api/add/status?id=${id}`); }
+    catch (e) { setStatus(`Lost track of the job: ${e.message}`, "err"); return; }
+    setStatus(s.waiting
+      ? `Holding: ${s.active} downloading, ${s.queued} queued — waiting for headroom…`
+      : `Added ${s.sent}/${s.total} (${s.queued} queued)…`);
+    if (s.done) {
+      setStatus(s.error ? `Stopped after ${s.sent}: ${s.error}`
+                        : `Added ${s.sent} magnet(s) to ${$("q-host").value.trim()}.`,
+                s.error ? "err" : "ok");
+      return;
+    }
   }
 };
 </script>

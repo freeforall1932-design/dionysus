@@ -874,6 +874,56 @@ class TestMetadataAttribution(unittest.TestCase):
         self.assertEqual(m.size, 12345)
 
 
+class TestScrapedNameSurvivesDedupe(unittest.TestCase):
+    """Names scraped from the page must survive the dedupe path.
+
+    These go through the CLI, not extract(): dedupe rebuilds each magnet from
+    its URI, and anything not copied across by hand is lost. Every earlier
+    attribution test used extract(), which bypasses that, so the name scraper
+    looked correct while the default CLI path printed "(unnamed)".
+    """
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.page = os.path.join(self.dir, "p.html")
+        with open(self.page, "w", encoding="utf-8") as fh:
+            fh.write(
+                '<div class="item"><div class="t">Scraped Title</div>'
+                '<div class="s">1.5 GB</div>'
+                '<a href="magnet:?xt=urn:btih:' + "a" * 40 + '">Download</a></div>'
+            )
+
+    def test_rebuild_with_sources_keeps_the_scraped_name(self):
+        with open(self.page, encoding="utf-8") as fh:
+            [m] = mg.extract(fh.read())
+        self.assertEqual(m.name, "Scraped Title")
+        self.assertEqual(m.name_source, "page")
+        rebuilt = mg.rebuild_with_sources(m, ["other.html"])
+        self.assertEqual(rebuilt.name, "Scraped Title")
+        self.assertEqual(rebuilt.name_source, "page")
+        self.assertEqual(rebuilt.size, m.size)
+
+    def test_cli_table_shows_the_scraped_name(self):
+        out = cli(self.page).stdout
+        self.assertIn("Scraped Title", out)
+        self.assertNotIn("(unnamed)", out)
+
+    def test_cli_json_reports_the_name_and_its_source(self):
+        records = json.loads(cli(self.page, "--json").stdout)
+        self.assertEqual(records[0]["name"], "Scraped Title")
+
+    def test_a_dn_name_still_beats_a_scraped_one(self):
+        """Carrying the scraped name must not overwrite a name from the URI."""
+        m = mg.Magnet(
+            uri="magnet:?xt=urn:btih:" + "a" * 40 + "&dn=From+URI",
+            infohash="a" * 40, version=1, name="From URI", name_source="dn",
+        )
+        m.name = "From URI"
+        rebuilt = mg.rebuild_with_sources(m, ["x"])
+        self.assertEqual(rebuilt.name, "From URI")
+        self.assertEqual(rebuilt.name_source, "dn")
+
+
 class TestHintsMode(unittest.TestCase):
     """--hints: the middle ground between --bare and the full link.
 

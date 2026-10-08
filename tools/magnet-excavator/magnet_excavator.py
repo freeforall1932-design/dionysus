@@ -283,11 +283,20 @@ _NOT_A_NAME = re.compile(r"^[\s\d.,:;%/\\|+*#()\[\]{}<>=~-]*$")
 
 
 def rebuild_with_sources(m: Magnet, sources: list[str]) -> Magnet:
-    """Re-derive a Magnet from its URI, carrying over source list and scraped size."""
+    """Re-derive a Magnet from its URI, carrying over what the page told us.
+
+    Everything scraped has to be copied across by hand, because `build()` only
+    knows what is in the URI. The size was always carried; the scraped name was
+    not, so any magnet that went through dedupe - the default - came out
+    "(unnamed)" even though the page had a title for it.
+    """
     fresh = build(m.uri, m.infohash, m.version)
     fresh.sources = sources
     if fresh.size is None:
         fresh.size = m.size
+    if not fresh.name and m.name:
+        fresh.name = m.name
+        fresh.name_source = m.name_source
     return fresh
 
 

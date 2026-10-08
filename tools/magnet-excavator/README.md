@@ -25,6 +25,13 @@ python3 magnet_excavator_gui.py --host 0.0.0.0     # reachable from another mach
 python3 magnet_excavator_gui.py --no-browser       # do not auto-open
 ```
 
+**It needs a browser.** The GUI is a local web server plus one HTML page, so it
+opens in whatever browser you already have. There is no native window and no
+third-party toolkit — that is deliberate, because it keeps the whole tool in the
+Python standard library with nothing to install on Windows, macOS or Linux. The
+trade-off is that a browser has to be running; if you would rather not have one,
+the CLI does everything the page does and more.
+
 What it does:
 
 - **Drag and drop** — multiple files, any format, dropped anywhere on the page
@@ -32,11 +39,19 @@ What it does:
   upload a large page
 - **Options** — bare links, hints (xt + trackers), strip trackers, an optional
   tracker list file or URL, dedupe, name filter, min/max size
-- **Results** — name, size, BitTorrent version, infohash, source, plus the
-  totals from `--summary`
-- **Copy list / Copy bare / Copy hints / Download .txt** — into the qBittorrent dialog
-- **Add to qBittorrent** — host, credentials, category, save path, batch size
-- **Test connection** before you commit a batch
+- **Results** — name, size, BitTorrent version, infohash, source, duplicates
+  dropped, and a **Name from** column marking whether each name came from the
+  URI (`uri`, trustworthy) or was scraped off the markup (`page`, a best guess)
+- **Copy list / Copy bare / Copy hints** — into the qBittorrent dialog
+- **Download .txt**, optionally **split into files of N links** for a client that
+  balks at thousands at once
+- **Add to qBittorrent** — host, credentials, category, save path, batch size,
+  and **Max active**: the same queue-aware feeding as the CLI's `--max-active`.
+  Set it and the page adds only into the free headroom, then waits and tops up,
+  instead of dumping thousands in and starving the queue. Progress updates live
+  while it runs
+- **Test connection** — really logs in and reports the qBittorrent version and
+  how many torrents are downloading now, so you know what headroom you have
 
 Files never leave your machine: the page talks only to the local server, and the
 local server only to the qBittorrent host you type in.
@@ -283,7 +298,7 @@ oversized dump. Measured anyway: 50,000 magnets from an 18 MB page in ~2.9 s,
 python3 -m unittest discover -s . -p 'test_*.py' -v
 ```
 
-118 tests — 95 for the CLI and 23 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
+128 tests — 99 for the CLI and 29 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
 any-extension scanning, binary safety, size parsing and filters, CLI behaviour,
 and the qBittorrent login + multipart add path with batch chunking and
 queue-aware feeding, and the GUI's extract/add endpoints and batching
