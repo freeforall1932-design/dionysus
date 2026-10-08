@@ -279,7 +279,10 @@ def test_connection(cfg: dict) -> dict:
     # report success for a host that was not there. Only a non-200 from a host
     # that *did* answer is treated as merely missing the endpoint.
     try:
-        out["version"] = client.get_json("/api/v2/app/version")
+        version = client.get_json("/api/v2/app/version")
+        # a real client answers with a JSON string; anything else means we hit
+        # the wrong endpoint or the wrong port, so do not render it as a version
+        out["version"] = version if isinstance(version, str) else None
     except (RuntimeError, ValueError):
         out["version"] = None  # reachable, but no version endpoint
     try:
