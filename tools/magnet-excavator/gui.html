@@ -89,6 +89,13 @@
     </div>
 
     <div class="row">
+      <label for="url" title="Fetch a page over HTTP and scan it, instead of saving it first. Several URLs, one per line.">…or a URL</label>
+      <input type="text" id="url" class="grow" placeholder="https://example.com/torrents  (several: separate with commas)">
+      <label for="opt-max-file" title="Skip files bigger than this when walking a directory.">skip files over</label>
+      <input type="text" id="opt-max-file" placeholder="50MB" style="width:100px">
+    </div>
+
+    <div class="row">
       <label class="chk"><input type="checkbox" id="opt-bare"> bare links (xt only)</label>
       <label class="chk" title="Keeps the tracker hints, drops the name. Use this if bare links sit at 'Downloading metadata'.">
         <input type="checkbox" id="opt-hints"> hints (xt + trackers)
@@ -98,6 +105,16 @@
       <label><input type="text" id="opt-filter" placeholder="filter name…" style="width:150px"></label>
       <label><input type="text" id="opt-min" placeholder="min size 1GB" style="width:120px"></label>
       <label><input type="text" id="opt-max" placeholder="max size 20GB" style="width:120px"></label>
+      <label title="When the same torrent appears in several sources: keep the copy with the most information (full tracker list), or the one seen first.">
+        keep
+        <select id="opt-pick">
+          <option value="richest">richest link</option>
+          <option value="first">first seen</option>
+        </select>
+      </label>
+      <label title="Rows shown in the table. Copy, download and add always use the full list regardless.">
+        show <input type="number" id="opt-limit" value="500" min="1" step="100" style="width:90px"> rows
+      </label>
     </div>
 
     <div class="row">
@@ -128,12 +145,14 @@
     </div>
 
     <div class="srcs" id="s-sources"></div>
+    <div class="srcs" id="s-cross" style="display:none"></div>
 
     <div class="row" style="margin:12px 0">
       <button id="copy">Copy list</button>
       <button id="copy-bare">Copy bare</button>
       <button id="copy-hints">Copy hints</button>
       <button id="download">Download .txt</button>
+      <button id="download-json" title="The same data as --json: name, size, infohash, sources, all three URI forms.">Download .json</button>
       <label title="Split the list into files of N links, for a client that balks at thousands at once. 0 = one file.">
         &times;<input type="number" id="dl-split" value="0" min="0" style="width:70px">
       </label>
@@ -240,6 +259,9 @@ function options() {
     filter: $("opt-filter").value.trim(),
     min_size: $("opt-min").value.trim(),
     max_size: $("opt-max").value.trim(),
+    max_file_size: $("opt-max-file").value.trim(),
+    pick: $("opt-pick").value,
+    urls: $("url").value.split(",").map(u => u.trim()).filter(Boolean),
   };
 }
 
@@ -256,7 +278,10 @@ async function post(path, body) {
 
 async function excavate() {
   const path = $("path").value.trim();
-  if (!picked.length && !path) { setStatus("Drop a file or give a path first.", "err"); return; }
+  const urls = $("url").value.split(",").map(u => u.trim()).filter(Boolean);
+  if (!picked.length && !path && !urls.length) {
+    setStatus("Drop a file, give a path, or paste a URL first.", "err"); return;
+  }
   $("go").disabled = true;
   setStatus("Working…");
   try {
@@ -287,7 +312,18 @@ function render(res) {
     .map(s => `${s.name}: ${s.raw} found, ${s.unique} unique`).join("  ·  ")
     + (res.augmented ? `  ·  tracker hints added to ${res.augmented}` : "");
 
-  const rows = res.magnets.slice(0, 500).map(m => {
+  const cross = res.cross_source;
+  const crossEl = $("s-cross");
+  if (cross) {
+    crossEl.style.display = "";
+    crossEl.textContent = `cross-source: ${cross.unique} unique · ${cross.shared} in 2+ sources · `
+      + cross.exclusive.map(e => `${e.count} exclusive to ${e.name}`).join(", ");
+  } else {
+    crossEl.style.display = "none";
+  }
+
+  const limit = Math.max(1, parseInt($("opt-limit").value || "500", 10));
+  const rows = res.magnets.slice(0, limit).map(m => {
     const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     return `<tr>
@@ -304,8 +340,8 @@ function render(res) {
   // Derived, not hardcoded: this was 5 while the table had 6 columns after the
   // "Name from" column was added, which left the note row ragged.
   const cols = document.querySelectorAll("#results thead th").length || 6;
-  $("rows").innerHTML = rows + (res.count > 500
-    ? `<tr><td colspan="${cols}" style="color:var(--dim)">… ${res.count - 500} more (copy or download for the full list)</td></tr>` : "");
+  $("rows").innerHTML = rows + (res.count > limit
+    ? `<tr><td colspan="${cols}" style="color:var(--dim)">… ${res.count - limit} more (copy or download for the full list)</td></tr>` : "");
 
   if (res.errors.length) {
     $("add-info").textContent = res.errors[0];
@@ -360,6 +396,19 @@ $("download").onclick = () => {
              `magnets.part${String(i + 1).padStart(width, "0")}.txt`);
   }
   setStatus(`Downloaded ${parts} file(s) of up to ${n} links each.`, "ok");
+};
+
+$("download-json").onclick = () => {
+  if (!last || !last.count) { setStatus("Nothing to export yet.", "err"); return; }
+  // the same shape --json prints, so the page can replace that flag entirely
+  const rows = last.magnets.map(m => ({
+    infohash: m.infohash, version: m.version, name: m.name,
+    name_source: m.name_source, size_bytes: m.size, size: m.size_text,
+    trackers: m.trackers, sources: m.sources,
+    magnet: m.magnet, magnet_hints: m.magnet_hints, magnet_bare: m.magnet_bare,
+  }));
+  saveText(JSON.stringify(rows, null, 2) + "\n", "magnets.json");
+  setStatus(`Exported ${rows.length} record(s) as JSON.`, "ok");
 };
 
 function saveText(text, name) {

@@ -72,6 +72,9 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
     hints = bool(options.get("hints"))
     strip = bool(options.get("strip_trackers"))
     dedupe = not options.get("no_dedupe")
+    # "richest" keeps whichever copy of a hash carries the most information
+    # (usually the fullest tracker list); "first" keeps the earliest seen.
+    pick = options.get("pick") or "richest"
 
     index: dict[str, mx.Magnet] = {}
     order: list[str] = []
@@ -104,9 +107,10 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
                     known.sources.append(source)
                 if known.size is None and m.size is not None:
                     known.size = m.size
-                if len(m.uri) > len(known.uri):
+                if pick == "richest" and len(m.uri) > len(known.uri):
                     index[m.infohash] = mx.rebuild_with_sources(m, known.sources)
         entry["unique"] = len(local)
+        entry["hashes"] = list(local_order)
         entry["rejected"] = counters.get("rejected", 0)
         entry["sized"] = sum(1 for m in local.values() if m.size is not None)
         entry["bytes"] = sum(m.size for m in local.values() if m.size is not None)
@@ -129,14 +133,29 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
     if ext:
         only_ext = {("." + e.strip().lstrip(".").lower()) for e in ext.split(",") if e.strip()}
 
+    cap = options.get("max_file_size")
+    cap = mx.parse_size(str(cap)) if cap else None
+
     for path in paths:
-        for expanded in mx.collect_paths([path], only_ext):
+        for expanded in mx.collect_paths([path], only_ext, cap):
             if expanded == "-":
                 continue
             try:
                 absorb(mx.iter_text_chunks(expanded), expanded)
             except OSError as exc:
                 errors.append(f"{expanded}: {exc}")
+
+    for url in options.get("urls") or []:
+        url = (url or "").strip()
+        if not url:
+            continue
+        if not re.match(r"(?i)^https?://", url):
+            errors.append(f"{url}: not an http(s) URL")
+            continue
+        try:
+            absorb(mx.fetch_chunks(url, float(options.get("timeout", 20) or 20)), url)
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            errors.append(f"{url}: {exc}")
 
     magnets = flat if not dedupe else [index[h] for h in order]
 
@@ -174,6 +193,26 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
         except Exception as exc:  # noqa: BLE001 - a bad list must not lose the scan
             errors.append(f"could not load tracker list: {exc}")
 
+    # The CLI's --summary reports how much the sources overlap and what is
+    # exclusive to each. The page showed neither, so multi-source runs could not
+    # be audited without dropping back to the terminal.
+    seen_in: dict[str, int] = {}
+    if len(sources) > 1:
+        for src in sources:
+            for h in src["hashes"]:
+                seen_in[h] = seen_in.get(h, 0) + 1
+    cross = None
+    if len(sources) > 1:
+        cross = {
+            "unique": len(magnets),
+            "shared": sum(1 for n in seen_in.values() if n > 1),
+            "exclusive": [
+                {"name": src["name"],
+                 "count": sum(1 for h in src["hashes"] if seen_in.get(h) == 1)}
+                for src in sources
+            ],
+        }
+
     total = sum(m.size for m in magnets if m.size is not None)
     return {
         "augmented": augmented,
@@ -185,6 +224,7 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
         # strings that looked like magnets but did not validate - the signal
         # that a hand-edited list lost a line to a typo
         "rejected": sum(s.get("rejected", 0) for s in sources),
+        "cross_source": cross,
         "sized": sum(1 for m in magnets if m.size is not None),
         "total_bytes": total,
         "total_text": mx.human_size(total) if total else None,

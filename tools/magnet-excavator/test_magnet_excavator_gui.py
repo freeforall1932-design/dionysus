@@ -10,6 +10,7 @@ import json
 import os
 import pathlib
 import re
+import tempfile
 import sys
 import threading
 import time
@@ -337,6 +338,92 @@ class TestAddFlow(unittest.TestCase):
         self.assertEqual(out["error"], "")
         self.assertEqual(self.got["urls"], magnets)
         self.assertEqual(self.got["cookie"], "SID=mock")
+
+
+class TestFullParityWithCLI(unittest.TestCase):
+    """Everything the CLI can do, the page can do too."""
+
+    HASH = "c" * 40
+
+    def page(self, hashes, size="2.0 GB"):
+        return "<table>" + "".join(
+            f'<tr><td>Item</td><td>{size}</td>'
+            f'<td><a href="magnet:?xt=urn:btih:{h}">dl</a></td></tr>'
+            for h in hashes) + "</table>"
+
+    def up(self, name, text):
+        return {"name": name, "b64": base64.b64encode(text.encode()).decode()}
+
+    def test_url_input_is_fetched_and_scanned(self):
+        body = self.page([self.HASH]).encode()
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a): pass
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        port = srv.server_address[1]
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            res = gui.process([], [], {"urls": [f"http://127.0.0.1:{port}/page"]})
+        finally:
+            srv.shutdown(); srv.server_close()
+        self.assertEqual(res["count"], 1)
+        self.assertEqual(res["magnets"][0]["infohash"], self.HASH)
+        self.assertEqual(res["magnets"][0]["size_text"], "2.0 GiB")
+
+    def test_a_non_http_url_is_rejected_not_crashed(self):
+        res = gui.process([], [], {"urls": ["not-a-url", ""]})
+        self.assertEqual(res["count"], 0)
+        self.assertTrue(any("not an http(s) URL" in e for e in res["errors"]))
+
+    def test_pick_richest_keeps_the_fuller_link(self):
+        thin = f'<a href="magnet:?xt=urn:btih:{self.HASH}&dn=Thin">y</a>'
+        rich = f'<a href="magnet:?xt=urn:btih:{self.HASH}&dn=Full&tr=udp%3A%2F%2Ft">x</a>'
+        files = [self.up("thin.html", thin), self.up("rich.html", rich)]
+        self.assertEqual(gui.process(files, [], {"pick": "richest"})["magnets"][0]["name"], "Full")
+        self.assertEqual(gui.process(files, [], {"pick": "first"})["magnets"][0]["name"], "Thin")
+
+    def test_cross_source_overlap_is_reported(self):
+        a = self.page(["1" * 40, "2" * 40, "3" * 40])
+        b = self.page(["3" * 40, "4" * 40])
+        res = gui.process([self.up("a.html", a), self.up("b.html", b)], [], {})
+        cross = res["cross_source"]
+        self.assertEqual(cross["unique"], 4)
+        self.assertEqual(cross["shared"], 1)
+        self.assertEqual({e["name"]: e["count"] for e in cross["exclusive"]},
+                         {"a.html": 2, "b.html": 1})
+
+    def test_no_cross_source_block_for_one_source(self):
+        res = gui.process([self.up("a.html", self.page(["1" * 40]))], [], {})
+        self.assertIsNone(res["cross_source"])
+
+    def test_max_file_size_skips_big_files(self):
+        d = tempfile.mkdtemp()
+        big = os.path.join(d, "big.html")
+        text = self.page([self.HASH])
+        with open(big, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        size = os.path.getsize(big)
+        under = f"{size - 1}B"   # cap below the file -> skipped
+        over = f"{size + 1}B"    # cap above it -> scanned
+        self.assertEqual(gui.process([], [d], {})["count"], 1)
+        self.assertEqual(gui.process([], [d], {"max_file_size": under})["count"], 0,
+                         f"{size}-byte file should have been skipped by a {under} cap")
+        self.assertEqual(gui.process([], [d], {"max_file_size": over})["count"], 1)
+
+    def test_records_carry_everything_the_json_export_needs(self):
+        """The page builds magnets.json itself, so each record must be complete."""
+        res = gui.process([self.up("a.html", self.page([self.HASH]))], [], {})
+        m = res["magnets"][0]
+        for key in ("infohash", "version", "name", "name_source", "size",
+                    "size_text", "trackers", "sources",
+                    "magnet", "magnet_hints", "magnet_bare"):
+            self.assertIn(key, m, f"missing {key}")
 
 
 class TestPageConsistency(unittest.TestCase):

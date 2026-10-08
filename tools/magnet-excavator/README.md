@@ -34,17 +34,22 @@ the CLI does everything the page does and more.
 
 What it does:
 
-- **Drag and drop** — multiple files, any format, dropped anywhere on the page
-- **…or a path** — a file or directory on the same machine, so you never have to
-  upload a large page
-- **Options** — bare links, hints (xt + trackers), strip trackers, an optional
-  tracker list file or URL, dedupe, name filter, min/max size
+- **Three ways in** — drag and drop (any format), a path on the same machine, or
+  a URL fetched over HTTP. Several URLs, comma-separated
+- **Every option the CLI has** — bare / hints / strip trackers, tracker list file
+  or URL with a per-link cap, dedupe, richest-vs-first when a torrent appears in
+  several sources, name filter, min/max size, and a skip-files-over cap for
+  directory walks
 - **Results** — name, size, BitTorrent version, infohash, source, duplicates
   dropped, and a **Name from** column marking whether each name came from the
   URI (`uri`, trustworthy) or was scraped off the markup (`page`, a best guess)
 - **Copy list / Copy bare / Copy hints** — into the qBittorrent dialog
 - **Download .txt**, optionally **split into files of N links** for a client that
-  balks at thousands at once
+  balks at thousands at once, and **Download .json** with the same records
+  `--json` prints
+- **Cross-source report** — how many links are unique overall, how many appear in
+  two or more sources, and what is exclusive to each, which is the `--summary`
+  block you would otherwise need the terminal for
 - **Add to qBittorrent** — host, credentials, category, save path, batch size,
   and **Max active**: the same queue-aware feeding as the CLI's `--max-active`.
   Set it and the page adds only into the free headroom, then waits and tops up,
@@ -56,14 +61,26 @@ What it does:
 Files never leave your machine: the page talks only to the local server, and the
 local server only to the qBittorrent host you type in.
 
-Two things to know:
+Every CLI flag has a control on the page now, so you do not need the terminal for
+the normal workflow. Three differences are worth knowing anyway:
+
+- **The browser holds the data.** Uploads go to the local server as base64, about
+  1.3× the file size, and the response is roughly 500 bytes per magnet because
+  each record carries three URI forms. Measured at 5,000 magnets from 0.91 MB:
+  0.6 s and a 2.5 MB response, which is fine. At 50,000 the page would be
+  carrying ~25 MB, and the CLI is the better tool there.
+- **Files land in your Downloads folder, not on disk where you choose.** The CLI's
+  `--out-dir` writes next to your sources; the page gives you browser downloads.
+- **The CLI pipes.** `--plain` into `grep`, `xargs`, a shell loop, or
+  `transmission-remote --add`. A browser page cannot be part of a pipeline.
+
+And two safety notes:
 
 - It binds `127.0.0.1` by default. `--host 0.0.0.0` exposes it on your network,
   and the add endpoint will then accept requests from anyone who can reach that
   port — only do that on a network you trust.
-- The browser sends file contents to the local server as base64, so a very large
-  page costs roughly 1.3× its size in transit. For big dumps, use the path field
-  or the CLI instead.
+- Use the **path field** rather than drag-and-drop for large dumps: it reads the
+  file on the server side and skips the base64 round trip entirely.
 
 ```bash
 ./magnet_excavator.py page.html                 # what was found
@@ -298,7 +315,7 @@ oversized dump. Measured anyway: 50,000 magnets from an 18 MB page in ~2.9 s,
 python3 -m unittest discover -s . -p 'test_*.py' -v
 ```
 
-135 tests — 102 for the CLI and 33 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
+142 tests — 102 for the CLI and 40 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
 any-extension scanning, binary safety, size parsing and filters, CLI behaviour,
 and the qBittorrent login + multipart add path with batch chunking and
 queue-aware feeding, and the GUI's extract/add endpoints and batching
