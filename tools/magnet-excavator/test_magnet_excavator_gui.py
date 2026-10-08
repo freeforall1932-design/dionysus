@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import base64
+import collections
 import http.server
 import json
 import os
+import pathlib
 import re
 import sys
 import threading
@@ -335,6 +337,37 @@ class TestAddFlow(unittest.TestCase):
         self.assertEqual(out["error"], "")
         self.assertEqual(self.got["urls"], magnets)
         self.assertEqual(self.got["cookie"], "SID=mock")
+
+
+class TestPageConsistency(unittest.TestCase):
+    """Static checks on gui.html, so markup edits cannot silently break wiring.
+
+    These exist because the table grew a "Name from" column and the
+    "N more rows" note kept colspan="5", leaving it one column short. Nothing
+    at runtime would have complained.
+    """
+
+    def setUp(self):
+        self.html = pathlib.Path(gui.PAGE).read_text(encoding="utf-8")
+
+    def test_row_template_has_one_cell_per_header(self):
+        head = re.search(r"<thead><tr>(.*?)</tr></thead>", self.html, re.S).group(1)
+        headers = re.findall(r"<th[^>]*>", head)
+        body = self.html[self.html.index("const rows = res.magnets.slice"):]
+        row = body[: body.index("</tr>`;")]
+        cells = re.findall(r"<td[^>]*>", row)
+        self.assertEqual(len(headers), len(cells),
+                         f"{len(headers)} headers but {len(cells)} cells per row")
+        self.assertEqual(len(headers), 6)
+
+    def test_every_id_referenced_by_js_exists(self):
+        ids = set(re.findall(r'\bid="([^"]+)"', self.html))
+        refs = set(re.findall(r'\$\("([^"]+)"\)', self.html))
+        self.assertFalse(refs - ids, f"JS references missing ids: {sorted(refs - ids)}")
+
+    def test_no_duplicate_ids(self):
+        seen = collections.Counter(re.findall(r'\bid="([^"]+)"', self.html))
+        self.assertEqual([k for k, v in seen.items() if v > 1], [])
 
 
 class TestQueueAwareAdd(unittest.TestCase):

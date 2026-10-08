@@ -298,7 +298,7 @@ oversized dump. Measured anyway: 50,000 magnets from an 18 MB page in ~2.9 s,
 python3 -m unittest discover -s . -p 'test_*.py' -v
 ```
 
-132 tests — 102 for the CLI and 30 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
+135 tests — 102 for the CLI and 33 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
 any-extension scanning, binary safety, size parsing and filters, CLI behaviour,
 and the qBittorrent login + multipart add path with batch chunking and
 queue-aware feeding, and the GUI's extract/add endpoints and batching

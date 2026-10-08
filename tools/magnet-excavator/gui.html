@@ -301,8 +301,11 @@ function render(res) {
         : m.name_source === "dn" ? "uri" : "—"}</td>
     </tr>`;
   }).join("");
+  // Derived, not hardcoded: this was 5 while the table had 6 columns after the
+  // "Name from" column was added, which left the note row ragged.
+  const cols = document.querySelectorAll("#results thead th").length || 6;
   $("rows").innerHTML = rows + (res.count > 500
-    ? `<tr><td colspan="5" style="color:var(--dim)">… ${res.count - 500} more (copy or download for the full list)</td></tr>` : "");
+    ? `<tr><td colspan="${cols}" style="color:var(--dim)">… ${res.count - 500} more (copy or download for the full list)</td></tr>` : "");
 
   if (res.errors.length) {
     $("add-info").textContent = res.errors[0];
