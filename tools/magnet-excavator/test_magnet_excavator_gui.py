@@ -8,7 +8,6 @@ import http.server
 import json
 import os
 import sys
-import tempfile
 import threading
 import unittest
 import urllib.error

@@ -255,16 +255,24 @@ def canonicalize(uri: str) -> str:
     return scheme.lower() + "?" + "&".join(out)
 
 
-META_WINDOW = 600
+# How far, in characters, to look either side of a link when the page's
+# structure gives no usable container (plain-text dumps, minified markup).
+# Single source of truth for iter_matches_with_size's default.
+META_WINDOW = 400
+
 TAG_RE = re.compile(r"<[^>]*>")
+
+# Tags that never contain anything, so they are never pushed on the stack.
+_VOID = {"br", "hr", "img", "input", "link", "meta", "source", "track", "wbr",
+         "area", "base", "col", "embed", "param"}
+
 # Closing tags that end an *entry*. Counting these between a candidate value and
 # a link is what tells us whether they belong to the same listing item — raw
 # character distance cannot, because markup padding varies wildly.
-_VOID = {"br", "hr", "img", "input", "link", "meta", "source", "track", "wbr", "area", "base", "col", "embed", "param"}
-
 ENTRY_CLOSE_RE = re.compile(
     r"(?i)</(tr|li|div|article|section|p|dl|dd|table|ul|ol|h[1-6]|figure|details)\b"
 )
+
 # Elements that end a whole *entry*. Walking up out of a <td> into its <tr> is
 # safe; walking up out of a <tr> into the <table> is not, because the table also
 # holds every other row's size. </div> is deliberately absent: nested divs are
@@ -391,6 +399,19 @@ def build(uri: str, infohash: str, version: int, size: int | None = None) -> Mag
     )
 
 
+_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+
+
+def _blank_comments(text: str) -> str:
+    """Blank out HTML comments without shifting any offsets.
+
+    Saved pages often carry commented-out rows, and a size in one of those is not
+    a size the page is publishing. Replacing each comment with the same number of
+    spaces keeps every other position valid, so callers can still trust offsets.
+    """
+    return _COMMENT_RE.sub(lambda m: " " * len(m.group(0)), text)
+
+
 def _clean_text(fragment: str) -> str:
     text = TAG_RE.sub(" ", fragment)
     text = html.unescape(text)
@@ -419,7 +440,7 @@ def _clean_name(value: str) -> str:
 
 def _candidates(segment: str, base: int, link_edge: int, side: str):
     """Yield (entry_closes, distance, kind, value) for sizes and text in a segment."""
-    cleaned = segment
+    cleaned = _blank_comments(segment)
     for uri in MAGNET_RE.finditer(cleaned):
         a, b = uri.span()
         cleaned = cleaned[:a] + " " * (b - a) + cleaned[b:]
@@ -593,7 +614,7 @@ def _search(text: str, start: int, end: int):
     """
     if start >= end:
         return None, None
-    window = text[start:end]
+    window = _blank_comments(text[start:end])
     size = None
     name = None
     for m in SIZE_RE.finditer(window):
@@ -720,7 +741,7 @@ def scrape_meta(
     return size, name
 
 
-def iter_matches_with_size(chunks, source: str = "<input>", window: int = 400,
+def iter_matches_with_size(chunks, source: str = "<input>", window: int = META_WINDOW,
                            want_size: bool = True):
     """Yield every Magnet in a stream of text chunks, safe across chunk edges.
 
@@ -1250,6 +1271,14 @@ def main(argv: list[str] | None = None) -> int:
             trackers = []
         if trackers:
             augmented = augment_trackers(merged, trackers, args.max_trackers)
+            # --out-dir writes from the per-source magnets, which rebuild_with_sources
+            # made into separate objects. Visit those too, or the written files
+            # silently disagree with what --plain prints. Skipped for anything already
+            # handled, so the flat (--no-dedupe) path is not counted twice.
+            seen = {id(m) for m in merged}
+            extra = [m for entry in stats for m in entry.magnets if id(m) not in seen]
+            if extra:
+                augment_trackers(extra, trackers, args.max_trackers)
     if args.bare:
         uri_of = lambda m: m.bare_uri  # noqa: E731
     elif args.hints:
@@ -1383,6 +1412,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"from {len(stats)} source(s) — use --summary for the breakdown", file=sys.stderr)
     else:
         print(f"\n{len(merged)} unique magnet link(s) across {len(stats)} source(s)", file=sys.stderr)
+
+    if augmented:
+        # stderr, so --plain stdout stays a clean list to paste or pipe
+        print(f"tracker hints added to {augmented} of {len(merged)} magnet(s)", file=sys.stderr)
 
     for err in errors:
         print(f"warning: {err}", file=sys.stderr)

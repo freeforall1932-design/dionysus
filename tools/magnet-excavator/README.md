@@ -125,7 +125,9 @@ So there are exactly two ways to know the size *before* adding anything:
    never is. Where the entry is genuinely ambiguous — one size, two links — it
    reports nothing rather than guess, because a wrong size corrupts the total.
    Pages with no usable markup fall back to a short window bounded by the
-   neighbouring links.
+   neighbouring links. Sizes inside HTML comments are ignored throughout: a
+   commented-out row is not a size the page is publishing, and counting one
+   would quietly inflate the total.
 
    The same pass supplies the **name** when the URI has no `dn=`, skipping
    anchor captions so "Download" and "get" are not mistaken for titles.
@@ -281,7 +283,7 @@ oversized dump. Measured anyway: 50,000 magnets from an 18 MB page in ~2.9 s,
 python3 -m unittest discover -s . -p 'test_*.py' -v
 ```
 
-113 tests — 90 for the CLI and 23 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
+118 tests — 95 for the CLI and 23 for the GUI backend — covering extraction, rejection, encodings, chunk-boundary streaming,
 any-extension scanning, binary safety, size parsing and filters, CLI behaviour,
 and the qBittorrent login + multipart add path with batch chunking and
 queue-aware feeding, and the GUI's extract/add endpoints and batching

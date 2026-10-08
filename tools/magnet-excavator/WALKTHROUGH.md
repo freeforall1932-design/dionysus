@@ -230,5 +230,5 @@ Accepted: v1 40-hex, v1 32-char base32, and v2 `urn:btmh:1220…` hashes, in
 ## Run the tests
 
 ```bash
-python3 -m unittest test_magnet_excavator -v    # 90 tests
+python3 -m unittest test_magnet_excavator -v    # 95 tests
 ```

@@ -6,7 +6,6 @@ from __future__ import annotations
 import gzip
 import hashlib
 import http.server
-import io
 import json
 import os
 import pathlib
@@ -819,6 +818,43 @@ class TestMetadataAttribution(unittest.TestCase):
         self.assertEqual(len(magnets), 2)
         self.assertTrue(all(m.size is None for m in magnets))
 
+    def test_a_size_inside_an_html_comment_is_ignored(self):
+        """Commented-out rows are not published sizes and must not inflate the total."""
+        html = (
+            '<!-- <tr><td>9.9 GB</td></tr> -->'
+            '<a href="magnet:?xt=urn:btih:' + "a" * 40 + '">x</a>'
+        )
+        [m] = mg.extract(html)
+        self.assertIsNone(m.size)
+
+    def test_a_real_size_wins_over_a_commented_one(self):
+        html = (
+            '<div><!-- 9.9 GB --><span>1.0 GB</span>'
+            '<a href="magnet:?xt=urn:btih:' + "a" * 40 + '">x</a></div>'
+        )
+        [m] = mg.extract(html)
+        self.assertEqual(mg.human_size(m.size), "1.0 GiB")
+
+    def test_malformed_markup_does_not_raise(self):
+        """Saved pages are rarely well-formed; nothing here may throw."""
+        h = "a" * 40
+        for html in (
+            "",
+            f"magnet:?xt=urn:btih:{h}",
+            f'<div><span>1.0 GB</span><a href="magnet:?xt=urn:btih:{h}">x</a>',
+            f'<div data-x="a>b"><a href="magnet:?xt=urn:btih:{h}">x</a></div>',
+            f'<script>var a = 1 < 2; "magnet:?xt=urn:btih:{h}";</script>',
+            f'<div>2.0 GB<br/><hr /><a href="magnet:?xt=urn:btih:{h}">x</a></div>',
+            f'<TR><TD>3.0 GB</TD><TD><A HREF="magnet:?xt=urn:btih:{h}">x</A></TD></TR>',
+            f'<tr><td>4.0 GB</td>\r\n<td><a href="magnet:?xt=urn:btih:{h}">x</a></td></tr>',
+            f'<!DOCTYPE html><ul><li>5.0 GB <a href="magnet:?xt=urn:btih:{h}">x</a></li></ul>',
+            f'</div></td><a href="magnet:?xt=urn:btih:{h}">x</a>',
+            "<div>" * 40 + f'6.0 GB<a href="magnet:?xt=urn:btih:{h}">x</a>' + "</div>" * 40,
+            f'<div>7.0 GB<a href="magnet:?xt=urn:btih:{h}">x</a><div class=',
+        ):
+            with self.subTest(html=html[:48]):
+                mg.extract(html)  # must not raise
+
     def test_dn_in_the_uri_beats_the_page(self):
         html = (
             '<div><span>Page Name</span><span>1.0 GB</span>'
@@ -965,6 +1001,37 @@ class TestTrackerAugmentation(unittest.TestCase):
             srv.server_close()
         self.assertIn("tr=udp%3A%2F%2Furl.one%3A1337%2Fannounce", out)
         self.assertIn("tr=udp%3A%2F%2Furl.two%3A1337%2Fannounce", out)
+
+    def test_out_dir_files_carry_the_same_hints_as_plain(self):
+        """--out-dir writes per-source magnets, which are different objects from
+        the merged ones. They used to be written without the added trackers while
+        the CLI claimed hints had been added."""
+        page = os.path.join(self.dir, "p.html")
+        with open(page, "w", encoding="utf-8") as fh:
+            fh.write('<a href="magnet:?xt=urn:btih:' + self.HASH + '">m</a>')
+        path = self.write_list("udp://one:1337/a\nudp://two:1337/a\n")
+        out = os.path.join(self.dir, "out")
+        r = cli(page, "--hints", "--trackers-file", path, "--out-dir", out)
+        self.assertIn("tracker hints added to 1", r.stderr)
+        written = list(pathlib.Path(out).glob("*.txt"))
+        self.assertEqual(len(written), 1)
+        line = written[0].read_text(encoding="utf-8").strip()
+        self.assertIn("tr=udp%3A%2F%2Fone%3A1337%2Fa", line)
+        self.assertIn("tr=udp%3A%2F%2Ftwo%3A1337%2Fa", line)
+        # and it must match what --plain emits
+        plain = cli(page, "--hints", "--trackers-file", path, "--plain").stdout.strip()
+        self.assertEqual(line, plain)
+
+    def test_out_dir_split_parts_carry_the_hints_too(self):
+        page = os.path.join(self.dir, "p.html")
+        with open(page, "w", encoding="utf-8") as fh:
+            fh.write('<a href="magnet:?xt=urn:btih:' + self.HASH + '">m</a>')
+        path = self.write_list("udp://one:1337/a\n")
+        out = os.path.join(self.dir, "split")
+        cli(page, "--hints", "--trackers-file", path, "--out-dir", out, "--split", "1")
+        parts = list(pathlib.Path(out).glob("*.txt"))
+        self.assertTrue(parts)
+        self.assertIn("tr=udp%3A%2F%2Fone%3A1337%2Fa", parts[0].read_text(encoding="utf-8"))
 
     def test_missing_trackers_file_warns_but_still_extracts(self):
         r = cli(os.path.join(self.dir, "nope.html"),
