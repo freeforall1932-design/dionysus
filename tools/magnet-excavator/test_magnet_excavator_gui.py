@@ -234,6 +234,16 @@ class TestHTTP(unittest.TestCase):
             self.assertIn(m["name_source"], ("dn", "page", ""))
         self.assertTrue(any(m["name_source"] == "dn" for m in body["magnets"]))
 
+    def test_rejected_count_is_reported(self):
+        """Malformed magnets are counted, not silently dropped."""
+        blob = ("magnet:?xt=urn:btih:" + "a" * 40 + "\n"
+                "magnet:?xt=urn:btih:tooshort\n"
+                "magnet:?dn=nohash\n").encode()
+        up = {"name": "edited.txt", "b64": base64.b64encode(blob).decode()}
+        _status, body = self.post("/api/extract", {"files": [up], "paths": [], "options": {}})
+        self.assertEqual(body["count"], 1)
+        self.assertEqual(body["rejected"], 2)
+
     def test_duplicate_count_is_reported(self):
         _status, body = self.post("/api/extract", {"files": [upload()], "paths": [], "options": {}})
         self.assertEqual(body["dupes"], body["raw"] - body["count"])

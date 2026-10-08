@@ -119,6 +119,7 @@ class SourceStats:
     path: str
     raw: int = 0
     unique: int = 0
+    rejected: int = 0   # looked like a magnet, failed validation
     magnets: list["Magnet"] = field(default_factory=list)
 
     @property
@@ -751,7 +752,7 @@ def scrape_meta(
 
 
 def iter_matches_with_size(chunks, source: str = "<input>", window: int = META_WINDOW,
-                           want_size: bool = True):
+                           want_size: bool = True, counters: dict | None = None):
     """Yield every Magnet in a stream of text chunks, safe across chunk edges.
 
     A match is held back when it *starts* inside the trailing OVERLAP, and carry
@@ -789,6 +790,10 @@ def iter_matches_with_size(chunks, source: str = "<input>", window: int = META_W
             uri = normalize(m.group(0))
             info = classify(uri)
             if info is None:
+                # Looked like a magnet but did not validate. Silent dropping is
+                # how a hand-edited list loses a link nobody notices, so count it.
+                if counters is not None:
+                    counters["rejected"] = counters.get("rejected", 0) + 1
                 continue
             infohash, version = info
             magnet = build(uri, infohash, version)
@@ -1019,16 +1024,28 @@ def render_table(magnets: list[Magnet], limit: int = 50) -> str:
 
 def render_summary(stats: list[SourceStats], merged: list[Magnet]) -> str:
     name_w = max([len("SOURCE")] + [len(s.label) for s in stats]) if stats else len("SOURCE")
+    # Only widen the table when there is something to report, so a clean run
+    # reads the same as it always has.
+    any_rejected = any(getattr(s, "rejected", 0) for s in stats)
+    rej_head = f" {'BAD':>5}" if any_rejected else ""
     lines = [
-        f"{'SOURCE':<{name_w}}  {'RAW':>7} {'UNIQUE':>7} {'DUPES':>6} {'SIZED':>6} {'EST. TOTAL':>11}",
-        "-" * (name_w + 2 + 7 + 1 + 7 + 1 + 6 + 1 + 6 + 1 + 11),
+        f"{'SOURCE':<{name_w}}  {'RAW':>7} {'UNIQUE':>7} {'DUPES':>6} {'SIZED':>6} "
+        f"{'EST. TOTAL':>11}{rej_head}",
+        "-" * (name_w + 2 + 7 + 1 + 7 + 1 + 6 + 1 + 6 + 1 + 11 + (6 if any_rejected else 0)),
     ]
     for s in stats:
         total = sum(m.size for m in s.magnets if m.size is not None)
         sized = sum(1 for m in s.magnets if m.size is not None)
+        rej_cell = f" {getattr(s, 'rejected', 0):>5}" if any_rejected else ""
         lines.append(
             f"{s.label:<{name_w}}  {s.raw:>7} {s.unique:>7} {s.raw - s.unique:>6} "
-            f"{sized:>6} {human_size(total) if sized else '-':>11}"
+            f"{sized:>6} {human_size(total) if sized else '-':>11}{rej_cell}"
+        )
+    if any_rejected:
+        bad = sum(getattr(s, "rejected", 0) for s in stats)
+        lines.append(
+            f"\nBAD {bad}: string(s) starting magnet:? that did not hold a valid "
+            "BitTorrent infohash, so they were not added."
         )
 
     if len(stats) > 1:
@@ -1190,8 +1207,9 @@ def main(argv: list[str] | None = None) -> int:
         entry = SourceStats(path=source)
         local: dict[str, Magnet] = {}
         local_order: list[str] = []
+        counters: dict[str, int] = {}
 
-        for m in iter_matches_with_size(chunks, source):
+        for m in iter_matches_with_size(chunks, source, counters=counters):
             entry.raw += 1
             if args.no_dedupe:
                 flat.append(m)
@@ -1221,6 +1239,7 @@ def main(argv: list[str] | None = None) -> int:
 
         entry.magnets = [local[h] for h in local_order]
         entry.unique = len(local)
+        entry.rejected = counters.get("rejected", 0)
         stats.append(entry)
 
     if "-" in args.inputs:

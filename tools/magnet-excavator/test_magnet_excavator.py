@@ -874,6 +874,45 @@ class TestMetadataAttribution(unittest.TestCase):
         self.assertEqual(m.size, 12345)
 
 
+class TestRejectedCount(unittest.TestCase):
+    """A hand-edited list must not lose a line to a typo in silence."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.path = os.path.join(self.dir, "edited.txt")
+        with open(self.path, "w", encoding="utf-8") as fh:
+            fh.write(
+                "magnet:?xt=urn:btih:" + "a" * 40 + "\n"
+                "# a comment\n"
+                "some random note\n"
+                "magnet:?xt=urn:btih:tooshort\n"
+                "https://example.com/not-a-magnet\n"
+                "magnet:?dn=nohash\n"
+                "magnet:?xt=urn:btih:" + "b" * 40 + "\n"
+            )
+
+    def test_valid_links_survive_and_bad_ones_are_counted(self):
+        r = cli(self.path, "--summary")
+        self.assertIn("BAD 2", r.stdout)
+        # the two good links still come through
+        plain = cli(self.path, "--plain").stdout.strip().split("\n")
+        self.assertEqual(len(plain), 2)
+
+    def test_no_bad_column_when_nothing_was_rejected(self):
+        clean = os.path.join(self.dir, "clean.txt")
+        with open(clean, "w", encoding="utf-8") as fh:
+            fh.write("magnet:?xt=urn:btih:" + "c" * 40 + "\n")
+        out = cli(clean, "--summary").stdout
+        self.assertNotIn("BAD", out)
+
+    def test_rejected_tally_is_on_the_stats_object(self):
+        counters: dict = {}
+        with open(self.path, encoding="utf-8") as fh:
+            got = list(mg.iter_matches_with_size([fh.read()], "x", counters=counters))
+        self.assertEqual(len(got), 2)
+        self.assertEqual(counters.get("rejected"), 2)
+
+
 class TestScrapedNameSurvivesDedupe(unittest.TestCase):
     """Names scraped from the page must survive the dedupe path.
 

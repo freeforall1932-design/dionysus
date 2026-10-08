@@ -201,6 +201,43 @@ python3 magnet_excavator.py examples/raw_dump.txt --out-dir lists/ --split 100
 Writes part files of 100 links each, sized to paste into *File → Add Torrent
 Link* (Ctrl+Shift+O) one at a time.
 
+## 6c. Or write the list, then feed that file back
+
+The `.txt` files are plain magnet lists, and the tool reads plain text — so the
+output of one run is valid input to the next. Useful when you want to eyeball or
+edit the list before committing it, or keep it as a record of what you added.
+
+```bash
+# step 1: extract to one .txt per source
+python3 magnet_excavator.py ~/saved-pages/ --out-dir lists/
+#   lists/site_alpha.txt   3 magnet(s)
+#   lists/site_beta.txt    2 magnet(s)
+
+# step 2: feed those files back into qBittorrent
+python3 magnet_excavator.py lists/ --add --category excavated --max-active 4
+```
+
+Verified end to end: step 1 wrote 3 + 2 links across two files, every line
+starting `magnet:?xt=urn:btih:` with no stray carriage returns, and step 2 read
+them back and added all 5. Step 2 does not need the original HTML at all.
+
+Editing the file between the two steps works too — delete lines you do not want,
+or paste in magnets from elsewhere. Comments, prose and anything that is not a
+magnet are ignored. A string that *starts* `magnet:?` but does not hold a valid
+infohash is not added, and `--summary` reports how many of those there were in a
+`BAD` column, so a typo cannot quietly cost you a link:
+
+```
+SOURCE          RAW  UNIQUE  DUPES  SIZED  EST. TOTAL   BAD
+-----------------------------------------------------------
+edited.txt        2       2      0      0           -     1
+
+BAD 1: string(s) starting magnet:? that did not hold a valid BitTorrent
+infohash, so they were not added.
+```
+
+The column only appears when something was actually rejected.
+
 ## 7. Several sources at once
 
 ```bash
@@ -230,5 +267,5 @@ Accepted: v1 40-hex, v1 32-char base32, and v2 `urn:btmh:1220…` hashes, in
 ## Run the tests
 
 ```bash
-python3 -m unittest test_magnet_excavator -v    # 99 tests
+python3 -m unittest test_magnet_excavator -v    # 102 tests
 ```

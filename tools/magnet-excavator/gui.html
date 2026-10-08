@@ -124,6 +124,7 @@
       <div class="stat"><b id="s-sized">0</b><span>with a size</span></div>
       <div class="stat"><b id="s-total">–</b><span>estimated total</span></div>
       <div class="stat"><b id="s-dupes">0</b><span>duplicates dropped</span></div>
+      <div class="stat" style="display:none"><b id="s-bad">0</b><span>malformed, skipped</span></div>
     </div>
 
     <div class="srcs" id="s-sources"></div>
@@ -278,6 +279,10 @@ function render(res) {
   $("s-sized").textContent = `${res.sized}/${res.count}`;
   $("s-total").textContent = res.total_text || "–";
   $("s-dupes").textContent = res.dupes ?? 0;
+  const bad = res.rejected ?? 0;
+  const badEl = $("s-bad");
+  badEl.textContent = bad;
+  badEl.parentElement.style.display = bad ? "" : "none";
   $("s-sources").textContent = res.sources
     .map(s => `${s.name}: ${s.raw} found, ${s.unique} unique`).join("  ·  ")
     + (res.augmented ? `  ·  tracker hints added to ${res.augmented}` : "");

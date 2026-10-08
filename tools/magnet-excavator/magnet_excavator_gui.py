@@ -80,10 +80,12 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
     errors: list[str] = []
 
     def absorb(chunks, source: str) -> None:
-        entry = {"name": os.path.basename(source) or source, "raw": 0, "unique": 0}
+        entry = {"name": os.path.basename(source) or source, "raw": 0, "unique": 0,
+                 "rejected": 0}
         local: dict[str, mx.Magnet] = {}
         local_order: list[str] = []
-        for m in mx.iter_matches_with_size(chunks, source):
+        counters: dict[str, int] = {}
+        for m in mx.iter_matches_with_size(chunks, source, counters=counters):
             entry["raw"] += 1
             if not dedupe:
                 flat.append(m)
@@ -105,6 +107,7 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
                 if len(m.uri) > len(known.uri):
                     index[m.infohash] = mx.rebuild_with_sources(m, known.sources)
         entry["unique"] = len(local)
+        entry["rejected"] = counters.get("rejected", 0)
         entry["sized"] = sum(1 for m in local.values() if m.size is not None)
         entry["bytes"] = sum(m.size for m in local.values() if m.size is not None)
         sources.append(entry)
@@ -179,6 +182,9 @@ def process(files: list[dict], paths: list[str], options: dict) -> dict:
         "count": len(magnets),
         "raw": sum(s["raw"] for s in sources),
         "dupes": sum(s["raw"] for s in sources) - len(magnets),
+        # strings that looked like magnets but did not validate - the signal
+        # that a hand-edited list lost a line to a typo
+        "rejected": sum(s.get("rejected", 0) for s in sources),
         "sized": sum(1 for m in magnets if m.size is not None),
         "total_bytes": total,
         "total_text": mx.human_size(total) if total else None,
