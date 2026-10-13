@@ -1,0 +1,58 @@
+# Gate for skills/ and projects/ — the checks named in skills/README.md
+# ("Rules this directory enforces mechanically"). Pure Python 3, no Qt, no
+# CMake: it validates the skill tree and proves the lint can fail; it does NOT
+# compile the Qt templates (that happens in a consuming project's own CI).
+#
+# Written 2026-10-13. First run happens on the push of the commit that adds it;
+# quote the run ID in the session log, not a memory of one.
+
+name: skills-gate
+
+on:
+  push:
+    paths:
+      - "skills/**"
+      - "projects/**"
+      - ".github/workflows/skills-gate.yml"
+  pull_request:
+    paths:
+      - "skills/**"
+      - "projects/**"
+      - ".github/workflows/skills-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python version (the gate targets the runner's stock python3)
+        run: python3 --version
+
+      - name: Syntax of every Python file under skills/
+        run: python3 -m compileall -q skills
+
+      - name: qt_lint self-test (the guard must be able to fail)
+        run: python3 skills/qt6-cmake-cpp/scripts/qt_lint.py --selftest
+
+      - name: qt_lint on its own templates (must be clean; machine-path rule included)
+        run: python3 skills/qt6-cmake-cpp/scripts/qt_lint.py skills/qt6-cmake-cpp/templates
+
+      - name: validate_skills (frontmatter, links, machine paths, universal hash, projects pointers)
+        run: python3 skills/validate_skills.py
+
+      - name: JSON files parse (presets template, committed baselines)
+        run: |
+          set -e
+          for f in $(git ls-files 'skills/**/*.json' 'projects/**/*.json'); do
+            python3 -c "import json,sys; json.load(open(sys.argv[1])); print('ok', sys.argv[1])" "$f"
+          done

@@ -1,0 +1,117 @@
+# GitHub Actions skeleton for a Qt 6 / CMake desktop app — Linux + Windows.
+#
+# What it proves (and only this): compile on both lanes, core unit tests, the
+# offscreen GUI harness, a packaged artifact with an asserted manifest, and a
+# fresh-runner smoke of that artifact. It does NOT prove a clean consumer
+# machine or any physical-desktop behaviour (keep a dated runsheet for those).
+#
+# Before use: replace <QT_VERSION>, pin runner labels and action majors
+# deliberately (check the action's declared runtime, not just the tag), and
+# keep any mirrored copy of this file byte-identical.
+#
+# Written 2026-10-13; not executed in the authoring sandbox.
+
+name: Build and test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 6 (system packages)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-base-dev ninja-build
+      - name: Configure (fresh build dir, warnings as errors)
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWARNINGS_AS_ERRORS=ON
+      - name: Source tree untouched by configure
+        run: git status --porcelain | tee /dev/stderr | grep -q . && { echo "::error::configure wrote into the source tree"; exit 1; } || true
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Core unit tests
+        run: ctest --test-dir build --output-on-failure -R '^core$'
+      - name: GUI offscreen harness (a crash prints no FAIL lines — check the exit status)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          APP_TEST_FIXTURES: ${{ github.workspace }}/build/fixtures
+        run: |
+          test -x build/test_gui_offscreen || { echo "::error::harness binary missing (Qt not found at configure?)"; exit 1; }
+          set -o pipefail
+          build/test_gui_offscreen 2>&1 | tee build/gui_offscreen.log
+      - name: ASan + UBSan lane (debug)
+        run: |
+          cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DENABLE_UBSAN=ON -DBUILD_GUI=OFF
+          cmake --build build-asan --parallel
+          ASAN_OPTIONS=detect_leaks=0 ctest --test-dir build-asan --output-on-failure
+      - name: Lint (Qt anti-patterns; baseline accepted findings live in the repo)
+        run: python3 scripts/qt_lint.py src tests CMakeLists.txt --baseline qt_lint.baseline.json
+
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 6 + MinGW (aqt)
+        run: |
+          pip install aqtinstall
+          aqt install-qt windows desktop <QT_VERSION> win64_mingw -O "$RUNNER_TEMP/qt"
+          aqt install-tool windows desktop tools_mingw1310 -O "$RUNNER_TEMP/qt"
+          QT_PREFIX=$(ls -d "$RUNNER_TEMP"/qt/6.*/mingw_64)
+          echo "QT_PREFIX=$QT_PREFIX" >> "$GITHUB_ENV"
+          echo "$QT_PREFIX/bin" >> "$GITHUB_PATH"
+          ls -d "$RUNNER_TEMP"/qt/Tools/mingw*/bin >> "$GITHUB_PATH"
+      - name: Toolchain identity (diagnostic only)
+        run: g++ --version; cmake --version; qmake6 -v || true
+      - name: Configure + build (MinGW, Ninja)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PREFIX"
+          cmake --build build --parallel
+      - name: Core unit tests (4-byte long here — the LLP64 class)
+        run: ctest --test-dir build --output-on-failure -R '^core$'
+      - name: GUI offscreen harness
+        env:
+          QT_QPA_PLATFORM: offscreen
+          APP_TEST_FIXTURES: ${{ github.workspace }}/build/fixtures
+        run: |
+          test -x build/test_gui_offscreen.exe || { echo "::error::harness binary missing"; exit 1; }
+          set -o pipefail
+          build/test_gui_offscreen.exe 2>&1 | tee build/gui_offscreen.log
+      - name: Package portable (fail closed, manifest asserted inside the script)
+        run: bash scripts/package_portable.sh build dist
+      - name: Assert package manifest (second, independent check)
+        run: bash scripts/assert_manifest.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-windows-portable
+          path: dist/*.zip
+          if-no-files-found: error
+
+  package-smoke:
+    needs: windows
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: app-windows-portable, path: smoke }
+      - name: Unpack and run one job from the package only (no checkout, no Qt install)
+        env: { QT_QPA_PLATFORM: offscreen }
+        run: |
+          cd smoke && unzip -q *.zip && cd */
+          ./app-cli.exe --version
+          ./app-cli.exe --help >/dev/null
+          # a real conversion against a fixture shipped in the zip, then verify output exists and is non-empty
