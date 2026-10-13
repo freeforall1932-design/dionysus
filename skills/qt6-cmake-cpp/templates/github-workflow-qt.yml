@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Qt 6 (system packages)
         run: |
           sudo apt-get update
@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 60
     defaults: { run: { shell: bash } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Qt 6 + MinGW (aqt)
         run: |
           pip install aqtinstall
@@ -94,7 +94,7 @@ jobs:
         run: bash scripts/package_portable.sh build dist
       - name: Assert package manifest (second, independent check)
         run: bash scripts/assert_manifest.sh dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: app-windows-portable
           path: dist/*.zip
@@ -106,7 +106,7 @@ jobs:
     timeout-minutes: 15
     defaults: { run: { shell: bash } }
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with: { name: app-windows-portable, path: smoke }
       - name: Unpack and run one job from the package only (no checkout, no Qt install)
         env: { QT_QPA_PLATFORM: offscreen }
