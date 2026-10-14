@@ -231,9 +231,48 @@ def main(argv: list[str]) -> int:
                     check_paths_in(os.path.join(dirpath, fn), root, None)
 
     check_loader_files(root)
+    check_index(root)
     check_python(skills_dir, root)
     check_qt_lint_selftest(root, a.quiet)
     return finish(a.quiet)
+
+
+def check_index(root: str) -> None:
+    """index.json is the triage table: every unit an agent might open has one
+    entry with read_when/skip_when, every entry path exists, and README.md names
+    every unit. Units = skills/*, projects/* (dirs), research/*.md, tools/*."""
+    import json
+    p = os.path.join(root, "index.json")
+    if not check(os.path.isfile(p), "index.json exists (triage table)"):
+        return
+    try:
+        data = json.loads(read(p))
+    except json.JSONDecodeError as e:
+        check(False, f"index.json parses: {e}")
+        return
+    units = data.get("units", [])
+    ids = {u.get("id") for u in units}
+    readme = read(os.path.join(root, "README.md")) if os.path.isfile(os.path.join(root, "README.md")) else ""
+    for u in units:
+        uid = u.get("id", "?")
+        for key in ("kind", "entry", "read_when", "skip_when", "session_added"):
+            check(bool(str(u.get(key, "")).strip()), f"index.json {uid}: has {key}")
+        entry = u.get("entry", "")
+        check(os.path.isfile(os.path.join(root, entry)), f"index.json {uid}: entry exists: {entry}")
+        check(f"`{uid}`" in readme, f"index.json {uid}: named in README.md triage table")
+    expected: set[str] = set()
+    for group in ("skills", "projects", "tools"):
+        d = os.path.join(root, group)
+        if os.path.isdir(d):
+            expected.update(f"{group}/{n}" for n in os.listdir(d)
+                            if os.path.isdir(os.path.join(d, n)) and not n.startswith((".", "_")))
+    rd = os.path.join(root, "research")
+    if os.path.isdir(rd):
+        expected.update(f"research/{n}" for n in os.listdir(rd) if n.endswith(".md") and n != "README.md")
+    for uid in sorted(expected):
+        check(uid in ids, f"index.json covers {uid}")
+    for uid in sorted(ids - expected):
+        check(False, f"index.json entry {uid} has no unit on disk")
 
 
 def check_loader_files(root: str) -> None:

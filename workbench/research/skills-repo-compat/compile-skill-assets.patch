@@ -1,0 +1,242 @@
+diff --git a/coding-agents/compile.py b/coding-agents/compile.py
+index fb94389..e141fed 100644
+--- a/coding-agents/compile.py
++++ b/coding-agents/compile.py
+@@ -72,6 +72,20 @@ class Variant:
+     references: "dict[str, str]" = field(default_factory=dict)
+     examples: str = ""
+     raw: str = ""  # the SKILL.md exactly as authored — frontmatter included
++    assets: "dict[str, bytes]" = field(default_factory=dict)  # verbatim files beside SKILL.md
++
++    @property
++    def is_loader(self) -> bool:
++        """True when the paste file must point at files instead of inlining them.
++
++        A register is a few hundred lines and reads fine inlined. A process or
++        workload skill ships a long hash-pinned guide, templates or scripts;
++        inlining those into a context file bills them on every request and
++        drops anything that is not markdown. Such a skill declares
++        `metadata.paste: loader`, or is treated as one as soon as it carries
++        files the flattened route cannot represent.
++        """
++        return str(self.meta.get("paste", "")).lower() == "loader" or bool(self.assets)
+ 
+     @property
+     def is_packaged(self) -> bool:
+@@ -128,6 +142,18 @@ def load_variants() -> dict[str, Variant]:
+             if examples_path.exists()
+             else ""
+         )
++        assets: dict[str, bytes] = {}
++        for item in sorted(skill_dir.rglob("*")):
++            if not item.is_file():
++                continue
++            rel = item.relative_to(skill_dir)
++            if rel.parts[0] in ("SKILL.md", "examples.md"):
++                continue
++            if rel.parts[0] == "references" and len(rel.parts) == 2 and rel.suffix == ".md":
++                continue
++            if any(part.startswith((".", "__")) for part in rel.parts):
++                continue
++            assets[rel.as_posix()] = item.read_bytes()
+         variants[key] = Variant(
+             key=key,
+             body=body.strip() + "\n",
+@@ -135,6 +161,7 @@ def load_variants() -> dict[str, Variant]:
+             references=references,
+             examples=examples,
+             raw=raw,
++            assets=assets,
+         )
+     return variants
+ 
+@@ -210,6 +237,21 @@ def validate_profile(profile: dict, source: str = "<profile>") -> None:
+             )
+ 
+ 
++def variant_order(variants: "dict[str, Variant]") -> list[str]:
++    """Known variants in their documented order, then any new skill directory
++    in name order — adding a skill no longer requires editing this file."""
++    known = [key for key in VARIANT_ORDER if key in variants]
++    return known + sorted(key for key in variants if key not in VARIANT_ORDER)
++
++
++def variant_label(variant: Variant) -> str:
++    return VARIANT_LABEL.get(variant.key) or str(variant.meta.get("label") or variant.name)
++
++
++def variant_blurb(variant: Variant) -> str:
++    return VARIANT_BLURB.get(variant.key) or str(variant.meta.get("blurb") or variant.description)
++
++
+ def load_profiles() -> list[dict]:
+     profiles = []
+     for path in sorted(PROFILES_DIR.glob("*.json")):
+@@ -239,11 +281,10 @@ def render_agent_readme(profile: dict, variants: dict[str, Variant]) -> str:
+     lines.append("")
+     lines.append("| Variant | File | Use when |")
+     lines.append("|---|---|---|")
+-    for key in VARIANT_ORDER:
+-        if key not in variants:
+-            continue
++    for key in variant_order(variants):
++        variant = variants[key]
+         star = " ★" if key == recommended else ""
+-        lines.append(f"| {VARIANT_LABEL[key]}{star} | [`{key}.md`]({key}.md) | {VARIANT_BLURB[key]} |")
++        lines.append(f"| {variant_label(variant)}{star} | [`{key}.md`]({key}.md) | {variant_blurb(variant)} |")
+     lines.append("")
+     lines.append(f"★ = recommended default for {profile['display_name']}.")
+     lines.append("")
+@@ -396,8 +437,28 @@ def render_flattened(variant: Variant) -> str:
+     return "\n".join(parts).rstrip() + "\n"
+ 
+ 
++def render_loader(variant: Variant) -> str:
++    """SKILL.md body plus the list of files it expects beside it — no inlining.
++
++    The pasted text tells the agent what to read and where; the files
++    themselves are installed from the skill directory (or the repository).
++    Every path is relative to the skill directory, exactly as SKILL.md names it.
++    """
++    body = variant.body.strip()
++    files = sorted(
++        [f"references/{name}" for name in variant.references]
++        + list(variant.assets)
++        + (["examples.md"] if variant.examples else [])
++    )
++    lines = [body, "", "---", "", f"## Files of the `{variant.name}` skill (install beside this text; not inlined)", ""]
++    lines += [f"- `{path}`" for path in files]
++    return "\n".join(lines).rstrip() + "\n"
++
++
+ def render_paste_file(variant: Variant, profile: dict) -> str:
+     """Plain markdown, frontmatter stripped, ready to paste into a context file."""
++    if variant.is_loader:
++        return render_loader(variant)
+     return render_flattened(variant)
+ 
+ 
+@@ -432,14 +493,14 @@ def render_mdc_file(variant: Variant, profile: dict) -> str:
+     between a rule that loads and one that silently does nothing. Cursor rules
+     are single files, so the support material is inlined.
+     """
+-    description = variant.description or VARIANT_BLURB[variant.key]
++    description = variant.description or variant_blurb(variant)
+     return (
+         "---\n"
+         f"description: {_yaml_scalar(description)}\n"
+         "globs: \n"
+         "alwaysApply: true\n"
+         "---\n\n"
+-        + render_flattened(variant).strip()
++        + (render_loader(variant) if variant.is_loader else render_flattened(variant)).strip()
+         + "\n"
+     )
+ 
+@@ -473,9 +534,8 @@ def render_index(profiles: list[dict], variants: dict[str, Variant]) -> str:
+         "| Variant | What it governs |",
+         "|---|---|",
+     ]
+-    for key in VARIANT_ORDER:
+-        if key in variants:
+-            lines.append(f"| `{key}` | {VARIANT_BLURB[key]} |")
++    for key in variant_order(variants):
++        lines.append(f"| `{key}` | {variant_blurb(variants[key])} |")
+     lines += [
+         "",
+         "## Rules of thumb",
+@@ -525,9 +585,7 @@ def main() -> None:
+             render_agent_readme(profile, variants), encoding="utf-8"
+         )
+ 
+-        for key in VARIANT_ORDER:
+-            if key not in variants:
+-                continue
++        for key in variant_order(variants):
+             variant = variants[key]
+             (paste_dir / f"{key}.md").write_text(
+                 render_paste_file(variant, profile), encoding="utf-8"
+@@ -551,6 +609,12 @@ def main() -> None:
+                         _external_links_to_text(variant.examples).strip() + "\n",
+                         encoding="utf-8",
+                     )
++                # Hash-pinned guides, templates and scripts travel byte-for-byte.
++                # Rewriting them would break the pin the skill's own gate checks.
++                for rel, data in variant.assets.items():
++                    target = skill_dir / rel
++                    target.parent.mkdir(parents=True, exist_ok=True)
++                    target.write_bytes(data)
+             if instruction["format"] == "mdc":
+                 rules_dir = agent_dir / "rules"
+                 rules_dir.mkdir(parents=True, exist_ok=True)
+@@ -576,7 +640,7 @@ def main() -> None:
+                 archive.writestr(info, path.read_bytes())
+ 
+     n_agents = len(profiles)
+-    n_variants = len([k for k in VARIANT_ORDER if k in variants])
++    n_variants = len(variant_order(variants))
+     print(f"Compiled {n_agents} agents x {n_variants} variants -> {PACKS_DIR}")
+     for profile in profiles:
+         print(f"  {profile['id']:<10} {profile['display_name']}")
+diff --git a/coding-agents/tests/test_compile.py b/coding-agents/tests/test_compile.py
+index 99261c5..60afa2a 100644
+--- a/coding-agents/tests/test_compile.py
++++ b/coding-agents/tests/test_compile.py
+@@ -149,7 +149,7 @@ def test_skill_dirs_have_valid_frontmatter(compiled, agent):
+ 
+ def test_cursor_rules_use_mdc_frontmatter(compiled):
+     rules = list((compiled / "cursor" / "rules").glob("*.mdc"))
+-    assert len(rules) == len(VARIANT_KEYS)
++    assert len(rules) == len(compile_mod.load_variants())
+     yaml = pytest.importorskip("yaml")
+     for rule in rules:
+         text = rule.read_text(encoding="utf-8")
+@@ -245,7 +245,12 @@ def test_skill_meets_the_agent_skills_spec(skill_dir):
+     refs = skill_dir / "references"
+     if refs.is_dir():
+         assert not list(refs.rglob("*/*.md")), "reference files must be one level deep"
+-    assert (skill_dir / "examples.md").is_file()
++    # A register shows before/after examples; a process or workload skill
++    # ships a guide, templates or scripts instead. One of the two must exist.
++    variant = compile_mod.load_variants()[skill_dir.name]
++    assert (skill_dir / "examples.md").is_file() or variant.assets, (
++        f"{skill_dir.name}: neither examples.md nor support files"
++    )
+ 
+ 
+ def test_generated_skill_dirs_ship_their_support_files(compiled):
+@@ -259,7 +264,33 @@ def test_generated_skill_dirs_ship_their_support_files(compiled):
+                 assert (skill.parent / "references" / ref.name).is_file(), (
+                     f"{agent}/{skill.parent.name}: missing {ref.name}"
+                 )
+-            assert (skill.parent / "examples.md").is_file()
++            variant = compile_mod.load_variants()[skill.parent.name]
++            if variant.examples:
++                assert (skill.parent / "examples.md").is_file()
++            # Support files that are not markdown references travel byte-for-byte.
++            for rel, data in variant.assets.items():
++                packed = skill.parent / rel
++                assert packed.is_file(), f"{agent}/{skill.parent.name}: missing {rel}"
++                assert packed.read_bytes() == data, f"{agent}/{skill.parent.name}: {rel} was rewritten"
++
++
++def test_loader_skills_paste_a_pointer_not_a_copy(compiled):
++    """A skill with a hash-pinned guide or scripts is pasted as its SKILL.md body
++    plus a file list. Inlining would bill the whole guide on every request and
++    silently drop everything that is not markdown."""
++    variants = compile_mod.load_variants()
++    loaders = [v for v in variants.values() if v.is_loader]
++    if not loaders:
++        pytest.skip("no loader-style skill in variants/")
++    for variant in loaders:
++        text = (compiled / "codex" / f"{variant.key}.md").read_text(encoding="utf-8")
++        assert "## Reference material (inlined)" not in text
++        assert f"## Files of the `{variant.name}` skill" in text
++        for rel in variant.assets:
++            assert f"`{rel}`" in text, f"{variant.key}: loader does not list {rel}"
++        for name in variant.references:
++            assert f"`references/{name}`" in text
++        assert len(text) < 20_000, f"{variant.key}: loader paste is {len(text)} bytes"
+ 
+ 
+ def test_pasted_files_are_self_contained(compiled):

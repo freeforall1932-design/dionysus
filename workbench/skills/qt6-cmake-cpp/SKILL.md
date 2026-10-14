@@ -1,6 +1,9 @@
 ---
 name: qt6-cmake-cpp
-description: Workload skill for Qt 6 desktop applications in C++ built with CMake — new projects, UI redesigns of existing Qt Widgets apps, GUIs that drive a command-line engine through QProcess, offscreen GUI test harnesses, CI on Linux (apt/aqt) and Windows (MinGW/MSVC via aqt), deployment with windeployqt/linuxdeploy, crash and hang diagnosis, and Qt-specific code review. Activate when the repository's real build entry point is a CMakeLists.txt that calls find_package(Qt6…) or qt_add_executable, or when the task names Qt, QWidget, QML, moc, QProcess, QTest, or windeployqt. Cross-platform; no machine paths.
+description: Workload skill for Qt 6 desktop applications in C++ built with CMake — new projects, UI redesigns of existing Qt Widgets apps, GUIs that drive a command-line engine through QProcess, offscreen GUI test harnesses, CI on Linux (apt/aqt) and Windows (MinGW/MSVC via aqt), deployment with windeployqt/linuxdeploy, crash and hang diagnosis, and Qt-specific code review. Activate when the repository's real build entry point is a CMakeLists.txt that calls find_package(Qt6…) or qt_add_executable, or when the task names Qt, QWidget, QML, moc, QProcess, QTest, or windeployqt. Cross-platform; no machine paths. Skip when the real build entry point is not a Qt 6 CMake target (plain CMake/C++, Lua or script modding, web, Python); the universal layer still applies there.
+metadata:
+  layer: workload
+  paste: loader
 ---
 
 # Qt 6 · CMake · C++ (layer 2 workload skill)

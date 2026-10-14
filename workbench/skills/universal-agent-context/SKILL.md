@@ -1,6 +1,9 @@
 ---
 name: universal-agent-context
-description: Always-on process layer for any coding-agent session in one of this owner's Git repositories (Arena Agent Mode, Claude Code, or a comparable harness). Load first, before inspecting the repo. Governs how to read a request, how to rank evidence, the verification ladder, CI and packaging strategy, truth-maintenance of status registers, patch intake, UI work from visual evidence, and end-of-session reporting. Stack-agnostic by rule; project facts live in the project's own overlay.
+description: Always-on process layer for any coding-agent session in one of this owner's Git repositories (Arena Agent Mode, Claude Code, or a comparable harness). Load first, before inspecting the repo. Governs how to read a request, how to rank evidence, the verification ladder, CI and packaging strategy, truth-maintenance of status registers, patch intake, UI work from visual evidence, and end-of-session reporting. Stack-agnostic by rule; project facts live in the project's own overlay. Not a writing register (pair it with one, e.g. skills-repo `unified`), not stack guidance (that is a workload skill such as qt6-cmake-cpp), and not a project overlay.
+metadata:
+  layer: process
+  paste: loader
 ---
 
 # Universal agent context (layer 1)
