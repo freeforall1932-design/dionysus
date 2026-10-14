@@ -1,0 +1,279 @@
+[
+  {
+    "label": "baseline",
+    "evidence_id": "ev_c37000126c91ae2ac009be50f9cbb9884ff35d6bd6326220a5bf33bcd1c92af3",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "86b3e1a21c95aec3bc6f9d1ec847b54ae7eb78da406666124b10b8acf4eb2bb7",
+    "harness_sha256": "5597e88bb08a7dc89e98a41763eade7f6345a4284f11a9cdfa12513f50b6419a",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "smoke test [default-value]: 68/68 checks passed",
+      "smoke test [default-pair]: 68/68 checks passed",
+      "smoke test [luajit21-value]: 68/68 checks passed",
+      "smoke test [luajit21-pair]: 68/68 checks passed",
+      "all()-semantics variants: value/pair passed for default, luajit21"
+    ],
+    "fail_lines": [],
+    "capture_path": "/tmp/rea-exp/capture-baseline.json",
+    "expectation": "pass: unmodified mod"
+  },
+  {
+    "label": "M1",
+    "evidence_id": "ev_57f04ec6296ec2a170253d4933d25aac1a9f38dea043779bdda92202bfe12f56",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "ad6cd86f30725c6333b43ea2987e5b78d36194ed105db2d97f41174dffde145e",
+    "harness_sha256": "5597e88bb08a7dc89e98a41763eade7f6345a4284f11a9cdfa12513f50b6419a",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "smoke test [default-value]: 68/68 checks passed",
+      "smoke test [default-pair]: 68/68 checks passed",
+      "smoke test [luajit21-value]: 68/68 checks passed",
+      "smoke test [luajit21-pair]: 68/68 checks passed",
+      "all()-semantics variants: value/pair passed for default, luajit21"
+    ],
+    "fail_lines": [],
+    "capture_path": "/tmp/rea-exp/capture-M1.json",
+    "kind": "ui-layout",
+    "description": "widen the dev panel: PANEL_W 204 -> 216",
+    "expectation": "pass: the harness locates buttons from what the panel draws, so geometry may move",
+    "compare_exit": 0,
+    "compare_path": "/tmp/rea-exp/compare-baseline-vs-M1.json"
+  },
+  {
+    "label": "M2",
+    "evidence_id": "ev_668480509eb38951bd5982241602a0b969f794c9a6f0547a18caed14637f7916",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 1,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "46f677f5edac774c2fa2bec6ebf7f79edc40e463599703b9c971c19d6e290546",
+    "harness_sha256": "5597e88bb08a7dc89e98a41763eade7f6345a4284f11a9cdfa12513f50b6419a",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "FAIL[default-value]: SK DEV tab was not drawn",
+      "FAIL[default-pair]: SK DEV tab was not drawn",
+      "FAIL[luajit21-value]: SK DEV tab was not drawn",
+      "FAIL[luajit21-pair]: SK DEV tab was not drawn",
+      "all()-semantics variants: value/pair passed for default, luajit21"
+    ],
+    "fail_lines": [
+      "FAIL[default-value]: SK DEV tab was not drawn",
+      "FAIL[default-pair]: SK DEV tab was not drawn",
+      "FAIL[luajit21-value]: SK DEV tab was not drawn",
+      "FAIL[luajit21-pair]: SK DEV tab was not drawn"
+    ],
+    "capture_path": "/tmp/rea-exp/capture-M2.json",
+    "kind": "ui-label",
+    "description": "rename the tab the player clicks: \"SK DEV\" -> \"SK-DEV\"",
+    "expectation": "fail: the visible label is a pinned contract row (it is how the player and the harness reach the panel)",
+    "compare_exit": 0,
+    "compare_path": "/tmp/rea-exp/compare-baseline-vs-M2.json"
+  },
+  {
+    "label": "M3",
+    "evidence_id": "ev_911520e530c5fa108e9d8d8c8c97f2919fc1c4a6f70e165ead596fd10e4e32ad",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 1,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "d6d7e754873f59d633cad8e6439484ff2b96402720a0afbb4d39220f927e9288",
+    "harness_sha256": "5597e88bb08a7dc89e98a41763eade7f6345a4284f11a9cdfa12513f50b6419a",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "smoke test [default-value]: 67/68 checks passed",
+      "smoke test [default-pair]: 67/68 checks passed",
+      "smoke test [luajit21-value]: 67/68 checks passed",
+      "smoke test [luajit21-pair]: 67/68 checks passed",
+      "all()-semantics variants: value/pair passed for default, luajit21"
+    ],
+    "fail_lines": [
+      "  FAILED [default-value]: RUN-6 BUG: CLIP+ over the board never reaches a square",
+      "  FAILED [default-pair]: RUN-6 BUG: CLIP+ over the board never reaches a square",
+      "  FAILED [luajit21-value]: RUN-6 BUG: CLIP+ over the board never reaches a square",
+      "  FAILED [luajit21-pair]: RUN-6 BUG: CLIP+ over the board never reaches a square"
+    ],
+    "capture_path": "/tmp/rea-exp/capture-M3.json",
+    "kind": "ui-behaviour",
+    "description": "re-introduce the run-6 click-through: stop consuming the click",
+    "expectation": "fail: 'RUN-6 BUG: CLIP+ over the board never reaches a square' and the modal swallow row",
+    "compare_exit": 0,
+    "compare_path": "/tmp/rea-exp/compare-baseline-vs-M3.json"
+  },
+  {
+    "label": "M4",
+    "evidence_id": "ev_bdff17b4cd9491001f4c79db31a866478d31eb06b57fe726066f7778ff3895a1",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 1,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "91e8556566a0705a7e3aa91c2b535744584e0afa0d3c2f7fed1747ebd0ee54e4",
+    "harness_sha256": "5597e88bb08a7dc89e98a41763eade7f6345a4284f11a9cdfa12513f50b6419a",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "smoke test [default-value]: 67/68 checks passed",
+      "smoke test [default-pair]: 67/68 checks passed",
+      "smoke test [luajit21-value]: 67/68 checks passed",
+      "smoke test [luajit21-pair]: 67/68 checks passed",
+      "all()-semantics variants: value/pair passed for default, luajit21"
+    ],
+    "fail_lines": [
+      "  FAILED [default-value]: panel never calls remove_buts",
+      "  FAILED [default-pair]: panel never calls remove_buts",
+      "  FAILED [luajit21-value]: panel never calls remove_buts",
+      "  FAILED [luajit21-pair]: panel never calls remove_buts"
+    ],
+    "capture_path": "/tmp/rea-exp/capture-M4.json",
+    "kind": "forbidden-engine-call",
+    "description": "CLIP+ calls the engine's remove_buts() (the build-7 mistake)",
+    "expectation": "fail: 'panel never calls remove_buts'",
+    "compare_exit": 0,
+    "compare_path": "/tmp/rea-exp/compare-baseline-vs-M4.json"
+  },
+  {
+    "label": "M5a",
+    "evidence_id": "ev_7995855f6203cde8ff96865b9dc8f910657dd145982afeae3bf124f99cade651",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 1,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "293bb176db950991e518c3ddec95fc0490cac0ce128287588c7a615a241d976d",
+    "harness_sha256": "5597e88bb08a7dc89e98a41763eade7f6345a4284f11a9cdfa12513f50b6419a",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "smoke test [default-value]: 65/68 checks passed",
+      "smoke test [default-pair]: 65/68 checks passed",
+      "smoke test [luajit21-value]: 65/68 checks passed",
+      "smoke test [luajit21-pair]: 65/68 checks passed",
+      "all()-semantics variants: value/pair passed for default, luajit21"
+    ],
+    "fail_lines": [
+      "  FAILED [default-value]: ammo buttons change state",
+      "  FAILED [default-value]: SAFE mode blocks the 2nd mutating call",
+      "  FAILED [default-value]: ammo cheat changes state",
+      "  FAILED [default-pair]: ammo buttons change state",
+      "  FAILED [default-pair]: SAFE mode blocks the 2nd mutating call",
+      "  FAILED [default-pair]: ammo cheat changes state",
+      "  FAILED [luajit21-value]: ammo buttons change state",
+      "  FAILED [luajit21-value]: SAFE mode blocks the 2nd mutating call",
+      "  FAILED [luajit21-value]: ammo cheat changes state",
+      "  FAILED [luajit21-pair]: ammo buttons change state",
+      "  FAILED [luajit21-pair]: SAFE mode blocks the 2nd mutating call",
+      "  FAILED [luajit21-pair]: ammo cheat changes state"
+    ],
+    "capture_path": "/tmp/rea-exp/capture-M5a.json",
+    "kind": "logic-knob",
+    "description": "+3 AMMO gives +5 but the contract still says 3",
+    "expectation": "fail: 'ammo buttons change state' pins +3; the log row still claims amount=3",
+    "compare_exit": 0,
+    "compare_path": "/tmp/rea-exp/compare-baseline-vs-M5a.json"
+  },
+  {
+    "label": "M5b",
+    "evidence_id": "ev_1918b7ba366c36294b2373b97924bc838d86c3b16b696b124d76523d3dd1ad10",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 1,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "3866438a2983f7b69e1874d9d96a9adc3f949244a3a62060c6913a494a9d9aa9",
+    "harness_sha256": "2a93297ffdde52ba59098ed87f7b8fe7aa36e2b0a1989a67221719cb04e4dde4",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "smoke test [default-value]: 67/68 checks passed",
+      "smoke test [default-pair]: 67/68 checks passed",
+      "smoke test [luajit21-value]: 67/68 checks passed",
+      "smoke test [luajit21-pair]: 67/68 checks passed",
+      "all()-semantics variants: value/pair passed for default, luajit21"
+    ],
+    "fail_lines": [
+      "  FAILED [default-value]: SAFE mode blocks the 2nd mutating call",
+      "  FAILED [default-pair]: SAFE mode blocks the 2nd mutating call",
+      "  FAILED [luajit21-value]: SAFE mode blocks the 2nd mutating call",
+      "  FAILED [luajit21-pair]: SAFE mode blocks the 2nd mutating call"
+    ],
+    "capture_path": "/tmp/rea-exp/capture-M5b.json",
+    "kind": "logic-knob+contract",
+    "description": "+5 AMMO with the log line and the contract moved deliberately",
+    "expectation": "pass expected when written; the run shows one more pinned row (see write-up)",
+    "compare_exit": 0,
+    "compare_path": "/tmp/rea-exp/compare-baseline-vs-M5b.json"
+  },
+  {
+    "label": "M5c",
+    "evidence_id": "ev_31df0e6e896c8532bcd41cd753d0dd2f97d9d0df6e39e712bcc7c1d64f26b1d3",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "3866438a2983f7b69e1874d9d96a9adc3f949244a3a62060c6913a494a9d9aa9",
+    "harness_sha256": "76f7c6e70221ba32038bddbe0a90b537f5cb01fa6373355224e1d4b1ab554f0b",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "smoke test [default-value]: 68/68 checks passed",
+      "smoke test [default-pair]: 68/68 checks passed",
+      "smoke test [luajit21-value]: 68/68 checks passed",
+      "smoke test [luajit21-pair]: 68/68 checks passed",
+      "all()-semantics variants: value/pair passed for default, luajit21"
+    ],
+    "fail_lines": [],
+    "capture_path": "/tmp/rea-exp/capture-M5c.json",
+    "kind": "logic-knob+contract",
+    "description": "+5 AMMO with every row that encodes the step moved (4 rows, 2 scenarios)",
+    "expectation": "pass: a logic change is safe when every contract row that encodes it moves in the same commit",
+    "compare_exit": 0,
+    "compare_path": "/tmp/rea-exp/compare-baseline-vs-M5c.json"
+  },
+  {
+    "label": "M6",
+    "evidence_id": "ev_8a8ab02bcc2dd362881b887d74be5691a3993bb71ee0e6ccbdc0805fa9ec3d60",
+    "authority": "controlled-replay",
+    "confidence": "observed",
+    "exit": {
+      "code": 1,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "script_sha256": "4f91bc56b7798d371fcaaf176fb08119819775515e5d5da62fde53301d782124",
+    "harness_sha256": "5597e88bb08a7dc89e98a41763eade7f6345a4284f11a9cdfa12513f50b6419a",
+    "script_unchanged_during_run": true,
+    "summary_lines": [
+      "smoke test [default-value]: 68/68 checks passed"
+    ],
+    "fail_lines": [],
+    "capture_path": "/tmp/rea-exp/capture-M6.json",
+    "kind": "engine-semantics",
+    "description": "card pool assumes value-yielding all() (LuaJIT (i,v) form breaks)",
+    "expectation": "fail only in the *-pair variants: an engine-version difference the fake engine models",
+    "compare_exit": 0,
+    "compare_path": "/tmp/rea-exp/compare-baseline-vs-M6.json"
+  }
+]

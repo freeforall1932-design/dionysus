@@ -9,7 +9,8 @@ the repository root). All paths in the documents below are relative to
 | Directory | What it is | Start at |
 |---|---|---|
 | `skills/` | **Agent skills** — the process layer (`universal-agent-context`, wrapping `UNIVERSAL_AGENT_CONTEXT_v4.md`) and the first workload layer (`qt6-cmake-cpp`: references, drop-in templates, `qt_lint.py`). Gated by `skills/validate_skills.py` and `.github/workflows/skills-gate.yml`. | `skills/README.md` — includes the answer to "one skill, two, or three?" |
-| `projects/` | **Pointers to project overlays** that live in their own repositories, plus dry-run evidence and the next-session runbook for each. Today: gifscythe (Qt 6 / CMake / C++), the proving ground for the Qt skill. | `projects/README.md`, then `projects/gifscythe/NEXT_SESSION.md` |
+| `projects/` | **Pointers to project overlays** that live in their own repositories, plus dry-run evidence and the next-session runbook for each. Today: gifscythe (Qt 6 / CMake / C++), the proving ground for the Qt skill, and shotgun-king-anew (Lua mod), where the REA mod-safety experiment ran. | `projects/README.md`, then `projects/gifscythe/NEXT_SESSION.md` |
+| `research/` | **Dated surveys** that back a decision: which repositories exist for a problem, verified against the GitHub API on the stated day, and what applies to the owner's projects. | `research/modding-engines-2026-10-14.md` |
 | `tools/magnet-excavator/` | Stdlib-only Python tool that pulls magnet links out of saved pages, with a local GUI and 142 tests (added by PR #1, moved here from the repo root). | `tools/magnet-excavator/README.md` |
 | `AGENTS.md` = `CLAUDE.md` | The loader paragraph harnesses read when they work inside this folder. | — |
 

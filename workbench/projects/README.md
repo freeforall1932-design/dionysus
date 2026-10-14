@@ -20,6 +20,7 @@ Rules (from `skills/universal-agent-context/SKILL.md`, "What goes where"):
 | Project | Pointer | Files here |
 |---|---|---|
 | gifscythe — Qt 6 / CMake / C++ GUI over the `gifsicle` CLI; the proving ground for `skills/qt6-cmake-cpp` | https://github.com/freeforall1932-design/gifscythe · `main` @ `97b0758` (S40, v0.1.0) · read 2026-10-13 · overlay files there: `STATUS.md`, `SESSION_HANDOFF.md`, `WORKLIST.md`, `IMPROVEMENT_LOG.md`, `OWNER_DECISIONS.md`, `docs/planning/` | `projects/gifscythe/SKILL_DRY_RUN_2026-10-13.md` (lint applied to the real tree, every finding dispositioned), `projects/gifscythe/NEXT_SESSION.md` (runbook for the retrospective + first real application) |
+| shotgun-king-anew — Lua 5.1/LuaJIT mod (`sk-rework`) for Shotgun King's SUGAR engine; no Qt, no CMake; the universal layer applies, no workload lane exists yet | https://github.com/freeforall1932-design/shotgun-king-anew · default branch @ `4c4bf1b` · read 2026-10-14 · overlay files there: `HANDOFF.md`, `WORKLIST.md`, `<shotgun-king-anew>/notes/game-internals.md`, `<shotgun-king-anew>/tools/mod_smoketest.py` (the executable UI↔engine contract, 68 checks) | `projects/shotgun-king-anew/REA_MOD_SAFETY_EXPERIMENT_2026-10-14.md` (nine REA-captured harness runs: which UI/logic changes keep the contract, which break it, and what the live game alone can prove), the scripts that regenerate it, `projects/shotgun-king-anew/rea-experiment/` (evidence ids, hashes, ledger summary) |
 
 ## Adding a project
 
