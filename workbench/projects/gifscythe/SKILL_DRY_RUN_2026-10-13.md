@@ -20,7 +20,7 @@ prose parts (references, templates) are checked for consistency by
 ```bash
 git clone --depth 1 https://github.com/freeforall1932-design/gifscythe /tmp/refs/gifscythe
 cd /tmp/refs/gifscythe/working_code/gifscythe
-LINT=<dionysus>/skills/qt6-cmake-cpp/scripts/qt_lint.py
+LINT=<dionysus>/workbench/skills/qt6-cmake-cpp/scripts/qt_lint.py
 
 python3 $LINT --selftest                                        # 24 checks → PASS
 python3 $LINT src tests CMakeLists.txt                          # plain run

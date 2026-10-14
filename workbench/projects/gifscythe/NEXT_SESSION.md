@@ -37,10 +37,10 @@ Then the skill's own gate, run from **this** repo's checkout, never installed in
 (OD-15 is open — see §4):
 
 ```
-python3 <dionysus>/skills/validate_skills.py
+python3 <dionysus>/workbench/skills/validate_skills.py
 cd working_code/gifscythe        # baseline keys are cwd-relative - always lint from here
-python3 <dionysus>/skills/qt6-cmake-cpp/scripts/qt_lint.py src tests CMakeLists.txt \
-    --baseline <dionysus>/projects/gifscythe/qt_lint.baseline.json
+python3 <dionysus>/workbench/skills/qt6-cmake-cpp/scripts/qt_lint.py src tests CMakeLists.txt \
+    --baseline <dionysus>/workbench/projects/gifscythe/qt_lint.baseline.json
 ```
 
 Expected on `97b0758`: 9 findings (5× QL003 = U-12 sites, 2× QL006 PreviewPanel, 2× QL002-info
@@ -76,7 +76,7 @@ A3. Read `skills/qt6-cmake-cpp/references/*.md` **against** gifscythe's code wit
     per file: *where is this wrong, silent, or too noisy for this project?* Log each as a
     defect — including "the skill says X and gifscythe already does X better" (that is a
     promotion candidate, not a bug).
-A4. Gate: `python3 skills/validate_skills.py` green → commit in this repo.
+A4. Gate: `python3 skills/validate_skills.py` (run from `workbench/`) green → commit in this repo.
 
 ### Phase B — One real task (owner picks; recommended order)
 

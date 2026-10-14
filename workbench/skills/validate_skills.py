@@ -20,7 +20,9 @@ enforces mechanically"). Promises that are not checked do not survive sessions.
      are byte-identical (one source of truth), and every repo path they name
      resolves; README.md paths resolve too
 
-Usage:  python3 skills/validate_skills.py [--root DIR] [--quiet]
+Usage:  python3 workbench/skills/validate_skills.py [--root DIR] [--quiet]
+        (--root defaults to the parent of skills/, i.e. the workbench folder;
+         paths inside the workbench's documents are relative to that folder)
 Exit 0 = all checks passed, 1 = at least one failure.
 """
 from __future__ import annotations
@@ -32,7 +34,7 @@ import re
 import subprocess
 import sys
 
-KNOWN_ROOTS = ("skills", "projects", "references", "templates", "scripts", ".github")
+KNOWN_ROOTS = ("skills", "projects", "references", "templates", "scripts", "tools", "research", ".github", "workbench")
 MACHINE_PATH_RE = re.compile(r"(?<![\w])(?:[A-Za-z]:[\\/][A-Za-z]|/home/[A-Za-z0-9_.-]+/|/Users/[A-Za-z0-9_.-]+/)")
 MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s#]+)(?:#[^)]*)?\)")
 BACKTICK_RE = re.compile(r"`([^`\n]+)`")
@@ -84,7 +86,9 @@ def resolve(tok: str, bases: list[str]) -> bool:
 
 def check_paths_in(md_path: str, root: str, skill_dir: str | None) -> None:
     text = read(md_path)
-    bases = [root] + ([skill_dir] if skill_dir else [])
+    # root = the workbench (parent of skills/); its parent is the repository root,
+    # so both `skills/x` and `workbench/skills/x` and `.github/...` resolve.
+    bases = [root, os.path.dirname(root)] + ([skill_dir] if skill_dir else [])
     rel = os.path.relpath(md_path, root)
     seen: set[str] = set()
     for m in MD_LINK_RE.finditer(text):

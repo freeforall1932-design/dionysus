@@ -17,7 +17,10 @@ Before touching this repository, load the skills in this order and say which you
 Stop at breakpoints that need my decision. End with the §19 session-log fields including "Not verifiable here".
 ```
 
-Replace `<SKILLS>` with wherever the skills live in that checkout (§2).
+Replace `<SKILLS>` with wherever the skills live in that checkout (§2). In this
+repository that is `workbench/skills` — everything that is not upstream Dionysus
+(the Hyprland dotfiles) lives under `workbench/`, and every path inside the
+workbench's documents is written relative to that folder.
 
 ## 2. Getting the files into the other repository
 
@@ -25,7 +28,7 @@ Pick one; record the choice and the commit in that project's own overlay.
 
 | Option | Command / layout | When |
 |---|---|---|
-| **Pinned submodule** (quarantined, inert — the shape gifscythe's planning §3 prefers for external tooling) | `git submodule add https://github.com/freeforall1932-design/dionysus external/dionysus` then point loaders at `external/dionysus/skills` | the project wants updates by explicit bump only |
+| **Pinned submodule** (quarantined, inert — the shape gifscythe's planning §3 prefers for external tooling) | `git submodule add https://github.com/freeforall1932-design/dionysus external/dionysus` then point loaders at `external/dionysus/workbench/skills` | the project wants updates by explicit bump only |
 | **Copied snapshot** | copy `skills/` to `<repo>/.agents/skills/` (or `.claude/skills/`) and write the source commit hash into a `PROVENANCE.md` next to it | the project must build offline / without submodules |
 | **Pointer only** | no files; the loader paragraph names the dionysus URL + commit | one-off sessions |
 
