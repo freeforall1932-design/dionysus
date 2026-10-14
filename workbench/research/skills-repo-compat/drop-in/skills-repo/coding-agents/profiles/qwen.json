@@ -1,0 +1,49 @@
+{
+  "schema_version": "1",
+  "id": "qwen",
+  "display_name": "Qwen Code (CLI)",
+  "vendor": "QwenLM",
+  "homepage": "https://github.com/QwenLM/qwen-code",
+  "binary_names": [
+    "qwen"
+  ],
+  "install": "npm i -g @qwen-code/qwen-code@latest",
+  "wire_protocol": "openai-chat",
+  "instruction": {
+    "method": "file",
+    "format": "markdown",
+    "frontmatter": false,
+    "global_paths": [
+      "~/.qwen/QWEN.md"
+    ],
+    "project_paths": [
+      "QWEN.md"
+    ],
+    "notes": "The context filename is configurable via `context.fileName` in ~/.qwen/settings.json or .qwen/settings.json; QWEN.md is the default. Hierarchical: the global file supplies defaults for all projects, the project file overrides it."
+  },
+  "skills": {
+    "supported": true,
+    "format": "skill-md",
+    "user_dirs": [
+      "~/.qwen/skills"
+    ],
+    "project_dirs": [
+      ".qwen/skills"
+    ],
+    "notes": "Each skill is a directory containing SKILL.md with YAML frontmatter. Priority: Project > User > Extension > Bundled. Qwen Code watches the personal and project skill directories and refreshes automatically after a short delay — except in bare mode, which needs a restart. Re-checked 2026-10-14 against docs/users/features/skills.md at QwenLM/qwen-code@3071807: personal ~/.qwen/skills/, project .qwen/skills/ (requires a trusted workspace); skills are enabled by default, with skills.disabled / skills.defaultDisabled / skills.enabled settings."
+  },
+  "recommended_variant": "unified",
+  "quirks": [
+    "Qwen Code is the actively maintained CLI (v0.24.0, released 2026-09-16). It is NOT the same product as the Qwen Chat agent — see profiles/qwen-agent.json.",
+    "A structured <thinking> trace is the natural fit here: Qwen models expose reasoning, so the grug variant's internal trace costs little and reads cleanly.",
+    "Skills are model-invoked: Qwen Code matches your request against the description field. A vague description means the skill never fires.",
+    "Skill directories are watched during a normal session and refresh automatically; bare mode needs a restart."
+  ],
+  "verification": {
+    "tested_agent_version": "0.24.0",
+    "last_verified_at": "2026-10-14",
+    "verified_by": "npm registry (@qwen-code/qwen-code dist-tags.latest = 0.24.0, published 2026-09-16) and GitHub releases (v0.24.0, 2026-09-16); instruction-file conventions from the Qwen Code docs. Paths re-confirmed 2026-10-14 from the repository docs (not executed).",
+    "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/configuration/settings.md"
+  },
+  "maintainer": null
+}

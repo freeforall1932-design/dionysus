@@ -1,0 +1,16 @@
+{
+  "generated_by": "qt_lint.py",
+  "generated": "2026-10-13",
+  "subject": "freeforall1932-design/gifscythe main@97b0758 - run from working_code/gifscythe with args: src tests CMakeLists.txt",
+  "note": "Accepted findings (8 keys covering 9 findings - two identical waitForStarted(5000) lines share a key), each dispositioned in SKILL_DRY_RUN_2026-10-13.md section 3. Keys are cwd-relative: run the lint from working_code/gifscythe. Kept in this repo, not in gifscythe, until OD-15 is answered.",
+  "keys": [
+    "QL002|tests/test_gui_offscreen.cpp|QObject::connect(&ticker, &QTimer::timeout, [&ticks]() { ++ticks; });",
+    "QL002|tests/test_gui_offscreen.cpp|QObject::connect(g_hb.timer, &QTimer::timeout, [] {",
+    "QL003|src/qtui/MainWindow.cpp|if (!process_->waitForStarted(5000)) {",
+    "QL003|src/qtui/MainWindow.cpp|previewProcess_->waitForFinished(1000);",
+    "QL003|src/qtui/MainWindow.cpp|process_->waitForFinished(2000);",
+    "QL003|src/qtui/MainWindow.cpp|process_->waitForFinished(3000);",
+    "QL006|src/qtui/PreviewPanel.cpp|frame->setStyleSheet(QStringLiteral(\"QFrame { background: #202020; }\"));",
+    "QL006|src/qtui/PreviewPanel.cpp|label->setStyleSheet(QStringLiteral(\"background:#202020;color:#909090;\"));"
+  ]
+}

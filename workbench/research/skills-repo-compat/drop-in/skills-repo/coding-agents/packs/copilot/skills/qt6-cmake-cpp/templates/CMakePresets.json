@@ -1,0 +1,93 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "_base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_PREFIX_PATH": "$env{QT_PREFIX}"
+      }
+    },
+    {
+      "name": "linux-gcc",
+      "displayName": "Linux · gcc · Ninja · Release",
+      "inherits": "_base",
+      "generator": "Ninja",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux · Debug",
+      "inherits": "linux-gcc",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "linux-asan",
+      "displayName": "Linux · Debug + ASan + UBSan",
+      "inherits": "linux-debug",
+      "cacheVariables": { "ENABLE_ASAN": "ON", "ENABLE_UBSAN": "ON" }
+    },
+    {
+      "name": "linux-ci",
+      "displayName": "Linux · CI (warnings as errors)",
+      "inherits": "linux-gcc",
+      "cacheVariables": { "WARNINGS_AS_ERRORS": "ON" }
+    },
+    {
+      "name": "windows-mingw",
+      "displayName": "Windows · MinGW-w64 · Ninja · Release",
+      "inherits": "_base",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows · MSVC 2022 · Ninja Multi-Config",
+      "inherits": "_base",
+      "generator": "Ninja Multi-Config",
+      "architecture": { "value": "x64", "strategy": "external" },
+      "toolset": { "value": "host=x64", "strategy": "external" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "macos",
+      "displayName": "macOS · clang · Ninja · Release",
+      "inherits": "_base",
+      "generator": "Ninja",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "linux-gcc",     "configurePreset": "linux-gcc" },
+    { "name": "linux-debug",   "configurePreset": "linux-debug" },
+    { "name": "linux-asan",    "configurePreset": "linux-asan" },
+    { "name": "linux-ci",      "configurePreset": "linux-ci" },
+    { "name": "windows-mingw", "configurePreset": "windows-mingw" },
+    { "name": "windows-msvc",  "configurePreset": "windows-msvc", "configuration": "Release" },
+    { "name": "macos",         "configurePreset": "macos" }
+  ],
+  "testPresets": [
+    {
+      "name": "_test_base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "timeout": 900 },
+      "environment": { "QT_QPA_PLATFORM": "offscreen" }
+    },
+    { "name": "linux-gcc",     "configurePreset": "linux-gcc",     "inherits": "_test_base" },
+    { "name": "linux-asan",    "configurePreset": "linux-asan",    "inherits": "_test_base" },
+    { "name": "linux-ci",      "configurePreset": "linux-ci",      "inherits": "_test_base" },
+    { "name": "windows-mingw", "configurePreset": "windows-mingw", "inherits": "_test_base" },
+    { "name": "windows-msvc",  "configurePreset": "windows-msvc",  "inherits": "_test_base", "configuration": "Release" }
+  ]
+}

@@ -1,0 +1,107 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+  # Weekly un-pinned run of the SkillOpt integration job, to surface upstream
+  # drift. It is allowed to fail; the pinned run on pull requests is not.
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  pack-tests:
+    name: Coding-agent packs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        run: python -m pip install --upgrade pip pytest pyyaml
+
+      - name: Compile packs and run tests
+        run: |
+          python coding-agents/compile.py
+          pytest coding-agents/tests -q
+
+      - name: Catalog gate (frontmatter, paths, hash pin, index coverage, qt_lint self-test)
+        run: python coding-agents/validate_skills.py
+
+      - name: Fail if generated packs are stale
+        run: |
+          python coding-agents/compile.py
+          git diff --exit-code -- coding-agents/packs || {
+            echo "::error::coding-agents/packs is out of date. Run 'python coding-agents/compile.py' and commit the result."
+            exit 1
+          }
+
+  skillopt-tests:
+    name: SkillOpt reward function
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # These tests exercise the reward function and the dataset only.
+      # SkillOpt is NOT installed, so `pytest.importorskip` skips the
+      # integration tests and the reward-function tests still run.
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip pytest
+          python -m pip install -e skillopt-integration
+
+      - name: Run tests
+        run: pytest skillopt-integration/tests -q
+
+      - name: Score the reference baseline
+        run: |
+          python -m caveman_skillopt.score \
+            --split-dir skillopt-integration/data/caveman_brief_split \
+            --split test \
+            --predictions skillopt-integration/examples/predictions-good.json \
+            --show-violations
+
+  skillopt-integration:
+    name: SkillOpt integration
+    runs-on: ubuntu-latest
+    # Blocking on pull requests and pushes, because the install is pinned and
+    # therefore deterministic. The weekly scheduled run installs the latest
+    # upstream instead and is allowed to fail, so an upstream breaking change
+    # is reported on its own schedule rather than turning unrelated pull
+    # requests red.
+    #
+    # Pinning is what makes blocking safe. An un-pinned blocking job breaks
+    # this repository's CI whenever upstream publishes; an un-pinned
+    # non-blocking job is neither a gate nor reproducible.
+    continue-on-error: ${{ github.event_name == 'schedule' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install with SkillOpt
+        run: |
+          python -m pip install --upgrade pip pytest
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python -m pip install --upgrade skillopt
+          else
+            python -m pip install skillopt==0.2.0
+          fi
+          python -m pip install -e skillopt-integration
+
+      - name: Report resolved versions
+        run: |
+          python -m pip list 2>/dev/null | grep -i -E '^(skillopt|caveman-skillopt) ' || true
+
+      - name: Run the full suite
+        run: pytest skillopt-integration/tests -q

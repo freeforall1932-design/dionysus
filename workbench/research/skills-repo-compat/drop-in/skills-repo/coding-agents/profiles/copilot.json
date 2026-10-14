@@ -1,0 +1,52 @@
+{
+  "schema_version": "1",
+  "id": "copilot",
+  "display_name": "GitHub Copilot",
+  "vendor": "GitHub / Microsoft",
+  "homepage": "https://docs.github.com/en/copilot",
+  "binary_names": [
+    "copilot",
+    "gh"
+  ],
+  "install": "https://docs.github.com/en/copilot/get-started",
+  "wire_protocol": "openai-chat",
+  "instruction": {
+    "method": "file",
+    "format": "markdown",
+    "frontmatter": false,
+    "global_paths": [],
+    "project_paths": [
+      ".github/copilot-instructions.md",
+      ".github/instructions/*.instructions.md",
+      "AGENTS.md"
+    ],
+    "notes": ".github/copilot-instructions.md is the repo-wide surface. Scoped instructions live in .github/instructions/*.instructions.md with YAML frontmatter (applyTo for path globs, excludeAgent to hide a file from code-review or coding-agent). The Copilot coding agent additionally reads AGENTS.md, CLAUDE.md and GEMINI.md, including nested AGENTS.md files for subdirectories."
+  },
+  "skills": {
+    "supported": true,
+    "format": "skill-md",
+    "user_dirs": [
+      "~/.copilot/skills",
+      "~/.agents/skills"
+    ],
+    "project_dirs": [
+      ".github/skills",
+      ".claude/skills",
+      ".agents/skills"
+    ],
+    "notes": "GitHub's docs: project skills in .github/skills, .claude/skills or .agents/skills; personal skills in ~/.copilot/skills or ~/.agents/skills. Apply to the Copilot coding agent, code review, Copilot CLI and VS Code agent sessions. VS Code's docs add that discovery makes a skill available but does not guarantee the model invokes it."
+  },
+  "recommended_variant": "unified",
+  "quirks": [
+    "applyTo uses glob patterns; without excludeAgent, a file is used by all agents. Set excludeAgent: \"code-review\" to keep a writing-style rule out of review passes.",
+    "AGENTS.md is the portable option here and is read by Copilot, Codex, Cursor and OpenCode — one file, four agents.",
+    "Put the loader paragraph in .github/copilot-instructions.md or AGENTS.md and the skill directory in .github/skills/<name>/ (or .agents/skills/ to share with Codex, Gemini CLI and OpenCode)."
+  ],
+  "verification": {
+    "tested_agent_version": "unverified",
+    "last_verified_at": "2026-10-14",
+    "verified_by": "documentation review on 2026-10-14 of github/docs content/copilot/concepts/agents/about-agent-skills.md and microsoft/vscode-docs docs/agent-customization/agent-skills.md (skill directories, surfaces); instruction-file facts carried over from the 2026-09-17 changelog review. Not executed.",
+    "source": "https://github.com/github/docs/blob/main/content/copilot/concepts/agents/about-agent-skills.md"
+  },
+  "maintainer": null
+}

@@ -1,0 +1,321 @@
+{
+ "ledger_id": "rol_2ff17443401b5513ef649fd7a86b0cceb18ef62e0db2a1a9e1c8ba257bd89379",
+ "closure_digest": "802e29d908dc83501764e0b94f802b311415b20e9015f70d3103e2a657e41111",
+ "status": "unknown",
+ "coverage": {
+  "status": "complete"
+ },
+ "summary": {
+  "total": 6,
+  "required": 6,
+  "verified": 0,
+  "required_open": 6,
+  "by_status": [
+   {
+    "key": "unowned",
+    "count": 0
+   },
+   {
+    "key": "characterized",
+    "count": 0
+   },
+   {
+    "key": "implemented",
+    "count": 3
+   },
+   {
+    "key": "verified",
+    "count": 0
+   },
+   {
+    "key": "contradicted",
+    "count": 0
+   },
+   {
+    "key": "blocked",
+    "count": 0
+   },
+   {
+    "key": "out-of-scope",
+    "count": 0
+   },
+   {
+    "key": "unknown",
+    "count": 3
+   }
+  ],
+  "by_application_layer": [
+   {
+    "key": "cli",
+    "count": 0
+   },
+   {
+    "key": "protocol",
+    "count": 0
+   },
+   {
+    "key": "electron",
+    "count": 0
+   },
+   {
+    "key": "persistence",
+    "count": 0
+   },
+   {
+    "key": "process",
+    "count": 1
+   },
+   {
+    "key": "runtime",
+    "count": 4
+   },
+   {
+    "key": "packaging",
+    "count": 0
+   },
+   {
+    "key": "native-abi",
+    "count": 0
+   },
+   {
+    "key": "application",
+    "count": 1
+   },
+   {
+    "key": "other",
+    "count": 0
+   }
+  ],
+  "by_evidence_authority": [
+   {
+    "key": "candidate",
+    "count": 0
+   },
+   {
+    "key": "observed",
+    "count": 1
+   },
+   {
+    "key": "reviewed",
+    "count": 5
+   },
+   {
+    "key": "unknown",
+    "count": 0
+   }
+  ]
+ },
+ "reports": {
+  "missing_owner_obligation_ids": [
+   "obl_82bad73e965709718ff3d1658294ef3e58867bdfe95bcf3b40ff6de6da3b3339"
+  ],
+  "missing_verifier_obligation_ids": [],
+  "contradicted_obligation_ids": [],
+  "residual_unknown_ids": [
+   "sugar-all-semantics-unconfirmed",
+   "sugar-input-path-not-observed-here"
+  ]
+ },
+ "obligations": [
+  {
+   "obligation_id": "logic.cheat-ammo.step",
+   "title": "+3 AMMO adds exactly 3 reserve rounds, logged as amount=3, and SAFE mode blocks the second call",
+   "origin": "reviewed",
+   "status": "implemented",
+   "required_original_authority": "runtime",
+   "required_verifier_authority": "integration",
+   "residual_unknown_ids": [],
+   "unavailable_authority": [],
+   "diagnostics": [
+    {
+     "code": "weak-fixture-authority",
+     "detail": "negative fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-fixture-authority",
+     "detail": "positive fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-verifier-authority",
+     "detail": "Verifier authority does not satisfy integration."
+    }
+   ]
+  },
+  {
+   "obligation_id": "obl_82bad73e965709718ff3d1658294ef3e58867bdfe95bcf3b40ff6de6da3b3339",
+   "title": "Captured packaged-process lifecycle",
+   "origin": "generated",
+   "status": "unknown",
+   "required_original_authority": "process",
+   "required_verifier_authority": "packaged-process",
+   "residual_unknown_ids": [],
+   "unavailable_authority": [
+    "process: Process trees are sampled and may omit short-lived descendants.",
+    "process: The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed.",
+    "environment: Inherited host environment variables are not recorded.",
+    "network: Network activity is not observed by this capture."
+   ],
+   "diagnostics": [
+    {
+     "code": "duplicate-definition",
+     "detail": "Multiple candidate definitions share this obligation ID."
+    },
+    {
+     "code": "missing-owner",
+     "detail": "No reconstruction manifest binding owns this obligation."
+    },
+    {
+     "code": "unavailable-authority",
+     "detail": "environment: Inherited host environment variables are not recorded."
+    },
+    {
+     "code": "unavailable-authority",
+     "detail": "network: Network activity is not observed by this capture."
+    },
+    {
+     "code": "unavailable-authority",
+     "detail": "process: Process trees are sampled and may omit short-lived descendants."
+    },
+    {
+     "code": "unavailable-authority",
+     "detail": "process: The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+    }
+   ]
+  },
+  {
+   "obligation_id": "runtime.all-iterator.dual-semantics",
+   "title": "Every all() loop works under value-yielding and (index,value)-yielding iterators",
+   "origin": "reviewed",
+   "status": "unknown",
+   "required_original_authority": "external",
+   "required_verifier_authority": "integration",
+   "residual_unknown_ids": [
+    "sugar-all-semantics-unconfirmed"
+   ],
+   "unavailable_authority": [],
+   "diagnostics": [
+    {
+     "code": "residual-unknown",
+     "detail": "Residual unknown remains visible: sugar-all-semantics-unconfirmed."
+    },
+    {
+     "code": "static-only",
+     "detail": "No external authority characterizes the original finite behavior."
+    },
+    {
+     "code": "weak-fixture-authority",
+     "detail": "negative fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-fixture-authority",
+     "detail": "positive fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-original-case-authority",
+     "detail": "Original negative behavior lacks external Evidence."
+    },
+    {
+     "code": "weak-original-case-authority",
+     "detail": "Original positive behavior lacks external Evidence."
+    },
+    {
+     "code": "weak-verifier-authority",
+     "detail": "Verifier authority does not satisfy integration."
+    }
+   ]
+  },
+  {
+   "obligation_id": "ui.panel.click-isolation",
+   "title": "A click on the dev panel never reaches a board square and never breaks the turn (run-6 class)",
+   "origin": "reviewed",
+   "status": "unknown",
+   "required_original_authority": "runtime",
+   "required_verifier_authority": "live-observation",
+   "residual_unknown_ids": [
+    "sugar-input-path-not-observed-here"
+   ],
+   "unavailable_authority": [
+    "live-observation"
+   ],
+   "diagnostics": [
+    {
+     "code": "missing-original-case",
+     "detail": "Original negative behavior has not been observed."
+    },
+    {
+     "code": "missing-original-case",
+     "detail": "Original positive behavior has not been observed."
+    },
+    {
+     "code": "residual-unknown",
+     "detail": "Residual unknown remains visible: sugar-input-path-not-observed-here."
+    },
+    {
+     "code": "unavailable-authority",
+     "detail": "live-observation"
+    },
+    {
+     "code": "weak-fixture-authority",
+     "detail": "negative fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-fixture-authority",
+     "detail": "positive fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-verifier-authority",
+     "detail": "Verifier authority does not satisfy live-observation."
+    }
+   ]
+  },
+  {
+   "obligation_id": "ui.panel.no-remove-buts",
+   "title": "The mod never calls the engine's remove_buts() (build-7 mistake)",
+   "origin": "reviewed",
+   "status": "implemented",
+   "required_original_authority": "runtime",
+   "required_verifier_authority": "integration",
+   "residual_unknown_ids": [],
+   "unavailable_authority": [],
+   "diagnostics": [
+    {
+     "code": "weak-fixture-authority",
+     "detail": "negative fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-fixture-authority",
+     "detail": "positive fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-verifier-authority",
+     "detail": "Verifier authority does not satisfy integration."
+    }
+   ]
+  },
+  {
+   "obligation_id": "ui.panel.tab-label",
+   "title": "The panel tab the player clicks is labelled 'SK DEV'",
+   "origin": "reviewed",
+   "status": "implemented",
+   "required_original_authority": "runtime",
+   "required_verifier_authority": "integration",
+   "residual_unknown_ids": [],
+   "unavailable_authority": [],
+   "diagnostics": [
+    {
+     "code": "weak-fixture-authority",
+     "detail": "negative fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-fixture-authority",
+     "detail": "positive fixture lacks integration authority or authenticated Evidence."
+    },
+    {
+     "code": "weak-verifier-authority",
+     "detail": "Verifier authority does not satisfy integration."
+    }
+   ]
+  }
+ ],
+ "rea_version": "6.4.0"
+}

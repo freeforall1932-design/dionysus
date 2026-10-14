@@ -1,0 +1,99 @@
+{
+  "schema": "workbench-index/1",
+  "purpose": "Triage table for agents: decide from this file alone which units to open and which to skip. One entry per skill, project, research page and tool. Checked by skills/validate_skills.py (every entry path exists, every skills/* and projects/* directory and research page has an entry, every entry is named in README.md).",
+  "updated": "2026-10-14",
+  "units": [
+    {
+      "id": "skills/universal-agent-context",
+      "kind": "skill",
+      "layer": "process",
+      "stack": "any",
+      "entry": "skills/universal-agent-context/SKILL.md",
+      "read_when": "every coding-agent session in one of the owner's repositories, before inspecting the repo",
+      "skip_when": "never; it is the always-on layer",
+      "session_added": "2026-10-13",
+      "last_verified": "2026-10-14"
+    },
+    {
+      "id": "skills/qt6-cmake-cpp",
+      "kind": "skill",
+      "layer": "workload",
+      "stack": "Qt 6 / CMake / C++",
+      "entry": "skills/qt6-cmake-cpp/SKILL.md",
+      "read_when": "the repository's real build entry point is a CMakeLists.txt that calls find_package(Qt6 ...) or qt_add_executable, or the task names Qt, QWidget, QML, moc, QProcess, QTest, windeployqt",
+      "skip_when": "no Qt 6 CMake target in the repo (Lua mods, PyQt, .NET, web, scripts)",
+      "session_added": "2026-10-13",
+      "last_verified": "2026-10-14"
+    },
+    {
+      "id": "projects/gifscythe",
+      "kind": "project-pointer",
+      "layer": "project",
+      "stack": "Qt 6 / CMake / C++",
+      "entry": "projects/gifscythe/NEXT_SESSION.md",
+      "repository": "https://github.com/freeforall1932-design/gifscythe",
+      "pinned_commit": "97b0758",
+      "read_when": "the task is in the gifscythe repository, or you are calibrating the Qt skill or qt_lint against a real tree",
+      "skip_when": "any other repository",
+      "session_added": "2026-10-13",
+      "last_verified": "2026-10-13"
+    },
+    {
+      "id": "projects/shotgun-king-anew",
+      "kind": "project-pointer",
+      "layer": "project",
+      "stack": "Lua 5.1 / LuaJIT mod for the SUGAR engine",
+      "entry": "projects/shotgun-king-anew/README.md",
+      "repository": "https://github.com/freeforall1932-design/shotgun-king-anew",
+      "pinned_commit": "4c4bf1b",
+      "read_when": "the task is in the shotgun-king-anew repository, or you need the executed example of REA process capture + obligation ledger around a mod test harness",
+      "skip_when": "any other repository and any task that is not about mod safety or REA",
+      "session_added": "2026-10-14",
+      "last_verified": "2026-10-14"
+    },
+    {
+      "id": "research/modding-engines-2026-10-14.md",
+      "kind": "research",
+      "layer": "reference",
+      "stack": "game modding, many engines",
+      "entry": "research/modding-engines-2026-10-14.md",
+      "read_when": "choosing tooling or a route for modding a game, or deciding whether a lua-game-modding lane is worth building",
+      "skip_when": "the task is not about game modding or reverse engineering",
+      "session_added": "2026-10-14",
+      "last_verified": "2026-10-14"
+    },
+    {
+      "id": "research/skills-repo-and-unified-2026-10-14.md",
+      "kind": "research",
+      "layer": "reference",
+      "stack": "skill distribution across agent harnesses",
+      "entry": "research/skills-repo-and-unified-2026-10-14.md",
+      "read_when": "deciding where skills live, composing the process layer with a writing register, or extending the owner's skills-repo compiler",
+      "skip_when": "the task is inside a project and does not touch skill packaging",
+      "session_added": "2026-10-14",
+      "last_verified": "2026-10-14"
+    },
+    {
+      "id": "tools/magnet-excavator",
+      "kind": "tool",
+      "layer": "standalone",
+      "stack": "Python stdlib",
+      "entry": "tools/magnet-excavator/README.md",
+      "read_when": "the task is the magnet-excavator tool itself",
+      "skip_when": "everything else; it shares nothing with the skills or projects",
+      "session_added": "2026-10-12",
+      "last_verified": "2026-10-14"
+    },
+    {
+      "id": "research/harness-skill-support-2026-10-14.md",
+      "kind": "research",
+      "layer": "reference",
+      "stack": "any",
+      "entry": "research/harness-skill-support-2026-10-14.md",
+      "read_when": "installing the skills into a harness (Claude Code, Codex, Gemini CLI, OpenCode, Copilot, Qwen Code, Cursor, Qwen Chat) or adding a harness profile: which ones load real skill directories, which read files by path, which are paste-only",
+      "skip_when": "inside-project work; the question is not about harness installation",
+      "session_added": "2026-10-14",
+      "last_verified": "2026-10-14"
+    }
+  ]
+}

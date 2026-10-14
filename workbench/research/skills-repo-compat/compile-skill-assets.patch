@@ -1,0 +1,463 @@
+diff --git a/coding-agents/compile.py b/coding-agents/compile.py
+index fb94389..21776c9 100644
+--- a/coding-agents/compile.py
++++ b/coding-agents/compile.py
+@@ -72,6 +72,20 @@ class Variant:
+     references: "dict[str, str]" = field(default_factory=dict)
+     examples: str = ""
+     raw: str = ""  # the SKILL.md exactly as authored — frontmatter included
++    assets: "dict[str, bytes]" = field(default_factory=dict)  # verbatim files beside SKILL.md
++
++    @property
++    def is_loader(self) -> bool:
++        """True when the paste file must point at files instead of inlining them.
++
++        A register is a few hundred lines and reads fine inlined. A process or
++        workload skill ships a long hash-pinned guide, templates or scripts;
++        inlining those into a context file bills them on every request and
++        drops anything that is not markdown. Such a skill declares
++        `metadata.paste: loader`, or is treated as one as soon as it carries
++        files the flattened route cannot represent.
++        """
++        return str(self.meta.get("paste", "")).lower() == "loader" or bool(self.assets)
+ 
+     @property
+     def is_packaged(self) -> bool:
+@@ -128,6 +142,18 @@ def load_variants() -> dict[str, Variant]:
+             if examples_path.exists()
+             else ""
+         )
++        assets: dict[str, bytes] = {}
++        for item in sorted(skill_dir.rglob("*")):
++            if not item.is_file():
++                continue
++            rel = item.relative_to(skill_dir)
++            if rel.parts[0] in ("SKILL.md", "examples.md"):
++                continue
++            if rel.parts[0] == "references" and len(rel.parts) == 2 and rel.suffix == ".md":
++                continue
++            if any(part.startswith((".", "__")) for part in rel.parts):
++                continue
++            assets[rel.as_posix()] = item.read_bytes()
+         variants[key] = Variant(
+             key=key,
+             body=body.strip() + "\n",
+@@ -135,6 +161,7 @@ def load_variants() -> dict[str, Variant]:
+             references=references,
+             examples=examples,
+             raw=raw,
++            assets=assets,
+         )
+     return variants
+ 
+@@ -210,6 +237,64 @@ def validate_profile(profile: dict, source: str = "<profile>") -> None:
+             )
+ 
+ 
++def variant_order(variants: "dict[str, Variant]") -> list[str]:
++    """Known variants in their documented order, then any new skill directory
++    in name order — adding a skill no longer requires editing this file."""
++    known = [key for key in VARIANT_ORDER if key in variants]
++    return known + sorted(key for key in variants if key not in VARIANT_ORDER)
++
++
++def variant_label(variant: Variant) -> str:
++    return VARIANT_LABEL.get(variant.key) or str(variant.meta.get("label") or variant.name)
++
++
++def variant_blurb(variant: Variant) -> str:
++    """Table cell: the curated blurb, else the first sentence of the description."""
++    if variant.key in VARIANT_BLURB:
++        return VARIANT_BLURB[variant.key]
++    if variant.meta.get("blurb"):
++        return str(variant.meta["blurb"])
++    first = re.split(r"(?<=[.!?])\s+", variant.description.strip(), maxsplit=1)[0]
++    return first if len(first) <= 220 else first[:217].rstrip() + "…"
++
++
++def variant_layer(variant: Variant) -> str:
++    """'register' | 'process' | 'workload' — from the frontmatter `layer`."""
++    layer = str(variant.meta.get("layer", "")).lower()
++    if layer.startswith(("process", "workload")):
++        return layer.split()[0]
++    return "register"
++
++
++def loading_rules(variants: "dict[str, Variant]") -> list[str]:
++    """The one paragraph every README repeats: what to load together."""
++    by_layer: dict[str, list[str]] = {"register": [], "process": [], "workload": []}
++    for key in variant_order(variants):
++        by_layer[variant_layer(variants[key])].append(f"`{key}`")
++    lines = []
++    if by_layer["register"]:
++        lines.append(
++            f"**Load at most one output register** ({', '.join(by_layer['register'])}): it decides how "
++            "the visible answer reads and which of several acceptable solutions to prefer."
++        )
++    if by_layer["process"]:
++        lines.append(
++            f"**Load the process layer every session** ({', '.join(by_layer['process'])}): it decides what "
++            "must exist and be verified before \"done\" may be said. It is installed as a skill "
++            "directory, never inlined — its guide is hash-pinned."
++        )
++    if by_layer["workload"]:
++        lines.append(
++            f"**Load a workload skill only when the repository matches it** ({', '.join(by_layer['workload'])}); "
++            "each description says when to skip it."
++        )
++    lines.append(
++        "Precedence when texts collide: owner instruction → repository evidence → process layer → "
++        "workload skill → register."
++    )
++    return lines
++
++
+ def load_profiles() -> list[dict]:
+     profiles = []
+     for path in sorted(PROFILES_DIR.glob("*.json")):
+@@ -239,20 +324,16 @@ def render_agent_readme(profile: dict, variants: dict[str, Variant]) -> str:
+     lines.append("")
+     lines.append("| Variant | File | Use when |")
+     lines.append("|---|---|---|")
+-    for key in VARIANT_ORDER:
+-        if key not in variants:
+-            continue
++    for key in variant_order(variants):
++        variant = variants[key]
+         star = " ★" if key == recommended else ""
+-        lines.append(f"| {VARIANT_LABEL[key]}{star} | [`{key}.md`]({key}.md) | {VARIANT_BLURB[key]} |")
++        lines.append(f"| {variant_label(variant)}{star} | [`{key}.md`]({key}.md) | {variant_blurb(variant)} |")
+     lines.append("")
+     lines.append(f"★ = recommended default for {profile['display_name']}.")
+     lines.append("")
+-    lines.append("**Load one output register at a time.** `be-brief-output` and")
+-    lines.append("`caveman-output` contradict each other on grammar; loading both gives you")
+-    lines.append("inconsistent output rather than a clear winner.")
+-    lines.append("`grug-reasoning` is the exception — it is a reasoning layer with no output")
+-    lines.append("rules, so it composes with either one.")
+-    lines.append("")
++    for rule in loading_rules(variants):
++        lines.append(rule)
++        lines.append("")
+     lines.append("## Install")
+     lines.append("")
+     lines.append(f"Install the agent: `{profile['install']}`")
+@@ -396,8 +477,55 @@ def render_flattened(variant: Variant) -> str:
+     return "\n".join(parts).rstrip() + "\n"
+ 
+ 
++INTEROP_SKILLS_DIR = ".agents/skills"  # read natively by Codex, Gemini CLI, OpenCode and Copilot
++
++
++def skill_install_dir(profile: dict | None, variant: Variant) -> str:
++    """Where this harness will find the skill's files once installed.
++
++    Harnesses with a skill surface name their own project directory; the rest
++    are told the interoperable `.agents/skills/<name>/` path, which several
++    harnesses already read and any agent can open by path.
++    """
++    if (profile or {}).get("wire_protocol") == "web-workspace":
++        # No filesystem convention at all: the user uploads the skill directory
++        # itself, so paths are relative to the uploaded folder.
++        return variant.name
++    skills = (profile or {}).get("skills") or {}
++    dirs = skills.get("project_dirs") or skills.get("user_dirs") or []
++    base = dirs[0] if skills.get("supported") and dirs else INTEROP_SKILLS_DIR
++    return f"{base}/{variant.name}"
++
++
++def render_loader(variant: Variant, profile: dict | None = None) -> str:
++    """SKILL.md body plus the list of files it expects beside it — no inlining.
++
++    The pasted text tells the agent what to read and where; the files
++    themselves are installed from the skill directory (or the repository).
++    Every path is relative to the skill directory, exactly as SKILL.md names it.
++    """
++    body = variant.body.strip()
++    files = sorted(
++        [f"references/{name}" for name in variant.references]
++        + list(variant.assets)
++        + (["examples.md"] if variant.examples else [])
++    )
++    where = skill_install_dir(profile, variant)
++    if (profile or {}).get("wire_protocol") == "web-workspace":
++        how = (f"Upload the skill directory `packs/claude/skills/{variant.name}/` to the workspace as "
++               f"`{where}/`; relative paths above resolve inside it. Nothing below is reproduced in this file.")
++    else:
++        how = (f"Relative paths above resolve inside `{where}/` (install the skill directory "
++               f"from `packs/<agent>/skills/{variant.name}/` there; nothing below is reproduced in this file).")
++    lines = [body, "", "---", "", f"## Files of the `{variant.name}` skill — not inlined", "", how, ""]
++    lines += [f"- `{where}/{path}`" for path in files]
++    return "\n".join(lines).rstrip() + "\n"
++
++
+ def render_paste_file(variant: Variant, profile: dict) -> str:
+     """Plain markdown, frontmatter stripped, ready to paste into a context file."""
++    if variant.is_loader:
++        return render_loader(variant, profile)
+     return render_flattened(variant)
+ 
+ 
+@@ -432,14 +560,14 @@ def render_mdc_file(variant: Variant, profile: dict) -> str:
+     between a rule that loads and one that silently does nothing. Cursor rules
+     are single files, so the support material is inlined.
+     """
+-    description = variant.description or VARIANT_BLURB[variant.key]
++    description = variant.description or variant_blurb(variant)
+     return (
+         "---\n"
+         f"description: {_yaml_scalar(description)}\n"
+         "globs: \n"
+         "alwaysApply: true\n"
+         "---\n\n"
+-        + render_flattened(variant).strip()
++        + (render_loader(variant, profile) if variant.is_loader else render_flattened(variant)).strip()
+         + "\n"
+     )
+ 
+@@ -450,7 +578,7 @@ def render_index(profiles: list[dict], variants: dict[str, Variant]) -> str:
+         "",
+         "**Generated by `python coding-agents/compile.py`. Do not hand-edit.**",
+         "",
+-        "Sources of truth: [`../variants/`](../variants/) (the four rule documents) and",
++        "Sources of truth: [`../variants/`](../variants/) (one directory per skill) and",
+         "[`../profiles/`](../profiles/) (where each agent reads instructions from).",
+         "",
+         "## Agents",
+@@ -473,23 +601,25 @@ def render_index(profiles: list[dict], variants: dict[str, Variant]) -> str:
+         "| Variant | What it governs |",
+         "|---|---|",
+     ]
+-    for key in VARIANT_ORDER:
+-        if key in variants:
+-            lines.append(f"| `{key}` | {VARIANT_BLURB[key]} |")
++    for key in variant_order(variants):
++        lines.append(f"| `{key}` | {variant_blurb(variants[key])} |")
+     lines += [
+         "",
+         "## Rules of thumb",
+         "",
+-        "- **One output register per agent.** `be-brief-output` and `caveman-output`",
+-        "  contradict each other on grammar.",
+-        "- **`grug-reasoning` composes with either one** — it has no output rules.",
+-        "- **Use `unified` if unsure.** It assigns each philosophy to a layer where it",
+-        "  does not collide with the others.",
++    ]
++    lines += [f"- {rule}" for rule in loading_rules(variants)]
++    lines += [
+         "- Every agent reads `AGENTS.md` except Cursor (prefers `.mdc`) — if you want",
+-        "  one file to work everywhere, start there.",
++        "  one loader paragraph to work everywhere, start there.",
++        f"- `{INTEROP_SKILLS_DIR}/<name>/` is read natively by Codex, Gemini CLI, OpenCode and",
++        "  Copilot; `.claude/skills/` by Claude Code, OpenCode and Copilot; `.qwen/skills/` by",
++        "  Qwen Code. One checked-in skill directory plus two copies covers every harness here",
++        "  that has a skill surface.",
+         "",
+         "See [`../philosophy/conflicts.md`](../philosophy/conflicts.md) for why the three",
+-        "philosophies are kept apart, and how `unified` resolves them.",
++        "philosophies are kept apart, how `unified` resolves them, and how the register",
++        "composes with the process layer.",
+         "",
+     ]
+     return "\n".join(lines)
+@@ -525,9 +655,7 @@ def main() -> None:
+             render_agent_readme(profile, variants), encoding="utf-8"
+         )
+ 
+-        for key in VARIANT_ORDER:
+-            if key not in variants:
+-                continue
++        for key in variant_order(variants):
+             variant = variants[key]
+             (paste_dir / f"{key}.md").write_text(
+                 render_paste_file(variant, profile), encoding="utf-8"
+@@ -542,15 +670,21 @@ def main() -> None:
+                 # so the agent loads them only when the task needs them. This is
+                 # what separates a skill from a single instruction document.
+                 for name in sorted(variant.references):
+-                    (skill_dir / "references" / name).write_text(
+-                        _external_links_to_text(variant.references[name]).strip() + "\n",
+-                        encoding="utf-8",
+-                    )
++                    text = variant.references[name]
++                    if not variant.is_loader:
++                        text = _external_links_to_text(text).strip() + "\n"
++                    (skill_dir / "references" / name).write_text(text, encoding="utf-8")
+                 if variant.examples:
+                     (skill_dir / "examples.md").write_text(
+                         _external_links_to_text(variant.examples).strip() + "\n",
+                         encoding="utf-8",
+                     )
++                # Hash-pinned guides, templates and scripts travel byte-for-byte.
++                # Rewriting them would break the pin the skill's own gate checks.
++                for rel, data in variant.assets.items():
++                    target = skill_dir / rel
++                    target.parent.mkdir(parents=True, exist_ok=True)
++                    target.write_bytes(data)
+             if instruction["format"] == "mdc":
+                 rules_dir = agent_dir / "rules"
+                 rules_dir.mkdir(parents=True, exist_ok=True)
+@@ -576,7 +710,7 @@ def main() -> None:
+                 archive.writestr(info, path.read_bytes())
+ 
+     n_agents = len(profiles)
+-    n_variants = len([k for k in VARIANT_ORDER if k in variants])
++    n_variants = len(variant_order(variants))
+     print(f"Compiled {n_agents} agents x {n_variants} variants -> {PACKS_DIR}")
+     for profile in profiles:
+         print(f"  {profile['id']:<10} {profile['display_name']}")
+diff --git a/coding-agents/tests/test_compile.py b/coding-agents/tests/test_compile.py
+index 99261c5..dc18775 100644
+--- a/coding-agents/tests/test_compile.py
++++ b/coding-agents/tests/test_compile.py
+@@ -21,7 +21,9 @@ sys.path.insert(0, str(ROOT))
+ 
+ import compile as compile_mod  # noqa: E402
+ 
+-VARIANT_KEYS = ("unified", "be-brief-output", "caveman-output", "grug-reasoning")
++# The register every harness is recommended to load, plus the two layered skills.
++VARIANT_KEYS = ("unified", "universal-agent-context", "qt6-cmake-cpp")
++REGISTER_KEYS = ("unified",)
+ 
+ 
+ @pytest.fixture(scope="module")
+@@ -93,24 +95,27 @@ def test_unverified_versions_must_explain_themselves():
+ # ── variants ─────────────────────────────────────────────────────────────────
+ 
+ 
+-def test_all_four_variants_load_with_frontmatter():
++def test_catalog_variants_load_with_frontmatter():
+     variants = compile_mod.load_variants()
+-    for key in VARIANT_KEYS:
++    assert set(VARIANT_KEYS) <= set(variants), "catalog lost a skill directory"
++    for key in variants:
+         assert key in variants, f"missing variant {key}"
+         assert variants[key].name, f"{key} has no name"
+         assert variants[key].description, f"{key} has no description"
+ 
+ 
+ def test_variant_layers_are_declared():
++    """Every skill says which layer it is, so an agent can load at most one
++    register, one process skill, and the workload skills that match the repo."""
+     variants = compile_mod.load_variants()
+-    # Layers carry a parenthetical about which output skill they pair with, so
+-    # assert on the leading word rather than the whole string.
+-    assert variants["grug-reasoning"].meta["layer"].startswith("reasoning")
+-    assert variants["caveman-output"].meta["layer"].startswith("output")
+-    assert variants["be-brief-output"].meta["layer"].startswith("output")
+-    assert variants["grug-reasoning"].meta["register"] == "grug_reasoning"
+-    assert variants["be-brief-output"].meta["register"] == "be_brief"
+-    assert variants["caveman-output"].meta["register"] == "caveman"
++    layers = {key: str(v.meta.get("layer", "")) for key, v in variants.items()}
++    for key, layer in layers.items():
++        assert layer, f"{key}: frontmatter declares no layer"
++    assert layers["unified"].startswith("reasoning"), layers["unified"]  # "reasoning + output" = a register
++    assert variants["unified"].meta["register"] == "unified"
++    assert layers["universal-agent-context"] == "process"
++    assert layers["qt6-cmake-cpp"] == "workload"
++    assert sum(1 for key in REGISTER_KEYS if key in variants) == 1, "exactly one output register ships"
+ 
+ 
+ # ── generated packs ──────────────────────────────────────────────────────────
+@@ -149,7 +154,7 @@ def test_skill_dirs_have_valid_frontmatter(compiled, agent):
+ 
+ def test_cursor_rules_use_mdc_frontmatter(compiled):
+     rules = list((compiled / "cursor" / "rules").glob("*.mdc"))
+-    assert len(rules) == len(VARIANT_KEYS)
++    assert len(rules) == len(compile_mod.load_variants())
+     yaml = pytest.importorskip("yaml")
+     for rule in rules:
+         text = rule.read_text(encoding="utf-8")
+@@ -199,7 +204,7 @@ def test_qwen_agent_gets_a_workspace_folder(compiled):
+     """Uploadable files land in workspace/, because there is no config dir."""
+     workspace = compiled / "qwen-agent" / "workspace"
+     assert workspace.is_dir()
+-    for key in ("unified", "be-brief-output", "caveman-output", "grug-reasoning"):
++    for key in VARIANT_KEYS:
+         assert (workspace / f"{key}.md").is_file()
+         # No frontmatter: this route must work as plain text.
+         assert not (workspace / f"{key}.md").read_text(encoding="utf-8").startswith("---\n")
+@@ -245,7 +250,12 @@ def test_skill_meets_the_agent_skills_spec(skill_dir):
+     refs = skill_dir / "references"
+     if refs.is_dir():
+         assert not list(refs.rglob("*/*.md")), "reference files must be one level deep"
+-    assert (skill_dir / "examples.md").is_file()
++    # A register shows before/after examples; a process or workload skill
++    # ships a guide, templates or scripts instead. One of the two must exist.
++    variant = compile_mod.load_variants()[skill_dir.name]
++    assert (skill_dir / "examples.md").is_file() or variant.assets, (
++        f"{skill_dir.name}: neither examples.md nor support files"
++    )
+ 
+ 
+ def test_generated_skill_dirs_ship_their_support_files(compiled):
+@@ -259,12 +269,67 @@ def test_generated_skill_dirs_ship_their_support_files(compiled):
+                 assert (skill.parent / "references" / ref.name).is_file(), (
+                     f"{agent}/{skill.parent.name}: missing {ref.name}"
+                 )
+-            assert (skill.parent / "examples.md").is_file()
++            variant = compile_mod.load_variants()[skill.parent.name]
++            if variant.examples:
++                assert (skill.parent / "examples.md").is_file()
++            # Support files that are not markdown references travel byte-for-byte.
++            for rel, data in variant.assets.items():
++                packed = skill.parent / rel
++                assert packed.is_file(), f"{agent}/{skill.parent.name}: missing {rel}"
++                assert packed.read_bytes() == data, f"{agent}/{skill.parent.name}: {rel} was rewritten"
++
++
++def test_loader_skills_paste_a_pointer_not_a_copy(compiled):
++    """A skill with a hash-pinned guide or scripts is pasted as its SKILL.md body
++    plus a file list. Inlining would bill the whole guide on every request and
++    silently drop everything that is not markdown."""
++    variants = compile_mod.load_variants()
++    loaders = [v for v in variants.values() if v.is_loader]
++    if not loaders:
++        pytest.skip("no loader-style skill in variants/")
++    for variant in loaders:
++        text = (compiled / "codex" / f"{variant.key}.md").read_text(encoding="utf-8")
++        assert "## Reference material (inlined)" not in text
++        assert f"## Files of the `{variant.name}` skill" in text
++        for rel in variant.assets:
++            assert f"/{rel}`" in text, f"{variant.key}: loader does not list {rel}"
++        for name in variant.references:
++            assert f"/references/{name}`" in text
++        assert len(text) < 20_000, f"{variant.key}: loader paste is {len(text)} bytes"
++
++
++def test_loader_paste_names_the_install_dir_per_harness(compiled):
++    """A pasted file has no directory beside it, so it must say where the
++    skill's files live for that harness: its own skill dir when it has one,
++    the interoperable .agents/skills/ path otherwise."""
++    variants = compile_mod.load_variants()
++    loaders = [v for v in variants.values() if v.is_loader]
++    if not loaders:
++        pytest.skip("no loader-style skill in variants/")
++    for profile in compile_mod.load_profiles():
++        paste_dir = compiled / profile["id"] / (profile["instruction"].get("paste_dir") or "")
++        for variant in loaders:
++            text = (paste_dir / f"{variant.key}.md").read_text(encoding="utf-8")
++            where = compile_mod.skill_install_dir(profile, variant)
++            assert f"`{where}/`" in text, f"{profile['id']}/{variant.key}: install dir not named"
++
++
++def test_loader_skill_references_are_verbatim(compiled):
++    """Loader skills carry their own gates (hash pins, path checks); their
++    references must arrive unchanged, not link-rewritten."""
++    variants = compile_mod.load_variants()
++    for variant in variants.values():
++        if not variant.is_loader:
++            continue
++        for agent in ("claude", "codex", "qwen"):
++            for name, text in variant.references.items():
++                packed = compiled / agent / "skills" / variant.name / "references" / name
++                assert packed.read_text(encoding="utf-8") == text, f"{agent}/{variant.key}: {name} rewritten"
+ 
+ 
+ def test_pasted_files_are_self_contained(compiled):
+     """A pasted file has no filesystem beside it — support content is inlined."""
+-    text = (compiled / "qwen-agent" / "workspace" / "be-brief-output.md").read_text(
++    text = (compiled / "qwen-agent" / "workspace" / "unified.md").read_text(
+         encoding="utf-8"
+     )
+     assert not text.startswith("---\n")
