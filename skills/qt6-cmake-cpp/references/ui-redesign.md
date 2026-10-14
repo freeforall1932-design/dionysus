@@ -7,6 +7,12 @@ behaviour contract (unchanged unless the register says otherwise), the test
 contract (object names, harness blocks), and the visual/interaction contract
 (what actually changes).
 
+> **Prerequisite (any stack):** the four tables of
+> `skills/universal-agent-context/references/ui-behaviour-contract.md` — engine
+> interface, states, control→engine, engine-event→UI — plus the reference-app
+> obligation table. This file is the Qt Widgets implementation of that
+> contract; it does not replace it.
+
 ## 1. Before drawing anything — inventory the current UI
 
 Produce, from the real source, a table per top-level area:

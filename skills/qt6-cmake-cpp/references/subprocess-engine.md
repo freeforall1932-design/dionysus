@@ -103,6 +103,11 @@ process_->start();
 
 ## 7. State machine for the window
 
+The states, transitions and per-control enablement below are the Qt rendering of
+the stack-agnostic state table in
+`skills/universal-agent-context/references/ui-behaviour-contract.md` §2–§4;
+fill that contract first, then map it onto the `QStateMachine`/enum below.
+
 States: `Idle → Starting → Running → (Succeeded | Failed | Cancelled | TimedOut) → Idle`.
 Transitions only from signals. Rules that follow:
 

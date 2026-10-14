@@ -35,6 +35,9 @@ taken from each:
 | `a5c-ai/babysitter` (`feb68ab`, MIT) incl. the `qt-cmake-project-generator` listed on mcpmarket.com | Its *discipline*: process-as-code with gates that block, breakpoints where the owner must decide, a journal of every step — captured as `skills/universal-agent-context/references/session-protocol.md`. From the Qt generator: the cross-platform `CMakePresets.json` layout and the modern-CMake checklist (adapted, attributed). | **The runtime is not installed.** It is a Node toolchain with hooks for Claude Code/Codex/Cursor sessions; Arena Agent Mode does not run those hooks, and v4 §3 says prefer mechanical gates the repository itself can run. If the owner later works from Claude Code locally, the same runbooks map onto babysitter processes without rewriting the skills. |
 | `freeforall1932-design/gifscythe` (`97b0758`, 2026-10-13) | The proving ground. Its register, harness and CI are what the workload skill was checked against (`projects/gifscythe/SKILL_DRY_RUN_2026-10-13.md`), and the generalized lessons — subprocess-engine GUIs, offscreen harness contracts, atomic output promotion — became `qt6-cmake-cpp/references/`. | **No project state copied here.** Its overlay stays in its own repo; `projects/gifscythe/` points at it and dates every pointer. |
 
+| `morluto/rea` (MIT; owner's fork `rea-fork`, read 2026-10-14) — "Reverse Engineer Anything" | Its **method**, not its runtime: every claim is an observation / derivation / inference / unknown; "missing coverage is unknown, not absence"; and the *reconstruction obligation ledger* — a behaviour observed in a reference app is reproduced only when a verifier of comparable authority ran. Captured as `skills/universal-agent-context/references/ui-behaviour-contract.md` §6 and the evidence labels throughout. | **The MCP server, Node toolchain, Ghidra/IDA/Hopper bridges and its 40+ tool catalogue are not installed or wrapped.** They are a workload of their own (binary/app reverse engineering) and would become a `reverse-engineering` workload skill only when a real repository in this account needs it — several candidates exist (ghidra-mcp, ida-mcp, Cpp2IL, PortPS5, universal-modder forks). REA's bundled `reverse-engineer-anything` skill is the right starting point for that lane; nothing from it is copied here yet. |
+| `freeforall1932-design/skills-repo` (owner's own, Unlicense, read 2026-10-14) — caveman / grug / be-brief | Nothing copied; **noted as orthogonal**. It governs *how the agent reasons and how terse its prose is* (an output/reasoning register compiled per harness: `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `.cursor/rules`). This repo governs *process and workload*. The two compose: load a register from skills-repo **and** the layers here; neither overrides the other. Its per-harness `compile.py` idea is why `skills/INSTALL.md` exists. | Its coding-agent packs are not merged in — a style register must stay swappable without touching process rules (v4 §17: one universal guide, one overlay, nothing in between). |
+
 ## How a session loads the layers
 
 1. Read `skills/universal-agent-context/SKILL.md` (it tells you to read v4 and the session protocol).
@@ -49,13 +52,22 @@ frontmatter, a `name` that does not match its directory, a relative link or
 backticked path that does not resolve, a machine-specific path in universal or
 workload material (`C:\…`, `/home/<user>/…`, `/Users/…`), a drift in the
 universal file's recorded hash, a `projects/` pointer to a missing local file,
-and a failing `qt_lint.py --selftest`. CI runs it on every push
+a failing `qt_lint.py --selftest`, and a missing, diverged, or dangling root
+loader file (`AGENTS.md` must equal `CLAUDE.md`, every path in them must
+resolve). CI runs it on every push
 (`.github/workflows/skills-gate.yml`). Promises that are not checked do not
 survive sessions — v4 §17.7.
 
 ## Adding a workload skill
 
-Only when a real repository needs it. Create `skills/<kebab-name>/SKILL.md`
+Only when a real repository needs it. Lanes visible in this account as of
+2026-10-14 (candidates, **not** written — each waits for a real task): Python
+desktop GUIs (PyQt6/Tk downloaders and archivers), C#/.NET WPF (ScreenToGif
+fork, the gifscythe `csharp/` shell), TypeScript/Node CLIs and MCP servers (rea,
+mem0, strix forks), Java/Kotlin, Rust, Lua game scripting, and binary/app
+reverse engineering (ghidra-mcp, ida-mcp, Cpp2IL, PortPS5, universal-modder).
+Whatever the lane, `skills/universal-agent-context/references/ui-behaviour-contract.md`
+already applies to any of them that has a UI over an engine. Create `skills/<kebab-name>/SKILL.md`
 with frontmatter (`name` = directory name, `description` = when to activate,
 written so an agent can decide without opening the file), put long material in
 `references/`, drop-in files in `templates/`, mechanical checks in `scripts/`,

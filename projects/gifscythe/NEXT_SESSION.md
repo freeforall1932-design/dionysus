@@ -88,6 +88,16 @@ tooling may enter gifscythe. Nothing is installed in gifscythe; its CI is untouc
 the three exit codes (plain 1 / baseline 0 / injected wait 1).
 
 **B2 — UI redesign, planning half (no GUI edit; allowed before OD-21).**
+0. Fill the four tables of
+   `skills/universal-agent-context/references/ui-behaviour-contract.md` for the
+   current app first: engine = gifsicle via `QProcess` (exit codes, no progress
+   signal, outputs, cancel semantics — read them from `core/` and the engine, not
+   from memory); states; control→argument (the Actions/Output controls, with the
+   engine argument that must stay visible — OD-21 (b)); engine-event→UI. gifscythe's
+   `docs/planning/W32_RESULT_CONTRACT.md` already *is* §5 of that contract (per-item
+   rows, six states, named reasons, honest Cancel) — reference it, do not rewrite it.
+   The XnConvert/ScreenToGif behaviours from the 2026-10-09 draft become §6
+   obligations with verifiers (harness `T*` cases), each `open` until a test runs.
 1. State inventory of the current Qt surface (`src/qtui/MainWindow.cpp`, `PreviewPanel.cpp`,
    `SettingsPanel.cpp`): every widget with an objectName (103), every state (idle /
    running / cancelled / failed / done / preview-stale), every signal the harness

@@ -14,6 +14,12 @@ This skill is a thin wrapper. The authority is the file next to it:
   a new provenance appendix.
 - **`references/session-protocol.md`** — the phase/gate/breakpoint discipline
   borrowed from babysitter, written as markdown so it runs in any harness.
+- **`references/ui-behaviour-contract.md`** — **mandatory before any UI design,
+  redesign, or "make it behave like app X" task on any stack**: the engine
+  interface table, state table, control→engine and engine-event→UI mappings,
+  per-item results, and reference-app obligations with verifiers. Expands v4
+  §10/§11.5; evidence taxonomy and obligation ledger after `morluto/rea` (MIT).
+  A mockup without these tables is a picture, not a design.
 
 ## Loading order (adds to v4 §0)
 

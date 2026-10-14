@@ -16,6 +16,9 @@ enforces mechanically"). Promises that are not checked do not survive sessions.
   4. the universal file's sha256 equals the value recorded in PROVENANCE.md
   5. every python file under skills/ byte-compiles
   6. skills/qt6-cmake-cpp/scripts/qt_lint.py --selftest exits 0
+  7. the harness loader files AGENTS.md and CLAUDE.md at the repo root exist,
+     are byte-identical (one source of truth), and every repo path they name
+     resolves; README.md paths resolve too
 
 Usage:  python3 skills/validate_skills.py [--root DIR] [--quiet]
 Exit 0 = all checks passed, 1 = at least one failure.
@@ -223,9 +226,24 @@ def main(argv: list[str]) -> int:
                 if fn.endswith(".md"):
                     check_paths_in(os.path.join(dirpath, fn), root, None)
 
+    check_loader_files(root)
     check_python(skills_dir, root)
     check_qt_lint_selftest(root, a.quiet)
     return finish(a.quiet)
+
+
+def check_loader_files(root: str) -> None:
+    agents = os.path.join(root, "AGENTS.md")
+    claude = os.path.join(root, "CLAUDE.md")
+    have_a = check(os.path.isfile(agents), "AGENTS.md exists at the repo root (Codex/OpenCode/Copilot loader)")
+    have_c = check(os.path.isfile(claude), "CLAUDE.md exists at the repo root (Claude Code loader)")
+    if have_a and have_c:
+        with open(agents, "rb") as fa, open(claude, "rb") as fc:
+            check(fa.read() == fc.read(), "AGENTS.md and CLAUDE.md are byte-identical (one loader, two names)")
+    for name in ("AGENTS.md", "CLAUDE.md", "README.md"):
+        p = os.path.join(root, name)
+        if os.path.isfile(p):
+            check_paths_in(p, root, None)
 
 
 def finish(quiet: bool) -> int:
