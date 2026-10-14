@@ -8,7 +8,8 @@ contract (object names, harness blocks), and the visual/interaction contract
 (what actually changes).
 
 > **Prerequisite (any stack):** the four tables of
-> `skills/universal-agent-context/references/ui-behaviour-contract.md` — engine
+> `../universal-agent-context/references/ui-behaviour-contract.md` (sibling skill;
+> path from this skill's root) — engine
 > interface, states, control→engine, engine-event→UI — plus the reference-app
 > obligation table. This file is the Qt Widgets implementation of that
 > contract; it does not replace it.

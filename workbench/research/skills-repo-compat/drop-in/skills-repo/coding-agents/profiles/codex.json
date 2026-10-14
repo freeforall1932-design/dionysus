@@ -1,0 +1,49 @@
+{
+  "schema_version": "1",
+  "id": "codex",
+  "display_name": "OpenAI Codex CLI",
+  "vendor": "OpenAI",
+  "homepage": "https://developers.openai.com/codex",
+  "binary_names": [
+    "codex"
+  ],
+  "install": "npm i -g @openai/codex",
+  "wire_protocol": "openai-responses",
+  "instruction": {
+    "method": "file",
+    "format": "markdown",
+    "frontmatter": false,
+    "global_paths": [
+      "~/.codex/AGENTS.md"
+    ],
+    "project_paths": [
+      "AGENTS.md"
+    ],
+    "notes": "AGENTS.md is read from the project root and, for user-level defaults, from ~/.codex/AGENTS.md."
+  },
+  "skills": {
+    "supported": true,
+    "format": "skill-md",
+    "user_dirs": [
+      "~/.agents/skills",
+      "~/.codex/skills"
+    ],
+    "project_dirs": [
+      ".agents/skills",
+      ".codex/skills"
+    ],
+    "notes": "Skill roots in the current source: the project config folder's skills dir (.codex/skills, repo scope), .agents/skills in every directory between the project root and the cwd, ~/.agents/skills (user), $CODEX_HOME/skills (user, marked deprecated in the source but still read), plus system/admin roots. Project roots are only used when the repository filesystem is available to the session."
+  },
+  "recommended_variant": "unified",
+  "quirks": [
+    ".agents/skills/ is the interoperable project directory: Codex, Gemini CLI, OpenCode and Copilot all read it, so one checked-in folder serves four harnesses.",
+    "AGENTS.md is still the most portable instruction surface — Copilot, Cursor and OpenCode read it too. Use it for the loader paragraph and let the skill directory carry the files."
+  ],
+  "verification": {
+    "tested_agent_version": "unverified",
+    "last_verified_at": "2026-10-14",
+    "verified_by": "documentation review of the Codex repository (source file) — codex-rs/ext/skills/src/host_roots.rs at openai/codex@c22a06c (2026-10-14): .codex/skills (project), .agents/skills (project, walked from project root to cwd), ~/.agents/skills and $CODEX_HOME/skills (user). Instruction-file facts carried over from the 2026-09-17 review. Not executed against a binary.",
+    "source": "https://github.com/openai/codex/blob/c22a06c/codex-rs/ext/skills/src/host_roots.rs"
+  },
+  "maintainer": null
+}

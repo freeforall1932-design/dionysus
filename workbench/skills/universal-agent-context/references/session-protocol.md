@@ -82,4 +82,5 @@ starts with a retrospective, not with more features:
 3. Fix the skill, re-run its gate, and only then continue the project task.
 4. Promote to v4 only the rules that held without project details attached (v4 §17.6) — as a versioned bump, never an in-place edit.
 
-The runbook for the first such session is `projects/gifscythe/NEXT_SESSION.md`.
+The owner's workbench keeps the runbook for such a session under the project's
+`projects/<name>/` pointer; the first one was written for the Qt proving ground.

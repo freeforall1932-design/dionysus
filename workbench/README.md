@@ -21,10 +21,11 @@ per unit) and the gate fails if a unit is missing from it or from this page.
 | `projects/shotgun-king-anew` | the task is in shotgun-king-anew (Lua mod), or you want the REA capture/ledger example | any other repo or topic |
 | `research/modding-engines-2026-10-14.md` | choosing modding/RE tooling or a route | not about modding |
 | `research/skills-repo-and-unified-2026-10-14.md` | deciding where skills live or how the process layer composes with a writing register | inside-project work |
+| `research/harness-skill-support-2026-10-14.md` | installing the skills into a harness, or adding a harness profile — real skill dirs vs read-by-path vs paste-only, with sources | not about harness installation |
 | `tools/magnet-excavator` | working on that tool | everything else |
 
 Added per session: 2026-10-12 magnet-excavator (PR #1); 2026-10-13 both skills,
-gifscythe pointer; 2026-10-14 shotgun-king-anew, both research pages.
+gifscythe pointer; 2026-10-14 shotgun-king-anew, three research pages, the skills-repo drop-in bundle under `research/skills-repo-compat/drop-in/`.
 
 ## Directory map
 

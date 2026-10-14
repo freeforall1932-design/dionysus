@@ -1,0 +1,51 @@
+{
+  "schema_version": "1",
+  "id": "opencode",
+  "display_name": "OpenCode",
+  "vendor": "Anomaly (formerly SST)",
+  "homepage": "https://opencode.ai/docs",
+  "binary_names": [
+    "opencode"
+  ],
+  "install": "curl -fsSL https://opencode.ai/install | bash",
+  "wire_protocol": "openai-chat",
+  "instruction": {
+    "method": "file",
+    "format": "markdown",
+    "frontmatter": false,
+    "global_paths": [
+      "~/.config/opencode/AGENTS.md"
+    ],
+    "project_paths": [
+      "AGENTS.md"
+    ],
+    "notes": "OpenCode traverses up from the current directory looking for AGENTS.md and CLAUDE.md, then falls back to ~/.config/opencode/AGENTS.md, then ~/.claude/CLAUDE.md unless disabled. Precedence: local > global > ~/.claude/CLAUDE.md. The `instructions` array in opencode.json can add more files or glob patterns (remote URLs supported, 5s timeout)."
+  },
+  "skills": {
+    "supported": true,
+    "format": "skill-md",
+    "user_dirs": [
+      "~/.config/opencode/skills",
+      "~/.claude/skills",
+      "~/.agents/skills"
+    ],
+    "project_dirs": [
+      ".opencode/skills",
+      ".claude/skills",
+      ".agents/skills"
+    ],
+    "notes": "OpenCode walks up from the cwd to the git worktree loading .opencode/skills/*/SKILL.md, .claude/skills/*/SKILL.md and .agents/skills/*/SKILL.md, plus the three global locations. A skill becomes available to the model through its skill tool; permissions can be set per agent."
+  },
+  "recommended_variant": "unified",
+  "quirks": [
+    "Because OpenCode reads ~/.claude/CLAUDE.md by default, a Claude Code install can leak into OpenCode. Disable that fallback if you run different variants in each.",
+    "opencode.json `instructions` accepts globs like `packages/*/AGENTS.md` — the cleanest way to share one rule set across a monorepo."
+  ],
+  "verification": {
+    "tested_agent_version": "unverified",
+    "last_verified_at": "2026-10-14",
+    "verified_by": "documentation review on 2026-10-14 of packages/web/src/content/docs/skills.mdx at sst/opencode@5aabb61 (skill locations, discovery order); rules facts carried over from the 2026-09-17 review. Not executed.",
+    "source": "https://github.com/sst/opencode/blob/5aabb61/packages/web/src/content/docs/skills.mdx"
+  },
+  "maintainer": null
+}

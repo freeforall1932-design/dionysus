@@ -1,0 +1,39 @@
+{
+  "schema": "workbench-index/1",
+  "about": "Triage table for the catalog: one entry per skill under variants/. An agent reads read_when/skip_when and opens only what the task needs. validate_skills.py fails when a variants/ directory has no entry, an entry has no file, or README.md does not name the id.",
+  "units": [
+    {
+      "id": "variants/unified",
+      "kind": "skill",
+      "layer": "register",
+      "stack": "any",
+      "entry": "variants/unified/SKILL.md",
+      "read_when": "every session — the one output register: how the visible answer reads, which acceptable solution to prefer",
+      "skip_when": "never (it is the only register shipped); do not load a second register beside it",
+      "session_added": "2026-09-17",
+      "last_verified": "2026-10-14"
+    },
+    {
+      "id": "variants/universal-agent-context",
+      "kind": "skill",
+      "layer": "process",
+      "stack": "any",
+      "entry": "variants/universal-agent-context/SKILL.md",
+      "read_when": "every session in one of the owner's repositories: what must exist and be verified before 'done' (verification ladder, commit before session end, 'Not verifiable here', UI behaviour contract)",
+      "skip_when": "never; but it is not a writing register and not stack guidance",
+      "session_added": "2026-10-14",
+      "last_verified": "2026-10-14"
+    },
+    {
+      "id": "variants/qt6-cmake-cpp",
+      "kind": "skill",
+      "layer": "workload",
+      "stack": "qt6-cmake-cpp",
+      "entry": "variants/qt6-cmake-cpp/SKILL.md",
+      "read_when": "the repository's real build entry point is CMake with find_package(Qt6 ...) or qt_add_executable",
+      "skip_when": "no Qt 6 CMake target (plain CMake/C++, Lua or script modding, web, Python)",
+      "session_added": "2026-10-14",
+      "last_verified": "2026-10-14"
+    }
+  ]
+}

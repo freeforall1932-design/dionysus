@@ -222,6 +222,20 @@ Migration order (each step leaves both repos green):
 
 ---
 
+## 6a. Same-day follow-up: the drop-in bundle exists
+
+The owner asked for a folder to paste. `research/skills-repo-compat/drop-in/`
+is the final-state catalog built on `84c9518`: steps 1–4 of the migration
+above are done inside it (patched compiler and tests, both skills in, the three
+registers out, `index.json` + `validate_skills.py` wired into `tests.yml`),
+plus eight harness profiles updated from the vendors' repositories
+(`research/harness-skill-support-2026-10-14.md`). Verified by copying it onto a
+fresh clone: 35 tests, gate 124 passed, packs stable across recompiles,
+SkillOpt tests unchanged. `drop-in/APPLY.md` has the three commands. Step 5
+(making dionysus point at the catalog instead of carrying the skills) is still
+the owner's call; until then `workbench/skills/` is the source and the gate
+fails if the drop-in copies drift from it.
+
 ## 7. Not verifiable here
 
 - **Harness behaviour with extra frontmatter keys.** `metadata.paste` and

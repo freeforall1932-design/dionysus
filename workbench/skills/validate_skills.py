@@ -20,9 +20,16 @@ enforces mechanically"). Promises that are not checked do not survive sessions.
      are byte-identical (one source of truth), and every repo path they name
      resolves; README.md paths resolve too
 
-Usage:  python3 workbench/skills/validate_skills.py [--root DIR] [--quiet]
-        (--root defaults to the parent of skills/, i.e. the workbench folder;
-         paths inside the workbench's documents are relative to that folder)
+  8. index.json (the triage table) covers every unit on disk and every entry
+     names an existing file; README.md names every unit
+
+Two layouts, one script (so the catalog and the proving ground share a gate):
+  workbench  <root>/skills/<skill>/ + projects/ + research/ + tools/ + AGENTS.md
+  catalog    <root>/variants/<skill>/  (the owner's skills-repo coding-agents/)
+The layout is detected from the directory that exists; --layout overrides.
+
+Usage:  python3 workbench/skills/validate_skills.py [--root DIR] [--layout L] [--quiet]
+        (--root defaults to the parent of the directory holding this script)
 Exit 0 = all checks passed, 1 = at least one failure.
 """
 from __future__ import annotations
@@ -34,7 +41,8 @@ import re
 import subprocess
 import sys
 
-KNOWN_ROOTS = ("skills", "projects", "references", "templates", "scripts", "tools", "research", ".github", "workbench")
+KNOWN_ROOTS = ("skills", "projects", "references", "templates", "scripts", "tools", "research", ".github", "workbench",
+               "variants", "coding-agents", "..")
 MACHINE_PATH_RE = re.compile(r"(?<![\w])(?:[A-Za-z]:[\\/][A-Za-z]|/home/[A-Za-z0-9_.-]+/|/Users/[A-Za-z0-9_.-]+/)")
 MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s#]+)(?:#[^)]*)?\)")
 BACKTICK_RE = re.compile(r"`([^`\n]+)`")
@@ -42,6 +50,7 @@ SKIP_CHARS = set("…<>*$ {}|\\\"'")
 SHA_RE = re.compile(r"\b[0-9a-f]{64}\b")
 
 results: list[tuple[bool, str]] = []
+LAYOUT = "workbench"  # set by main(); the catalog's README names install targets in *other* repos
 
 
 def check(ok: bool, msg: str) -> bool:
@@ -76,7 +85,9 @@ def looks_like_repo_path(tok: str) -> bool:
     first, _, rest = tok.partition("/")
     if first in ("references", "templates", "scripts") and rest == "":
         return False  # bare layout descriptor ("put files in `references/`"), not a path claim
-    return first in KNOWN_ROOTS
+    if LAYOUT == "catalog" and first == ".github":
+        return False  # `.github/copilot-instructions.md` etc. are install targets in the user's repo
+    return first in KNOWN_ROOTS  # ".." = a sibling skill, judged from the skill directory
 
 
 def resolve(tok: str, bases: list[str]) -> bool:
@@ -123,11 +134,11 @@ def check_machine_paths(skills_dir: str, root: str) -> None:
     check(not offenders, "no machine-specific paths in skills/ " + (f"- offenders: {offenders}" if offenders else ""))
 
 
-def check_universal_hash(root: str) -> None:
-    udir = os.path.join(root, "skills", "universal-agent-context")
+def check_universal_hash(skills_dir: str, root: str) -> None:
+    udir = os.path.join(skills_dir, "universal-agent-context")
     v4 = os.path.join(udir, "UNIVERSAL_AGENT_CONTEXT_v4.md")
     prov = os.path.join(udir, "PROVENANCE.md")
-    if not check(os.path.isfile(v4), "universal file present: skills/universal-agent-context/UNIVERSAL_AGENT_CONTEXT_v4.md"):
+    if not check(os.path.isfile(v4), f"universal file present: {os.path.relpath(v4, root)}"):
         return
     if not check(os.path.isfile(prov), "PROVENANCE.md present"):
         return
@@ -182,8 +193,10 @@ def check_python(skills_dir: str, root: str) -> None:
                     check(False, f"py_compile: {os.path.relpath(full, root)}: line {e.lineno}: {e.msg}")
 
 
-def check_qt_lint_selftest(root: str, quiet: bool) -> None:
-    lint = os.path.join(root, "skills", "qt6-cmake-cpp", "scripts", "qt_lint.py")
+def check_qt_lint_selftest(skills_dir: str, quiet: bool) -> None:
+    lint = os.path.join(skills_dir, "qt6-cmake-cpp", "scripts", "qt_lint.py")
+    if not os.path.isdir(os.path.join(skills_dir, "qt6-cmake-cpp")):
+        return  # the Qt workload skill is not part of this tree
     if not check(os.path.isfile(lint), "qt_lint.py present"):
         return
     r = subprocess.run([sys.executable, lint, "--selftest"], capture_output=True, text=True)
@@ -196,15 +209,30 @@ def check_qt_lint_selftest(root: str, quiet: bool) -> None:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--root", default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                    help="repository root (default: parent of skills/)")
+    ap.add_argument("--root", default=None,
+                    help="tree root (default: parent of this script's directory, or this script's "
+                         "directory when it sits beside variants/)")
+    ap.add_argument("--layout", choices=("workbench", "catalog"), default=None,
+                    help="force a layout (default: detect from skills/ vs variants/)")
     ap.add_argument("--quiet", action="store_true", help="print failures and the summary only")
     a = ap.parse_args(argv)
-    root = os.path.abspath(a.root)
-    skills_dir = os.path.join(root, "skills")
+    here = os.path.dirname(os.path.abspath(__file__))
+    if a.root:
+        root = os.path.abspath(a.root)
+    elif os.path.isdir(os.path.join(here, "variants")):
+        root = here  # catalog: validate_skills.py sits beside variants/
+    else:
+        root = os.path.dirname(here)  # workbench: skills/validate_skills.py
+    layout = a.layout or ("catalog" if os.path.isdir(os.path.join(root, "variants"))
+                          and not os.path.isdir(os.path.join(root, "skills")) else "workbench")
+    global LAYOUT
+    LAYOUT = layout
+    skills_dirname = "variants" if layout == "catalog" else "skills"
+    skills_dir = os.path.join(root, skills_dirname)
     projects_dir = os.path.join(root, "projects")
+    check(True, f"layout: {layout} (root {root})")
 
-    if not check(os.path.isdir(skills_dir), f"skills/ exists under {root}"):
+    if not check(os.path.isdir(skills_dir), f"{skills_dirname}/ exists under {root}"):
         return finish(a.quiet)
 
     skill_dirs = sorted(os.path.join(skills_dir, d) for d in os.listdir(skills_dir)
@@ -213,34 +241,67 @@ def main(argv: list[str]) -> int:
     for sd in skill_dirs:
         check_skill(sd, root)
 
-    readme = os.path.join(skills_dir, "README.md")
-    if check(os.path.isfile(readme), "skills/README.md exists"):
+    # The page that must name every skill: skills/README.md in the workbench,
+    # the catalog's own README.md (coding-agents/README.md) in the catalog.
+    readme = os.path.join(skills_dir if layout == "workbench" else root, "README.md")
+    readme_rel = os.path.relpath(readme, root)
+    if check(os.path.isfile(readme), f"{readme_rel} exists"):
         check_paths_in(readme, root, None)
         text = read(readme)
         for sd in skill_dirs:
-            check(os.path.basename(sd) in text, f"skills/README.md mentions {os.path.basename(sd)}")
+            check(os.path.basename(sd) in text, f"{readme_rel} mentions {os.path.basename(sd)}")
 
     check_machine_paths(skills_dir, root)
-    check_universal_hash(root)
+    check_universal_hash(skills_dir, root)
 
-    if check(os.path.isdir(projects_dir), "projects/ exists"):
-        check(os.path.isfile(os.path.join(projects_dir, "README.md")), "projects/README.md exists")
-        for dirpath, dirnames, filenames in os.walk(projects_dir):
-            for fn in sorted(filenames):
-                if fn.endswith(".md"):
-                    check_paths_in(os.path.join(dirpath, fn), root, None)
+    if layout == "workbench":
+        if check(os.path.isdir(projects_dir), "projects/ exists"):
+            check(os.path.isfile(os.path.join(projects_dir, "README.md")), "projects/README.md exists")
+            for dirpath, dirnames, filenames in os.walk(projects_dir):
+                for fn in sorted(filenames):
+                    if fn.endswith(".md"):
+                        check_paths_in(os.path.join(dirpath, fn), root, None)
+        check_loader_files(root)
+        check_dropin_sync(root)
 
-    check_loader_files(root)
-    check_index(root)
+    check_index(root, skills_dirname)
     check_python(skills_dir, root)
-    check_qt_lint_selftest(root, a.quiet)
+    check_qt_lint_selftest(skills_dir, a.quiet)
     return finish(a.quiet)
 
 
-def check_index(root: str) -> None:
+def check_dropin_sync(root: str) -> None:
+    """The skills-repo drop-in bundle under research/ carries copies of the
+    skills. Copies drift; this fails when a copy differs from skills/<name>/."""
+    dropin = os.path.join(root, "research", "skills-repo-compat", "drop-in", "skills-repo", "coding-agents", "variants")
+    if not os.path.isdir(dropin):
+        return
+    for name in sorted(os.listdir(dropin)):
+        src = os.path.join(root, "skills", name)
+        if not os.path.isdir(src):
+            continue  # a catalog-only skill (e.g. the register) has no workbench source
+        diffs: list[str] = []
+        for base, other, tag in ((src, os.path.join(dropin, name), "missing in drop-in"),
+                                 (os.path.join(dropin, name), src, "missing in skills/")):
+            for dirpath, dirnames, filenames in os.walk(base):
+                dirnames[:] = [d for d in dirnames if d != "__pycache__"]
+                for fn in filenames:
+                    rel = os.path.relpath(os.path.join(dirpath, fn), base)
+                    twin = os.path.join(other, rel)
+                    if not os.path.isfile(twin):
+                        diffs.append(f"{rel} ({tag})")
+                    elif tag == "missing in drop-in":
+                        with open(os.path.join(dirpath, fn), "rb") as fa, open(twin, "rb") as fb:
+                            if fa.read() != fb.read():
+                                diffs.append(f"{rel} (content differs)")
+        check(not diffs, f"drop-in copy of {name} is byte-identical to skills/{name}"
+              + (f" - {diffs[:5]}" if diffs else ""))
+
+
+def check_index(root: str, skills_dirname: str = "skills") -> None:
     """index.json is the triage table: every unit an agent might open has one
     entry with read_when/skip_when, every entry path exists, and README.md names
-    every unit. Units = skills/*, projects/* (dirs), research/*.md, tools/*."""
+    every unit. Units = <skills>/*, projects/* (dirs), research/*.md, tools/*."""
     import json
     p = os.path.join(root, "index.json")
     if not check(os.path.isfile(p), "index.json exists (triage table)"):
@@ -259,9 +320,10 @@ def check_index(root: str) -> None:
             check(bool(str(u.get(key, "")).strip()), f"index.json {uid}: has {key}")
         entry = u.get("entry", "")
         check(os.path.isfile(os.path.join(root, entry)), f"index.json {uid}: entry exists: {entry}")
-        check(f"`{uid}`" in readme, f"index.json {uid}: named in README.md triage table")
+        named = f"`{uid}`" in readme or (f"`{os.path.basename(uid)}`" in readme and uid in readme)
+        check(named, f"index.json {uid}: named in README.md triage table")
     expected: set[str] = set()
-    for group in ("skills", "projects", "tools"):
+    for group in (skills_dirname, "projects", "tools"):
         d = os.path.join(root, group)
         if os.path.isdir(d):
             expected.update(f"{group}/{n}" for n in os.listdir(d)

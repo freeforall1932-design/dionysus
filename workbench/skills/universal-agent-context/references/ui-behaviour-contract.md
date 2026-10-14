@@ -8,7 +8,7 @@ that lies (fake progress, "success" on partial output, buttons that do nothing
 in half the states). This file is the method that prevents it. It expands v4 §10
 (visual evidence) and §11.5 (engine boundary options) into **one contract that
 must exist before any widget is drawn**, on any stack. Stack-specific files
-(Qt: `skills/qt6-cmake-cpp/references/ui-redesign.md` and
+(Qt, a sibling skill, path from this skill's root: `../qt6-cmake-cpp/references/ui-redesign.md` and
 `subprocess-engine.md`) implement this; they do not replace it.
 
 The evidence discipline and the "obligation ledger" idea come from

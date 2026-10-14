@@ -1,0 +1,50 @@
+{
+  "schema_version": "1",
+  "id": "gemini",
+  "display_name": "Gemini CLI",
+  "vendor": "Google",
+  "homepage": "https://geminicli.com/docs",
+  "binary_names": [
+    "gemini"
+  ],
+  "install": "npm i -g @google/gemini-cli",
+  "wire_protocol": "openai-chat",
+  "instruction": {
+    "method": "file",
+    "format": "markdown",
+    "frontmatter": false,
+    "global_paths": [
+      "~/.gemini/GEMINI.md"
+    ],
+    "project_paths": [
+      "GEMINI.md",
+      ".gemini/GEMINI.md"
+    ],
+    "notes": "GEMINI.md is Gemini CLI's hierarchical context file (global, project root and subdirectories are concatenated). The Copilot coding agent also reads GEMINI.md."
+  },
+  "skills": {
+    "supported": true,
+    "format": "skill-md",
+    "user_dirs": [
+      "~/.agents/skills",
+      "~/.gemini/skills"
+    ],
+    "project_dirs": [
+      ".agents/skills",
+      ".gemini/skills"
+    ],
+    "notes": "Discovery tiers, lowest to highest precedence: built-in, extension, user (~/.gemini/skills or ~/.agents/skills), workspace (.gemini/skills or .agents/skills). Within a tier the .agents/skills alias wins over the .gemini/skills directory."
+  },
+  "recommended_variant": "unified",
+  "quirks": [
+    "Context files are concatenated, so a loader paragraph in GEMINI.md and the skill under .agents/skills/ do not duplicate each other — keep the paragraph short.",
+    ".agents/skills/ is shared with Codex, OpenCode and Copilot; .gemini/skills/ is Gemini-only."
+  ],
+  "verification": {
+    "tested_agent_version": "unverified",
+    "last_verified_at": "2026-10-14",
+    "verified_by": "documentation review on 2026-10-14 of docs/cli/skills.md at google-gemini/gemini-cli@42c5182 (discovery tiers, .agents/skills alias) and the GEMINI.md context-file documentation in the same repository. Wire protocol recorded as openai-chat only because the schema requires one of its fixed values; Gemini CLI speaks the Gemini API natively. Not executed.",
+    "source": "https://github.com/google-gemini/gemini-cli/blob/42c5182/docs/cli/skills.md"
+  },
+  "maintainer": null
+}

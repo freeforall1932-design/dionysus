@@ -1,0 +1,48 @@
+{
+  "schema_version": "1",
+  "id": "claude",
+  "display_name": "Claude Code",
+  "vendor": "Anthropic",
+  "homepage": "https://code.claude.com/docs",
+  "binary_names": [
+    "claude"
+  ],
+  "install": "npm i -g @anthropic-ai/claude-code",
+  "wire_protocol": "anthropic-messages",
+  "instruction": {
+    "method": "file",
+    "format": "markdown",
+    "frontmatter": false,
+    "global_paths": [
+      "~/.claude/CLAUDE.md"
+    ],
+    "project_paths": [
+      "CLAUDE.md",
+      ".claude/CLAUDE.md"
+    ],
+    "notes": "CLAUDE.md is auto-loaded from the project root and the user home directory. It is the canonical instruction surface for Claude Code."
+  },
+  "skills": {
+    "supported": true,
+    "format": "skill-md",
+    "user_dirs": [
+      "~/.claude/skills"
+    ],
+    "project_dirs": [
+      ".claude/skills"
+    ],
+    "notes": "Skills are directories holding SKILL.md with YAML frontmatter (name + description). Project skills auto-load when the repo is opened in Claude Code. This repo already ships .claude/skills/ in that format."
+  },
+  "recommended_variant": "unified",
+  "quirks": [
+    "Claude Code is the strongest reader of YAML-frontmatter skills \u2014 prefer the skills directory over pasting into CLAUDE.md when the variant has frontmatter.",
+    "Extended thinking is separate from the <thinking> tag used by the grug variant. If thinking is enabled, keep the grug trace short or it double-counts tokens."
+  ],
+  "verification": {
+    "tested_agent_version": "2.1.259",
+    "last_verified_at": "2026-09-17",
+    "verified_by": "documentation review; version pinned from the official caveman profile (agents/profiles/claude.json), verified there by a local pinned-binary probe.",
+    "source": "https://code.claude.com/docs"
+  },
+  "maintainer": null
+}

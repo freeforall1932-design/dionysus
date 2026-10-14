@@ -28,7 +28,7 @@ This skill is a thin wrapper. The authority is the file next to it:
 
 1. This file, then v4, then the session protocol.
 2. Inspect the repository. **Only then** decide whether a workload skill applies
-   (`skills/<workload>/SKILL.md`); the match is the repository's real build
+   (a sibling `<workload>/SKILL.md` installed beside this one); the match is the repository's real build
    entry point, not its README or its name.
 3. If `projects/<name>/` exists in this repository, it is a *pointer*: follow it
    to the project's own overlay (status register, handoff, task board, decision

@@ -10,7 +10,7 @@
 | SHA-256 | `51f21f331b0b708ed65824253e15ca73259e8fcc80dbf1d0439c60c207eda0d5` |
 | Size | 54326 bytes, 563 lines |
 
-`skills/validate_skills.py` recomputes the hash and fails if the file drifts
+The gate script (`validate_skills.py`, beside the skills directory) recomputes the hash and fails if the file drifts
 from this record. To change the universal guide: write the new version as a new
 file (`…_v5.md`) with its own "Appendix — provenance" naming what was promoted
 and from which project session; update the table above; update the wrapper
@@ -26,5 +26,5 @@ definition; gifscythe is one consumer). The gifscythe copy should become either
 (a) a pinned mirror that names this file's commit and hash, or (b) a one-line
 pointer. That is a change *in gifscythe* and was deliberately not made in the
 session that created this directory — it is recorded as a next action in
-`projects/gifscythe/NEXT_SESSION.md`. Until it lands, the hash above is how a
+the owner's workbench runbook for that project (`dionysus/workbench/projects/gifscythe/NEXT_SESSION.md`). Until it lands, the hash above is how a
 reader proves the copies have not diverged.

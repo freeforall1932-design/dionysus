@@ -83,6 +83,17 @@
       "skip_when": "everything else; it shares nothing with the skills or projects",
       "session_added": "2026-10-12",
       "last_verified": "2026-10-14"
+    },
+    {
+      "id": "research/harness-skill-support-2026-10-14.md",
+      "kind": "research",
+      "layer": "reference",
+      "stack": "any",
+      "entry": "research/harness-skill-support-2026-10-14.md",
+      "read_when": "installing the skills into a harness (Claude Code, Codex, Gemini CLI, OpenCode, Copilot, Qwen Code, Cursor, Qwen Chat) or adding a harness profile: which ones load real skill directories, which read files by path, which are paste-only",
+      "skip_when": "inside-project work; the question is not about harness installation",
+      "session_added": "2026-10-14",
+      "last_verified": "2026-10-14"
     }
   ]
 }

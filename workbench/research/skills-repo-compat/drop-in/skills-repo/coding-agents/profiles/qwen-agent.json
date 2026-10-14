@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "id": "qwen-agent",
+  "display_name": "Qwen Chat Agent",
+  "vendor": "Alibaba / Qwen",
+  "homepage": "https://chat.qwen.ai/",
+  "binary_names": [],
+  "install": "Open https://chat.qwen.ai/ and start an agent session (no CLI to install)",
+  "wire_protocol": "web-workspace",
+  "instruction": {
+    "method": "upload",
+    "format": "markdown",
+    "frontmatter": false,
+    "global_paths": [],
+    "project_paths": [],
+    "notes": "This is the agent mode inside Qwen Chat, with a workspace you can attach files to. It is a DIFFERENT product from Qwen Code, the terminal CLI (see profiles/qwen.json). There is no ~/.qwen directory and no CLI to configure: instructions reach the agent by uploading a file into the workspace, or by pasting text at the start of a session. Because the workspace ingests uploaded files, a SKILL.md may or may not be parsed for its frontmatter — this is UNVERIFIED. The dependable route is a plain .md file with no frontmatter, which is read as ordinary text. That is why the pseudo-skill fallback exists.",
+    "paste_dir": "workspace"
+  },
+  "skills": null,
+  "recommended_variant": "unified",
+  "quirks": [
+    "No verified skill-file convention. Treat SKILL.md frontmatter as a bonus if it is honoured, not as a dependency — the instructions must stand on their own as plain text.",
+    "Upload size and file-type limits are set by the product and can change; keep the instruction file small so it survives them.",
+    "Because there is no session-start hook, the instructions must be re-attached or re-pasted when a session resets.",
+    "If the agent has a code-execution or file tool, the code-preservation rule matters here too: uploaded and generated files are real files."
+  ],
+  "verification": {
+    "tested_agent_version": "unverified",
+    "last_verified_at": "2026-09-17",
+    "verified_by": "documentation review — no public specification of Qwen Chat Agent's instruction-file conventions was found, so nothing here is asserted about frontmatter parsing. Upload/paste is treated as the only dependable route.",
+    "source": "https://chat.qwen.ai/"
+  },
+  "maintainer": null
+}

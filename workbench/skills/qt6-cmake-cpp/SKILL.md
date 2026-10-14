@@ -8,7 +8,8 @@ metadata:
 
 # Qt 6 · CMake · C++ (layer 2 workload skill)
 
-Read `skills/universal-agent-context/SKILL.md` first — this skill assumes it.
+Read the process layer first — `../universal-agent-context/SKILL.md`, installed
+beside this skill — this skill assumes it.
 Everything below is *what this stack needs*; nothing below is a project fact.
 When a project's register says a finding here is accepted (for example a
 bounded blocking wait that was measured and dispositioned), the register wins
