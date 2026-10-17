@@ -26,6 +26,14 @@ root unless they say otherwise.
   (once this README is merged, use whatever branch the current session is
   actually on — check with `git branch --show-current`, never assume)
 
+Files currently in this folder:
+
+| File | What it is |
+|---|---|
+| `README.md` (this file) | The next-session entry point and record. |
+| [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) | Added 2026-10-17 at the owner's request: the pinned address of the owner's Odysseus program repo, its licence and traps, and exactly which files this project needs from it. The Odysseus program itself is **not** copied here. |
+| The Section 2 handoff files and `ai-team-kit.zip` | **Still missing** — the blocker below is unchanged by the Odysseus pointer. |
+
 ---
 
 ## 1. The project in one minute (plain words)
@@ -90,6 +98,10 @@ said these were never delivered and are gone, so expect "no"): the patched
 `model_scout.py`, the MCP loader/apply files, the dashboard test files.
 If they truly are gone, Step 4 rebuilds them from their descriptions and
 says out loud what had to be guessed.
+
+No Odysseus files are needed from the owner: the program source is the
+owner's own repo recorded in [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md),
+which any session can clone at the pinned commit when a task names it.
 
 **Never commit:** API keys, GitHub tokens/PATs, `keys.env`, passwords, or
 any file containing them.
@@ -177,6 +189,13 @@ Keep these layers separate. Never upgrade a lower layer into proof.
   and the session-protocol reference). The Qt workload skill was checked
   and does **not** apply to this docs task (no Qt/CMake build entry
   point); re-check that decision when real kit code is being worked on.
+- Later the same day, for the owner-named Odysseus-pointer task: the
+  owner's repo `freeforall1932-design/odysseus-fork-but-api-dev` at
+  commit `c35a9256f88b2d166cd49297b79efe3e46a40897` (GitHub metadata plus
+  a read-only shallow clone in scratch space; selected docs/specs read —
+  the exact list and findings are in
+  [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) Section 4). Nothing was
+  installed, run, or tested, and no code was copied into this repo.
 
 **NOT read (because missing), NOT checked, NOT researched yet:**
 
@@ -187,8 +206,13 @@ Keep these layers separate. Never upgrade a lower layer into proof.
   NVIDIA NIM, Google AI Studio, Mistral, AI Horde, …). These change and
   must be looked up from official sources when the matching task is
   named — never from memory, never from the old chat's numbers.
-- OAT, Odysseus, OpenCode, Goose, OpenMAIC, "The Agency", SkillOpt —
-  nothing about them was re-checked in this session.
+- OAT, OpenCode, Goose, OpenMAIC, "The Agency", SkillOpt — nothing about
+  them was re-checked in this session. Odysseus is the partial exception:
+  its identity, licence, topology, native recipe location, downstream
+  Providers/Auto/Council docs, and MCP/skills spec map were read at the
+  pin (see `ODYSSEUS_SOURCE.md`), but it was **not installed, run, or
+  evaluated as the Step 3 winner**, and the rest of its tree was not
+  read.
 - Google Colab's current terms for the KoboldCpp notebook.
 
 ---
@@ -410,12 +434,15 @@ against current official pages (later steps).
 | D1 | The room side (Odysseus or similar) runs **native**, not Docker | Owner: "Native and MCP also" (old chat), carried into the 2026-10-17 restart | Install directly in the same Ubuntu/WSL. Exact host and steps are a Step 3 design detail. This decision was about Odysseus; it does not ban Docker as an *isolation* idea elsewhere, but do not build Docker anything unless re-named as a task. |
 | D2 | **MCP for the OAT pull-request team too: YES** | Owner picked YES in the 2026-10-17 multiple-choice question | Queued only — nothing built. Means: rebuild a small, undoable patch/loader plus an owner-controlled `mcp.json`-style list so OAT workers/reviewers can call approved MCP tools (examples the owner named: GitHub via PAT, sequential thinking, web search) during PR work. Known cost accepted by the owner: OAT has no native MCP, so this is custom work that must be tested and may need care after OAT updates. Tools must be allowed one by one; read-only where possible. |
 | D3 | Work lives in an isolated folder in this repo that does not affect the rest of it | Owner's restart message; owner then asked for this README in "the separate folder", 2026-10-17 | The exact path `workbench/ai-team-kit/` is this session's working choice (picked for the gate reasons in Section 3), not a path the owner dictated. Reversible: it can be renamed, moved, or promoted later as a named task. |
+| D4 | The Odysseus program source is the owner's repo `freeforall1932-design/odysseus-fork-but-api-dev` | Owner pointed at that repo "for the Odysseus aka the program file", 2026-10-17 | Source-of-program decision only: whenever Odysseus code is needed, clone **that** repo at the commit pinned in `ODYSSEUS_SOURCE.md` (never the upstream clone URL in its inherited docs, never a floating "latest"). It does **not** decide that Odysseus wins Step 3, and it authorizes no install. The program is pointed at, not copied into `dionysus` (size/licence/sync reasons in the pointer file); a vendored copy or submodule would be a separate named decision. |
 
 ### Explicitly NOT decided yet (do not build on these)
 
 - Which harness is the persona room (Odysseus vs OpenCode vs Goose vs …)
   and which should do what — that is the Step 3 comparison. The old
   chat's "recommended path" was its own suggestion, never approved.
+  D4 only fixes *where Odysseus comes from if it is used*; it does not
+  pick it.
 - Orchestrator/sub-agent role design (game code, programming,
   front-end/GUI, design) and the writing/daily-use personas.
 - Whether the KoboldCpp Colab endpoint is used at all (Step 1b), and
@@ -438,14 +465,18 @@ against current official pages (later steps).
 | X3 | Owner lists Odysseus-coverage and Colab-usability as "replies I never got", yet the shared snapshot contains an Oct 10 answer covering both. | Treat those questions as still open (Steps 1a/1b). Possibly the owner never saw it or found it incomplete — answer fresh and briefly, with current sources. |
 | X4 | Self-check counts in the old chat grew as the code grew (23 → 33/34 → 68 for the picker; 84 for the dashboard). | Expect the delivered zip's own number, measured in Step 0. Never quote an old count as the current result. |
 | X5 | Codespace free allowance was quoted in two different shapes ("about 60 hours a month" vs "about 120 core-hours"). | Look up the current official figure only when a Codespace task is named. |
-| X6 | Odysseus persona group chats rest on "one review" and were never tested, even by the old chat. | Do not claim the room feature exists until Step 3 checks primary sources (docs/source/licence). |
+| X6 | Odysseus persona group chats rest on "one review" and were never tested, even by the old chat. | Superseded in part on 2026-10-17: the fork's own downstream Council doc describes optional personas with a separate chair (see `ODYSSEUS_SOURCE.md`). Still a doc claim — do not claim the owner's "persona room" exists until Step 3 tests what Council actually does. |
+| X7 | Old chat: Odysseus "agent mode is built on OpenCode". Fork docs/specs read at the 2026-10-17 pin show OpenCode only as a model-provider shape, plus a scoped `/api/codex/*` surface for Codex/Claude. | Do not repeat the old sentence. Step 3 settles what the agent runtime actually is, from primary source in the pinned repo. |
+| X8 | The word "fork" misleads twice: GitHub marks `odysseus-fork-but-api-dev` as not-a-fork (ZIP-seeded, histories linked by merge on 2026-10-14), and its README/setup clone commands point at upstream, not at itself. | Always clone the address and pin in `ODYSSEUS_SOURCE.md`; treat upstream URLs inside that repo's docs as inherited examples. |
 
 ---
 
-## 9. Work queue (the order agreed on 2026-10-17)
+## 9. Work queue (order proposed on 2026-10-17)
 
-The order is provisional until Step 0 is done: `HANDOFF.md` / `OPEN.md`
-may re-order it. If they do, say so before touching code.
+This numbering is the restart session's proposal so the owner can name
+tasks ("Do Step 0") — the owner has not locked the order, and
+`HANDOFF.md` / `OPEN.md` may re-order it once read. If they do, say so
+before touching code.
 
 ### Step 0 — Unblock + baseline (no building, no research)
 
@@ -490,7 +521,10 @@ Compare **OAT, Odysseus, OpenCode, Goose** from primary sources (docs,
 source, licence, releases): who runs the PR team, who is the native
 persona room for writing/daily use, who carries MCP where, orchestrator
 + specialist sub-agents (game code, programming, front-end/GUI, design),
-and how test toolchains (Qt6/CMake, C#, …) fit. Deliver a
+and how test toolchains (Qt6/CMake, C#, …) fit. For Odysseus, "primary
+source" now has an address: the owner's repo at the commit pinned in
+`ODYSSEUS_SOURCE.md`, read per its Section 3 lists (including that
+repo's pending audit worklist before any install idea). Deliver a
 beginner-friendly design naming who does what and why — and stop for the
 owner's approval before any installation.
 
@@ -579,8 +613,12 @@ for any credit.
   official-terms check in the step that touches them. "Free today" is a
   dated claim.
 - **Licences before copying**: no third-party skill/persona/code is
-  copied in until its licence is read and compatible (Odysseus was
-  reported as AGPL-3.0 — verify in Step 3 before relying on it).
+  copied in until its licence is read and compatible. (Odysseus update,
+  2026-10-17: its `LICENSE` and repo metadata at the pinned commit say
+  AGPL-3.0-or-later — verified by reading; what that allows for a
+  specific reuse is still a Step 3 reading task, and its pending audit
+  worklist in `ODYSSEUS_SOURCE.md` Section 3.1 must be read before any
+  install is exposed beyond loopback.)
 
 ---
 
@@ -597,12 +635,44 @@ for any credit.
 - Verified in this session: repo/branch/base commit and clean tree by
   `git status`; absence of the five files and of any `model_scout.py` by
   searching the workspace; the gate script's scope by reading it; the
-  old chat's visible text by fetching the shared link. The workbench
-  gate result for this change is reported in the chat turn that commits
-  this file (run after writing, per the checklist) — re-run it rather
-  than trusting any number quoted here later.
+  old chat's visible text by fetching the shared link; and, after this
+  README was written, the repo gate — `python3 skills/validate_skills.py`
+  run from inside `workbench/` — passed (exit 0) on 2026-10-17, as did
+  the pushed commit's GitHub `skills-gate` run. Those passes prove the
+  repo's existing checks still passed with this folder present; they
+  prove nothing about the missing kit. Re-run the gate rather than
+  trusting these dated results.
 - Not verifiable here: everything inside the missing zip and handoff
   files; every "tested" claim from the old chat; current free-tier
   limits/terms of any service; Windows/Mac/Codespace behaviour; real
   GitHub/PR flows with the owner's accounts.
 - Docs touched: only this README.
+
+### 2026-10-17 — Odysseus pointer + visibility PR (same Arena session)
+
+- Changed: added `ODYSSEUS_SOURCE.md` beside this README (owner's fork
+  pinned at `c35a9256…`, licence, topology, clone trap, and the exact
+  read/install/do-not-need file lists), updated this README (folder
+  file table, decision D4, discrepancies X6–X8, Step 3 source address,
+  licence line, this entry), and opened a **draft** pull request from
+  the session branch to the repo's default branch `dionysus` so the
+  owner can see the branch/folder on GitHub and commit the Section 2
+  files to the PR's branch. The PR number/URL live on GitHub and in that
+  day's chat report — GitHub, not this file, is the source of truth for
+  PR state. **Draft means: do not merge yet** — the kit files are still
+  missing and Step 0 has not run.
+- Partial: Step 0 remains blocked on the same five missing files; the
+  Odysseus pointer unblocks nothing by itself.
+- Left (on purpose): no Odysseus code copied into this repo, no
+  submodule, no Odysseus install/run/test, no harness verdict, no
+  research beyond reading the pinned repo's own docs/specs listed in
+  `ODYSSEUS_SOURCE.md` Section 4.
+- Verified in this session: fork metadata and branch tips via `gh`;
+  shallow clone at the pin read in scratch space; every file path in
+  `ODYSSEUS_SOURCE.md` Section 3 checked to exist; then the workbench
+  gate and the pushed commit's CI (exact results in that day's chat
+  report — re-run rather than trusting a quoted number later).
+- Not verifiable here: Odysseus installing/running at the pin; its docs'
+  behavioural and test-count claims; whether its pending audit items
+  still apply line-by-line; everything in the previous entry's list.
+- Docs touched: `ODYSSEUS_SOURCE.md` (new) and this README.
