@@ -25,7 +25,7 @@ The owner wants a small **AI team** for the GitHub project
 This folder is inside the separate `dionysus` repository because that is the
 owner's workbench. **Gifscythe is the target project; `dionysus` is where this
 kit project is being organised.** Work for this project stays under
-`workbench/ai-team-kit/` unless the owner names a task that says otherwise.
+`workbench/projects/ai-team-kit/` unless the owner names a task that says otherwise.
 
 The owner's own requests from the old chat—quoted and decomposed, with the
 limits of what the shared-chat link can still show—are preserved in

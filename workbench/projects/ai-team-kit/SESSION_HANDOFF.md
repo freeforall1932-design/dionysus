@@ -43,6 +43,15 @@ Three follow-up tasks the owner then named ran in order on 2026-10-18
    was called, so login-only limit numbers (Google/Mistral) remain for the
    owner to read at setup.
 
+After those, the owner asked for this folder to move into
+`workbench/projects/` with a new sibling `workbench/projects/kobold-cli/`.
+That move is done (relative links untouched; path text updated, pinned URLs
+preserved), and kobold-cli's first report dissects the official KoboldCpp
+Colab notebook and rules on another model's "missing flags" claims (flash
+attention and MMQ are on-by-default, so two claims were rejected; KV-cache
+quantization and a generic args field are genuinely absent). Nothing ran on
+Colab; W-021/Q14 terms evidence is still the gate before real use.
+
 The preceding owner-named 2026-10-17 reorganisation/audit task did the
 following:
 
@@ -174,7 +183,7 @@ Recommended order is in `WORKLIST.md`, but a recommendation is not permission.
    only the topic/report files the named task needs.
 4. For “what does code do”, read the real file in `kit/harness/` before
    editing. For “what should happen”, the owner's latest instruction wins.
-5. Keep changes inside `workbench/ai-team-kit/` unless the named task says
+5. Keep changes inside `workbench/projects/ai-team-kit/` unless the named task says
    otherwise. Never touch upstream `assets/` or `dotfiles/`.
 6. Before finishing a workbench change, run the repo gate from inside
    `workbench/` (`python3 skills/validate_skills.py`), inspect `git diff`,

@@ -59,8 +59,9 @@ or tested — only listed, read, and diffed.
   `freeforall1932-design/odysseus-fork-but-api` (branch `dev`), which
   mirrors upstream `odysseus-dev/odysseus` (branch `dev`; upstream `main`
   is described as release-curated).
-- Syncing is automated in that repo (`.github/workflows/upstream-sync.yml`
-  + `.github/scripts/upstream_sync.py`): it opens/refreshes a sync PR and
+- Syncing is automated in that repo (the `upstream-sync.yml` workflow
+  under its `.github/workflows/` folder
+  + its `upstream_sync.py` helper script): it opens/refreshes a sync PR and
   never pushes to `main` by itself. Sync PRs there must be merged with a
   merge commit — never squash/rebase them (that would break the history
   link). All of that belongs to work **in that repo**, not in `dionysus`.
@@ -121,7 +122,7 @@ owner-named task runs. Section 3.5 is the exception: an actual install
 needs the whole clone, on the target machine, never committed here.
 Every path below was confirmed to exist at the pin on 2026-10-17.
 
-### 3.0 Needed inside `workbench/ai-team-kit/` — done by this file
+### 3.0 Needed inside `workbench/projects/ai-team-kit/` — done by this file
 
 | File here | Why |
 |---|---|
@@ -187,7 +188,7 @@ Steps 1–3. Nothing below was executed in this session.
 |---|---|
 | `specs/shell-mcp.md` | The map of shell routes (admin-only, powerful by design), background jobs, configured MCP servers, transports, and where MCP tool exposure/security lives. Read before believing any "Odysseus gives us MCP" summary. |
 | `website/setup.md` "Built-in MCP servers" + `mcp_servers/email_server.py`, `image_gen_server.py`, `memory_server.py`, `rag_server.py` | The built-in MCP servers it ships. |
-| `routes/mcp/mcp_routes.py`, `src/mcp_manager.py`, `src/builtin_mcp.py`, `scripts/odysseus-mcp` | How MCP servers are configured and run — the code behind the spec. |
+| `routes/mcp/mcp_routes.py`, `src/mcp_manager.py`, `src/builtin_mcp.py`, and the `odysseus-mcp` launcher | How MCP servers are configured and run — the code behind the spec. |
 | `specs/memory-skills.md`, `docs/skills-lifecycle.md` | How skills (`SKILL.md` under its data dir) and memory actually work there, including GitHub skill import safety rules. |
 | `docs/skills-audit-architecture.md`, `docs/skills-audit-second-review.md`, `services/skills/` (`evaluation.py`, `audit_workflow.py`, `agent_runner.py`, `job_coordinator.py`, `publication.py`, `model_selection.py`, `dependencies.py`, `prompts.py`), `routes/skills_routes.py` | Added/reshaped by the 2026-10-17 sync's skills evaluation/audit refactor. Needed before relying on any skill test/audit behaviour at the current pin; the spec remains the entry point. |
 | `specs/agent-tools.md`, `specs/integrations.md` | Agent tool behaviour and the scoped external-agent HTTP surface (`/api/codex/*`, API tokens with scopes; Claude/Codex bundles under `integrations/`). |
@@ -210,7 +211,7 @@ or pasted into chat.
 | `website/*.webm`, `website/index.html` demo/landing assets, `assets/branding/` | Demo media; weight without value here. |
 | `swift/`, `start-macos.sh`, `build-macos-app.sh`, `launch-windows.ps1`, `build-windows-portable.ps1`, `update_windows.bat`, `Odysseus.spec` | Other platforms/packaging; only if a task targets them. |
 | The full `tests/` tree copied here | Tests run in the Odysseus repo when that repo is the work target; copying 1,432 test files here proves nothing. |
-| `.github/workflows/upstream-sync.yml`, `.github/scripts/upstream_sync.py` | That repo's sync machinery; only relevant to work inside that repo. |
+| The `upstream-sync.yml` workflow and `upstream_sync.py` | That repo's sync machinery; only relevant to work inside that repo. |
 | Local-model serving machinery (Cookbook serving, GPU overlays) | This project is cloud-API-only. (Odysseus also talks to API endpoints; the design question is which parts to use, decided in Step 3.) |
 
 ---

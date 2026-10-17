@@ -30,7 +30,7 @@ providers, persona room, Docker, and the toolchain installer are not in the
 extracted v1 tree.
 
 > This audit did not fix kit code. Every fix below is a recommendation and is
-> mapped to an item in [`../WORKLIST.md`](../WORKLIST.md).
+> mapped to an item in [`workbench/projects/ai-team-kit/WORKLIST.md`](../WORKLIST.md).
 >
 > **Owner clarification added 2026-10-18.** Finding A-01 does not mean Google
 > or NVIDIA lacks a free tier. The owner intends both—as well as OpenRouter,
@@ -39,8 +39,8 @@ extracted v1 tree.
 > because the delivered code cannot yet prove which individual catalogue
 > models are free-tier eligible, track remaining quota/cooldown, represent a
 > Colab session endpoint, or allocate calls across an adaptive council. The
-> clarification is recorded in [`../PROJECT_CONTEXT.md`](../PROJECT_CONTEXT.md)
-> and `../RESEARCH_AND_OPEN_QUESTIONS.md`; current official limits/terms are
+> clarification is recorded in [`workbench/projects/ai-team-kit/PROJECT_CONTEXT.md`](../PROJECT_CONTEXT.md)
+> and `workbench/projects/ai-team-kit/RESEARCH_AND_OPEN_QUESTIONS.md`; current official limits/terms are
 > still W-020/W-021 work.
 
 ---
@@ -49,7 +49,7 @@ extracted v1 tree.
 
 ### Code reviewed
 
-The canonical extracted v1 now lives in `../kit/harness/`:
+The canonical extracted v1 now lives in `workbench/projects/ai-team-kit/kit/harness/`:
 
 | File | Lines | SHA-256 of the extracted v1 file |
 |---|---:|---|

@@ -3,13 +3,13 @@
 Snapshot: **2026-10-17** (Asia/Jakarta)
 
 > **Reorganisation note (later on 2026-10-17):** this report's findings were
-> used to extract the canonical kit to `../kit/harness/`, the four
-> `harness.zip`-only documents to `../archive/harness-zip-extras/`, and the
-> four snapshot files to `../archive/2026-10-16-handoff-snapshot/`. Both zip
+> used to extract the canonical kit to `workbench/projects/ai-team-kit/kit/harness/`, the four
+> `harness.zip`-only documents to `workbench/projects/ai-team-kit/archive/harness-zip-extras/`, and the
+> four snapshot files to `workbench/projects/ai-team-kit/archive/2026-10-16-handoff-snapshot/`. Both zip
 > files and the duplicate top-level guide were then deleted. References below
 > to the zips or former top-level paths describe the state **when this report
-> was written**. Current navigation is in `../README.md` and
-> `../FILE_MAP.md`.
+> was written**. Current navigation is in `workbench/projects/ai-team-kit/README.md` and
+> `workbench/projects/ai-team-kit/FILE_MAP.md`.
 
 ## Short answer
 
@@ -39,7 +39,7 @@ Owner <-> Dashboard <-> OAT helpers -> LiteLLM router -> free AI services
 The helpers are supposed to work in their own copies of a GitHub project and
 open pull requests. The owner remains the person who merges. In this
 repository the kit is stored as a project artifact under
-`workbench/ai-team-kit/`; it is **not integrated into the Dionysus dotfiles**
+`workbench/projects/ai-team-kit/`; it is **not integrated into the Dionysus dotfiles**
 and it does not change `assets/` or `dotfiles/`.
 
 The old shared chat broadly matches the delivered v1 kit. The most important

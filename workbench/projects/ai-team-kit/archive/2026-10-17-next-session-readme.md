@@ -2,11 +2,14 @@
 
 > **Archive note (2026-10-17 reorganisation):** this was the former
 > all-in-one `README.md`, kept for the detailed restart/learning chronology.
-> It is no longer the entry point. Start from `../README.md`,
-> `../SESSION_HANDOFF.md`, and `../WORKLIST.md`. File paths below describe the
+> It is no longer the entry point. Start from `workbench/projects/ai-team-kit/README.md`,
+> `workbench/projects/ai-team-kit/SESSION_HANDOFF.md`, and `workbench/projects/ai-team-kit/WORKLIST.md`. File paths below describe the
 > layout when this README was current; the canonical kit has since been
-> extracted to `../kit/harness/`, the snapshots archived, and both zips plus
-> the duplicate guide deleted.
+> extracted to `workbench/projects/ai-team-kit/kit/harness/`, the snapshots archived, and both zips plus
+> the duplicate guide deleted. *(2026-10-18: backticked paths in this
+> archived file were prefixed with the folder's new location under
+> `workbench/projects/` so links still resolve; the rest of the text is
+> unchanged.)*
 
 > **STOP — read this before doing anything.**
 >
@@ -167,7 +170,7 @@ work already lives only under `workbench/` (plus one workflow file that
 GitHub requires at the root). The upstream parts are `assets/` and
 `dotfiles/`; this project must never touch them.
 
-`workbench/ai-team-kit/` was picked on purpose. The repo's checking
+`workbench/projects/ai-team-kit/` was picked on purpose. The repo's checking
 script, `workbench/skills/validate_skills.py`, was **read in this session
 on 2026-10-17** and:
 
@@ -498,7 +501,7 @@ against current official pages (later steps).
 8. **The owner reviews and merges all pull requests.** No auto-merge, no
    publishing, no spending money, no licence-risky copying without the
    owner deciding first.
-9. Work stays inside `workbench/ai-team-kit/` unless a named task says
+9. Work stays inside `workbench/projects/ai-team-kit/` unless a named task says
    otherwise. Upstream `assets/` and `dotfiles/` are never touched.
 
 ---
@@ -511,7 +514,7 @@ against current official pages (later steps).
 |---|---|---|---|
 | D1 | The room side (Odysseus or similar) runs **native**, not Docker | Owner: "Native and MCP also" (old chat), carried into the 2026-10-17 restart | Install directly in the same Ubuntu/WSL. Exact host and steps are a Step 3 design detail. This decision was about Odysseus; it does not ban Docker as an *isolation* idea elsewhere, but do not build Docker anything unless re-named as a task. |
 | D2 | **MCP for the OAT pull-request team too: YES** | Owner picked YES in the 2026-10-17 multiple-choice question | Queued only — nothing built. Means: rebuild a small, undoable patch/loader plus an owner-controlled `mcp.json`-style list so OAT workers/reviewers can call approved MCP tools (examples the owner named: GitHub via PAT, sequential thinking, web search) during PR work. Known cost accepted by the owner: OAT has no native MCP, so this is custom work that must be tested and may need care after OAT updates. Tools must be allowed one by one; read-only where possible. |
-| D3 | Work lives in an isolated folder in this repo that does not affect the rest of it | Owner's restart message; owner then asked for this README in "the separate folder", 2026-10-17 | The exact path `workbench/ai-team-kit/` is this session's working choice (picked for the gate reasons in Section 3), not a path the owner dictated. Reversible: it can be renamed, moved, or promoted later as a named task. |
+| D3 | Work lives in an isolated folder in this repo that does not affect the rest of it | Owner's restart message; owner then asked for this README in "the separate folder", 2026-10-17 | The exact path `workbench/projects/ai-team-kit/` is this session's working choice (picked for the gate reasons in Section 3), not a path the owner dictated. Reversible: it can be renamed, moved, or promoted later as a named task. |
 | D4 | The Odysseus program source is the owner's repo `freeforall1932-design/odysseus-fork-but-api-dev` | Owner pointed at that repo "for the Odysseus aka the program file", 2026-10-17 | Source-of-program decision only: whenever Odysseus code is needed, clone **that** repo at the commit pinned in `ODYSSEUS_SOURCE.md` (never the upstream clone URL in its inherited docs, never a floating "latest"). It does **not** decide that Odysseus wins Step 3, and it authorizes no install. The program is pointed at, not copied into `dionysus` (size/licence/sync reasons in the pointer file); a vendored copy or submodule would be a separate named decision. |
 
 ### Explicitly NOT decided yet (do not build on these)
@@ -721,7 +724,7 @@ for any credit.
 
 ### 2026-10-17 — restart + this README (Arena session)
 
-- Changed: created `workbench/ai-team-kit/README.md` (this file). First
+- Changed: created `workbench/projects/ai-team-kit/README.md` (this file). First
   reply of the session was inventory-only and changed nothing.
 - Partial: Step 0 cannot start — the five files in Section 2 are still
   missing, so there is still **no selftest baseline** (0 runs).

@@ -395,7 +395,11 @@ owner decides the core pool is enough and this item is parked.
   Include the current free/paid runtime and session limits, whether exposing
   an interactive endpoint to the owner's other tools is allowed, which
   KoboldCpp/OpenAI-compatible API a harness can call, tool-calling capability,
-  and what happens when the runtime disconnects.
+  and what happens when the runtime disconnects. Notebook mechanics are now
+  known — the official Colab notebook was dissected on 2026-10-18 in
+  `workbench/projects/kobold-cli/COLAB_NOTEBOOK_DISSECTION_2026-10-18.md`
+  (includes the keep-alive cell this terms check must judge). Only the
+  terms/limits/runtime evidence remains open here.
 - **Odysseus coverage:** already answered at file level—absent from v1. Any
   recommendation about its Council/personas and the adaptive design belongs
   to W-050.
@@ -641,7 +645,7 @@ tested/not-tested release note.
 - SkillOpt, ChatDev, MetaGPT, CrewAI.
 - Groq/Cerebras/GitHub Models/Cloudflare beyond any W-020/W-030 approved
   presets.
-- Promoting `workbench/ai-team-kit/` into a wider workbench project/tool
+- Promoting `workbench/projects/ai-team-kit/` into a wider workbench project/tool
   index.
 
 ---

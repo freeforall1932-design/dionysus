@@ -25,7 +25,7 @@ quoted here; the many "continue" messages are omitted.
   as an attachment. That attachment is likewise hidden in the share.
 - Assistant replies in the share are old-chat reports, not proof. They are
   already handled with that label in
-  [`../RESEARCH_AND_OPEN_QUESTIONS.md`](../RESEARCH_AND_OPEN_QUESTIONS.md).
+  [`workbench/projects/ai-team-kit/RESEARCH_AND_OPEN_QUESTIONS.md`](../RESEARCH_AND_OPEN_QUESTIONS.md).
 
 ---
 

@@ -12,6 +12,9 @@
 > extracted, W-015/W-020/W-050 were strengthened against rate-limit
 > self-harm, and **W-020 verified the core providers' free offers on official
 > pages** — desk research only: no signups, keys, installs, or provider calls.
+> This folder then moved under `workbench/projects/` at the owner's request,
+> gaining a sibling `workbench/projects/kobold-cli/` for the Colab/KoboldCpp
+> arm (whose first report dissects the official Colab notebook).
 
 This folder contains the AI Team Kit project for the owner's Gifscythe
 repository. The kit's aim is a beginner-friendly team of cloud AI helpers that
@@ -93,7 +96,7 @@ corresponding tasks are W-010…W-016 in [`WORKLIST.md`](WORKLIST.md).
 ## Folder map
 
 ```text
-workbench/ai-team-kit/
+workbench/projects/ai-team-kit/
 ├─ README.md                         This index
 ├─ SESSION_HANDOFF.md                Current state + next-session gate
 ├─ WORKLIST.md                       Single actionable queue

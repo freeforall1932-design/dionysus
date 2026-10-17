@@ -1,7 +1,7 @@
 {
   "schema": "workbench-index/1",
   "purpose": "Triage table for agents: decide from this file alone which units to open and which to skip. One entry per skill, project, research page and tool. Checked by skills/validate_skills.py (every entry path exists, every skills/* and projects/* directory and research page has an entry, every entry is named in README.md).",
-  "updated": "2026-10-14",
+  "updated": "2026-10-18",
   "units": [
     {
       "id": "skills/universal-agent-context",
@@ -50,6 +50,28 @@
       "skip_when": "any other repository and any task that is not about mod safety or REA",
       "session_added": "2026-10-14",
       "last_verified": "2026-10-14"
+    },
+    {
+      "id": "projects/ai-team-kit",
+      "kind": "project",
+      "layer": "project",
+      "stack": "Python / Bash — free-API AI team kit (in-repo, not a pointer)",
+      "entry": "projects/ai-team-kit/README.md",
+      "read_when": "the task is the AI team kit: quota-aware free-provider pool, adaptive council/Odysseus direction, model scout, or harness code/docs",
+      "skip_when": "any other project",
+      "session_added": "2026-10-18",
+      "last_verified": "2026-10-18"
+    },
+    {
+      "id": "projects/kobold-cli",
+      "kind": "project",
+      "layer": "project",
+      "stack": "KoboldCpp on Google Colab (research; no code yet)",
+      "entry": "projects/kobold-cli/README.md",
+      "read_when": "the task involves running KoboldCpp on Colab as a pooled API endpoint for the AI team, or the fine-tuned notebook spec",
+      "skip_when": "any other project; also skip for real Colab runs until W-021 terms evidence exists",
+      "session_added": "2026-10-18",
+      "last_verified": "2026-10-18"
     },
     {
       "id": "research/modding-engines-2026-10-14.md",

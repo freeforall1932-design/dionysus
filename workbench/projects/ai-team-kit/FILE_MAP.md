@@ -4,7 +4,7 @@ This is the “where is everything?” file. It replaces the old snapshot's
 `FILES.md` as the current map, while the original snapshot is preserved in the
 archive.
 
-All paths below are relative to `workbench/ai-team-kit/` unless they start
+All paths below are relative to `workbench/projects/ai-team-kit/` unless they start
 with `~/` or say “repo root”.
 
 ---
@@ -12,7 +12,7 @@ with `~/` or say “repo root”.
 ## 1. Current folder at a glance
 
 ```text
-workbench/ai-team-kit/
+workbench/projects/ai-team-kit/
 ├─ README.md                         Start here: status, reading order, verdict
 ├─ SESSION_HANDOFF.md                Current state and exact next-session gate
 ├─ WORKLIST.md                       One actionable queue (audit + old T1–T10)
