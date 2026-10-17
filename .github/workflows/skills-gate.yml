@@ -24,7 +24,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/dionysus' }}
 
 jobs:
   gate:
@@ -36,8 +36,8 @@ jobs:
       - name: Python version (the gate targets the runner's stock python3)
         run: python3 --version
 
-      - name: Syntax of every Python file under workbench/skills/
-        run: python3 -m compileall -q workbench/skills
+      - name: Syntax of every Python file under workbench/
+        run: python3 -m compileall -q workbench
 
       - name: qt_lint self-test (the guard must be able to fail)
         run: python3 workbench/skills/qt6-cmake-cpp/scripts/qt_lint.py --selftest
@@ -48,12 +48,35 @@ jobs:
       - name: validate_skills (frontmatter, links, machine paths, universal hash, projects pointers)
         run: python3 workbench/skills/validate_skills.py
 
+      - name: Notebooks parse, code cells compile, and no outputs are committed
+        run: |
+          python3 - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+
+          paths = sorted(Path("workbench").rglob("*.ipynb"))
+          for path in paths:
+              notebook = json.loads(path.read_text(encoding="utf-8"))
+              assert notebook.get("nbformat") == 4, f"{path}: nbformat must be 4"
+              for index, cell in enumerate(notebook.get("cells", [])):
+                  if cell.get("cell_type") != "code":
+                      continue
+                  source = cell.get("source", "")
+                  source = "".join(source) if isinstance(source, list) else source
+                  ast.parse(source, filename=f"{path}:cell-{index}")
+                  assert cell.get("outputs", []) == [], f"{path}:cell-{index}: outputs must not be committed"
+                  assert cell.get("execution_count") is None, f"{path}:cell-{index}: execution_count must be null"
+              print("ok", path)
+          print(f"notebooks checked: {len(paths)}")
+          PY
+
       - name: magnet-excavator unit tests (moved under workbench/tools; must still pass)
         run: cd workbench/tools/magnet-excavator && python3 -m unittest -q test_magnet_excavator test_magnet_excavator_gui
 
       - name: JSON files parse (presets template, committed baselines)
         run: |
           set -e
-          for f in $(git ls-files 'workbench/**/*.json'); do
-            python3 -c "import json,sys; json.load(open(sys.argv[1])); print('ok', sys.argv[1])" "$f"
-          done
+          while IFS= read -r -d '' f; do
+            python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8')); print('ok', sys.argv[1])" "$f"
+          done < <(git ls-files -z 'workbench/**/*.json')

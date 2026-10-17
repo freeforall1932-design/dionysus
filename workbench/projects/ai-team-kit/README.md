@@ -14,7 +14,12 @@
 > pages** — desk research only: no signups, keys, installs, or provider calls.
 > This folder then moved under `workbench/projects/` at the owner's request,
 > gaining a sibling `workbench/projects/kobold-cli/` for the Colab/KoboldCpp
-> arm (whose first report dissects the official Colab notebook).
+> arm (whose first report dissects the official Colab notebook). The owner
+> subsequently requested a direct test link and a codebase sweep: kobold-cli
+> now has a preflight-by-default test notebook and one-line Colab link file,
+> and `workbench/projects/CODEBASE_SWEEP_AUDIT_2026-10-18.md` records the
+> stale/bug/upgrade findings. The notebook had not run on Colab when added;
+> W-021/Q14 remains open.
 
 This folder contains the AI Team Kit project for the owner's Gifscythe
 repository. The kit's aim is a beginner-friendly team of cloud AI helpers that

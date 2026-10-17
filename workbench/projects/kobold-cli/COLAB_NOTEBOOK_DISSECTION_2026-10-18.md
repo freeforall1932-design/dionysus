@@ -185,3 +185,18 @@ cell **only if** W-021 clears it against current terms.
   KV memory vs the §2 arithmetic; any model's tool-calling; tunnel
   reachability from Odysseus/OAT; Colab terms, session limits, and
   keep-alive acceptability (W-021/Q14 — still the gate before real use).
+
+## 6. Implementation note (later on 2026-10-18)
+
+At the owner's explicit request, the fine-tuned form was implemented as
+[`kobold-cli.ipynb`](kobold-cli.ipynb), with
+[`COLAB_LINK.txt`](COLAB_LINK.txt) holding only the direct Colab URL. It
+defaults to preflight-only (no download/tunnel), includes no keep-alive
+cell, pins KoboldCpp `v1.123.1` with SHA-256 verification, pins the model
+presets to Hugging Face revisions, binds the server to loopback inside
+the runtime, and generates a fresh password in launch mode. Admin mode
+remains off; the same generated secret is supplied through both password
+environment variables so a later admin enable cannot silently start
+unprotected. The notebook's default cells and download helper were
+tested locally, but it still had **not run on Colab** when added, and
+W-021/Q14 remains open before it is relied on.

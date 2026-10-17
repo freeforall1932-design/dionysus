@@ -36,7 +36,7 @@
       "read_when": "the task is in the gifscythe repository, or you are calibrating the Qt skill or qt_lint against a real tree",
       "skip_when": "any other repository",
       "session_added": "2026-10-13",
-      "last_verified": "2026-10-13"
+      "last_verified": "2026-10-18"
     },
     {
       "id": "projects/shotgun-king-anew",
@@ -49,7 +49,7 @@
       "read_when": "the task is in the shotgun-king-anew repository, or you need the executed example of REA process capture + obligation ledger around a mod test harness",
       "skip_when": "any other repository and any task that is not about mod safety or REA",
       "session_added": "2026-10-14",
-      "last_verified": "2026-10-14"
+      "last_verified": "2026-10-18"
     },
     {
       "id": "projects/ai-team-kit",
@@ -66,10 +66,10 @@
       "id": "projects/kobold-cli",
       "kind": "project",
       "layer": "project",
-      "stack": "KoboldCpp on Google Colab (research; no code yet)",
+      "stack": "KoboldCpp on Google Colab (owner test notebook; not yet run on Colab)",
       "entry": "projects/kobold-cli/README.md",
-      "read_when": "the task involves running KoboldCpp on Colab as a pooled API endpoint for the AI team, or the fine-tuned notebook spec",
-      "skip_when": "any other project; also skip for real Colab runs until W-021 terms evidence exists",
+      "read_when": "the task involves running KoboldCpp on Colab as a pooled API endpoint for the AI team, the test notebook, or its direct Colab link",
+      "skip_when": "any other project; do not treat the endpoint as relied-on infrastructure until W-021 terms evidence exists",
       "session_added": "2026-10-18",
       "last_verified": "2026-10-18"
     },

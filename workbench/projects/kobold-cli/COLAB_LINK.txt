@@ -1,0 +1,1 @@
+https://colab.research.google.com/github/freeforall1932-design/dionysus/blob/arena/5bf33a0c-dionysus/workbench/projects/kobold-cli/kobold-cli.ipynb

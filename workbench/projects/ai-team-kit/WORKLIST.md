@@ -398,8 +398,15 @@ owner decides the core pool is enough and this item is parked.
   and what happens when the runtime disconnects. Notebook mechanics are now
   known — the official Colab notebook was dissected on 2026-10-18 in
   `workbench/projects/kobold-cli/COLAB_NOTEBOOK_DISSECTION_2026-10-18.md`
-  (includes the keep-alive cell this terms check must judge). Only the
-  terms/limits/runtime evidence remains open here.
+  (includes the keep-alive cell this terms check must judge). Later that day
+  the owner explicitly requested a direct test link, so an owner-directed
+  test notebook was added at `workbench/projects/kobold-cli/kobold-cli.ipynb`
+  with a one-line link in `workbench/projects/kobold-cli/COLAB_LINK.txt`.
+  It defaults to preflight-only, includes no keep-alive trick, and had not
+  been run on Colab when added. That exception does **not** close this item:
+  terms/limits/runtime evidence remains open before the endpoint is relied
+  on. The same session's broader stale/bug sweep is
+  `workbench/projects/CODEBASE_SWEEP_AUDIT_2026-10-18.md`.
 - **Odysseus coverage:** already answered at file level—absent from v1. Any
   recommendation about its Council/personas and the adaptive design belongs
   to W-050.

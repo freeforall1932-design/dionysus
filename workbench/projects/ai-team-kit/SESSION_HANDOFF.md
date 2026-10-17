@@ -49,8 +49,17 @@ That move is done (relative links untouched; path text updated, pinned URLs
 preserved), and kobold-cli's first report dissects the official KoboldCpp
 Colab notebook and rules on another model's "missing flags" claims (flash
 attention and MMQ are on-by-default, so two claims were rejected; KV-cache
-quantization and a generic args field are genuinely absent). Nothing ran on
-Colab; W-021/Q14 terms evidence is still the gate before real use.
+quantization and a generic args field are genuinely absent).
+
+The owner then explicitly asked for a direct Colab test link and a
+codebase sweep. That added `workbench/projects/kobold-cli/kobold-cli.ipynb`
+plus the one-line `workbench/projects/kobold-cli/COLAB_LINK.txt`, and
+`workbench/projects/CODEBASE_SWEEP_AUDIT_2026-10-18.md`. The notebook
+defaults to preflight-only (no download/tunnel), pins and hash-checks
+KoboldCpp `v1.123.1`, and had **not** been run on Colab when committed.
+This owner-directed exception does not close W-021/Q14: Colab
+terms/limits/runtime evidence is still required before the endpoint is
+relied on.
 
 The preceding owner-named 2026-10-17 reorganisation/audit task did the
 following:
@@ -105,9 +114,10 @@ current head/checks at the start of the next session.
   key sourcing, masked OAT failures, stale refresh, concurrent jobs, and
   skill-install symlink handling.
 - **Odysseus:** only a pinned source pointer exists
-  ([`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md), pin `951d57db…` when last
-  checked on 2026-10-17). No code was copied, installed, or run. Re-check that
-  repo's `main` before calling the pin current.
+  ([`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md), pin `951d57db…`; rechecked
+  still at `main` on 2026-10-18). No code was copied, installed, or run.
+  Re-check that repo's `main` again before calling the pin current in a
+  future session.
 - **Owner-confirmed future directions:** MCP for OAT is wanted; Odysseus is
   native rather than Docker *if* chosen. On 2026-10-18 the owner clarified
   the destination as a quota-aware pool spanning Google, NVIDIA,
@@ -204,7 +214,8 @@ Recommended order is in `WORKLIST.md`, but a recommendation is not permission.
 - Helpers run commands as the install user. Treat skill repos, MCP servers,
   and agent shell access as code execution, not as harmless text.
 - Terms/licences come before using a provider, persona pack, skill, or
-  third-party code. In particular, do not build or rely on a Colab endpoint
-  pattern until Q14/W-021 has checked the current official terms and any
-  tunnel exposure.
+  third-party code. In particular, do not rely on the owner-directed Colab
+  test notebook as pool infrastructure until Q14/W-021 has checked the
+  current official terms and any tunnel exposure; its default preflight
+  mode is the safe first step.
 - The owner reviews and merges pull requests. No auto-merge assumption.
