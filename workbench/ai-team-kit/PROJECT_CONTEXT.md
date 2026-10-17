@@ -27,6 +27,12 @@ owner's workbench. **Gifscythe is the target project; `dionysus` is where this
 kit project is being organised.** Work for this project stays under
 `workbench/ai-team-kit/` unless the owner names a task that says otherwise.
 
+The owner's own requests from the old chat—quoted and decomposed, with the
+limits of what the shared-chat link can still show—are preserved in
+[`reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md`](reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md),
+including a reconciliation table (intent → v1 feature or worklist item). When
+this file and that extract disagree, the owner's newest instruction wins.
+
 ---
 
 ## 2. What v1 is
@@ -84,6 +90,14 @@ IDs.
   states instead of silently dropping services.
 - **Stable role names.** Helpers should ask for job names rather than hard-code
   a provider model that may disappear.
+- **Errors must calm the system down, never make it retry harder.** A `429`,
+  timeout, or provider failure triggers bounded, visibly-counted behaviour:
+  honour `Retry-After`, capped retries with backoff and jitter, per-provider
+  cooldowns/circuit breakers, one request in flight per provider by default,
+  and a graceful stop when quota is exhausted. No hidden background retry
+  loops and no multi-account tricks to evade limits. The detailed, testable
+  version of this rule lives in W-015 (scout/config) and W-050 (runtime
+  design); provider limits come from W-020 evidence.
 
 ### Owner-confirmed direction after the restart
 

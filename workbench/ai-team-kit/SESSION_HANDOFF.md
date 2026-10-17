@@ -1,11 +1,12 @@
 # AI Team Kit — session handoff
 
 **Status on 2026-10-18:** extraction, repository reorganisation, and a static
-code audit are complete, and the owner's quota-aware provider-pool/adaptive-
-council direction has been recorded in the context, worklist, and research
-files. **No next build/research task has been named yet.** The next session
-must stop at [`WORKLIST.md`](WORKLIST.md) item **W-001** and wait for the
-owner to name one item.
+code audit are complete; the owner's quota-aware provider-pool/adaptive-council
+direction is recorded; the owner's old-chat intent has been extracted; and
+**W-020 free-provider research (first pass) is done** from official sources.
+**No next build/research task has been named yet.** The next session must stop
+at [`WORKLIST.md`](WORKLIST.md) item **W-001** and wait for the owner to name
+one item.
 
 > If the owner sends only “next” or “continue”, ask which `W-` item they mean.
 > Do not choose one.
@@ -17,8 +18,30 @@ owner to name one item.
 The owner-named 2026-10-18 documentation task recorded the intended
 quota-aware pooling of Google/NVIDIA/OpenRouter/other APIs plus an online
 Colab/KoboldCpp session, an Odysseus-centred room intent, and the adaptive
-council default. It edited documentation only; no provider terms were freshly
-researched and no council code was written.
+council default.
+
+Three follow-up tasks the owner then named ran in order on 2026-10-18
+(documentation/research only, still no council code):
+
+1. **Owner intent extracted** to
+   [`reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md`](reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md)
+   from the shared old chat's owner messages, and reconciled against v1 and
+   the worklist (hidden attachments, including the first plan, are not
+   recoverable from the share).
+2. **W-015/W-020/W-050 strengthened**: explicit "do not combust on error"
+   requirements (Retry-After, bounded counted retries, circuit breaker,
+   token caps, quota ledger, chaos tests), a discovery method using the
+   owner's `awesome-freellm-apis` fork, and a full signup-requirements
+   checklist.
+3. **W-020 executed**:
+   [`reports/FREE_PROVIDER_RESEARCH_2026-10-18.md`](reports/FREE_PROVIDER_RESEARCH_2026-10-18.md).
+   Core eight verified on official pages; Groq is the strongest new free
+   candidate; Google/Mistral free use can train on submitted content (see the
+   report for specifics and opt-outs); NVIDIA limits are unpublished;
+   **Cerebras has no permanent free tier and GitHub Models is retired** — do
+   not re-add them from list sites. No account was created and no provider
+   was called, so login-only limit numbers (Google/Mistral) remain for the
+   owner to read at setup.
 
 The preceding owner-named 2026-10-17 reorganisation/audit task did the
 following:
@@ -82,8 +105,9 @@ current head/checks at the start of the next session.
   OpenRouter/other APIs, and Colab/KoboldCpp while the Colab session is
   online, with an adaptive council (simulated personas → small real council
   → OAT execution) and Odysseus as the intended room surface. None of that
-  pool/council behaviour is built, and current provider/Colab terms/limits
-  remain W-020/W-021 research.
+  pool/council behaviour is built. Core-pool provider terms/limits were
+  verified in W-020 (2026-10-18); Colab terms/limits remain W-021/Q14
+  research, and second-wave list providers remain W-022 leads.
 
 ---
 
@@ -102,13 +126,20 @@ current head/checks at the start of the next session.
   2026-10-17 under isolated scratch `HOME`/`TMPDIR`: Python 3.11.2, exit 0,
   **62 passed, 0 failed, empty stderr**, with LiteLLM Router checks skipped.
   Full output is in the learning report, Appendix B.
+- W-020 (2026-10-18): official pricing/limits/terms pages for the core eight
+  providers were read and dated in the research report; the discovery-list
+  fork was pinned (`fadce14…`) and confirmed in sync with upstream. This is
+  documentation evidence about *offers and rules*, not a runtime test.
 
 ### Not tested here
 
 - The installer, LiteLLM proxy, OAT daemon/agents, dashboard server/browser
   flow, real provider accounts/models, real GitHub token/PR/Merge/Close,
   Windows/WSL, macOS, Codespaces, Odysseus runtime, MCP, and Docker.
-- Current free-tier limits/terms for any provider.
+- Anything behind a provider login (W-020 was desk research on official
+  public pages: no signup, no API key, no provider call), Colab/KoboldCpp
+  terms and behaviour (W-021/Q14), and every second-wave list provider
+  (W-022).
 - Any audit fix—none has been implemented yet.
 
 Do **not** rerun the scout self-test just to “check the baseline”. Rerun it

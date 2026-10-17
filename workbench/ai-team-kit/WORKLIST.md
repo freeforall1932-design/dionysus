@@ -71,6 +71,23 @@ consolidate the full harness in W-016.
   adaptive-council default recorded in `PROJECT_CONTEXT.md` and reflected in
   W-015/W-020/W-021/W-030–W-032/W-050. This is documentation only; it does not
   supply fresh provider terms/limits or implement the council.
+- [x] **Owner intent extracted from the old chat (2026-10-18)** —
+  [`reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md`](reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md):
+  the owner's substantive old-chat requests quoted/decomposed and reconciled
+  against v1 + this worklist. Hidden attachments (including the very first
+  plan) are not recoverable from the share and are recorded as such.
+- [x] **Rate-limit/error-protection + provider-discovery strengthening
+  (2026-10-18)** — W-015 now requires calming failure behaviour (`Retry-After`,
+  bounded counted retries, circuit breaker, token caps, quota ledger, chaos
+  tests); W-020 gained the `awesome-freellm-apis` discovery method and a full
+  signup-requirements checklist; W-050 must design the runtime policy and a
+  worked `429` example. Documentation only.
+- [x] **W-020 free-provider research, first pass (2026-10-18)** —
+  [`reports/FREE_PROVIDER_RESEARCH_2026-10-18.md`](reports/FREE_PROVIDER_RESEARCH_2026-10-18.md):
+  core eight checked on official pages; per-provider eligibility rules and
+  guard defaults recorded for W-015; Cerebras excluded, GitHub Models
+  removed; remaining list providers triaged as leads under new item W-022.
+  No signups, keys, or provider calls.
 
 ---
 
@@ -214,6 +231,11 @@ limits, and the owner sees provenance before install.
   capability, free-evidence state, recent `429`/failure cooldown, shared task
   budget, and fallback order. Do not invent a council implementation here;
   W-050 owns that design.
+- Render W-020's verified limits into per-provider/per-model guard settings
+  the router can enforce: requests/tokens per minute and per day, one request
+  in flight per provider by default, cooldown length, and which errors are
+  retryable. Persist a small quota ledger (attempts, last `429`, cooldown-until)
+  so a restart does not immediately re-hammer an exhausted provider.
 - Decide and encode policies for unknown context, borrowed roles, provider
   cap relaxation, pins, and previous picks. The report must say when a rule was
   relaxed or a pick is unverified.
@@ -224,13 +246,34 @@ limits, and the owner sees provenance before install.
   unsafe opt-in.
 - Count actual HTTP attempts (including the temperature retry) against probe
   budgets, cap provider response sizes, and clamp future timestamps.
-- Broaden fake-provider tests for malformed configs and eligibility cases.
+- Make failure handling *calming*, never amplifying (owner requirement,
+  2026-10-18):
+  - honour a provider's `Retry-After` header when present;
+  - retry only `429`, timeouts, and transient `5xx`, with a small fixed cap,
+    exponential backoff and jitter — every retry counts against the same
+    budget and is shown in the report;
+  - never retry `400`/`401`/`402`/`403` (bad request, refused key, payment, or
+    policy errors); mark the service state and stop;
+  - after repeated failures, open a per-provider circuit breaker: no calls
+    until the cooldown expires, then allow exactly one trial call before
+    resuming;
+  - cap input/output tokens per probe/call so one runaway generation cannot
+    drain a day's quota;
+  - de-duplicate identical probes within a run and prefer cached results
+    inside their TTL;
+  - when every pool member is cooling down or exhausted, stop with a plain
+    "all free services are resting until <time>" message instead of looping.
+- Broaden fake-provider tests for malformed configs and eligibility cases,
+  plus chaos cases: `429` with `Retry-After`, a `5xx` storm, a hanging
+  endpoint (timeout), a refused key, and an exhausted daily quota. Each test
+  must prove the total attempt count stays within budget.
   Rerunning the scout self-test is authorised only as part of this named code
   task; report the exact environment and any LiteLLM skip.
 
 **Done when:** invalid settings fail with a clear message, no model is called
-free without the agreed evidence rule, and generated router settings cannot
-silently go stale.
+free without the agreed evidence rule, generated router settings cannot
+silently go stale, and the chaos tests prove a failing provider can only make
+the system slower and quieter — never busier.
 
 ---
 
@@ -262,7 +305,7 @@ are either fixture-tested or explicitly listed as runtime-unproven.
 
 ## Research and pending answers
 
-### [ ] W-020 — Verify current free tiers, terms, and provider API shapes
+### [x] W-020 — Verify current free tiers, terms, and provider API shapes — **done 2026-10-18**
 
 **Research only; no code.** Use official docs/pricing/terms, dated and linked,
 for:
@@ -277,9 +320,66 @@ for:
   “free-tier eligible”, “free only under conditions”, “metered/paid risk”,
   and “unknown”. A provider merely having a free tier is not sufficient.
 
+**Discovery method (owner request, 2026-10-18).** Use the owner's
+`freeforall1932-design/awesome-freellm-apis` fork as the *discovery list*:
+record its exact commit/date and upstream sync state, mine it for candidate
+providers, signup/key URLs, and claimed limits — then treat every claim in it
+as a **lead, not evidence**, because its data is synced from a third-party
+site, not from the providers. Shortlist by: usable without a credit card,
+OpenAI-compatible endpoint, tool calling, limits large enough for paced agent
+work, and no obvious region/identity blocker. Providers not verified stay
+listed as triaged leads; never present them as checked.
+
+For every verified provider record, in beginner words:
+
+- where to sign up and the exact page where the owner creates the API key;
+- signup requirements: email/social login, phone verification, credit card,
+  region/age/organisation restrictions, waitlist, or paid-plan prerequisites;
+- what "free" concretely means: permanent tier vs trial/renewable credits,
+  expiry, what happens when free quota runs out (hard stop vs silent billing);
+- limits per relevant model: requests/tokens per minute and day, context and
+  max output, concurrency;
+- API shape: base URL, auth method, OpenAI-compatibility, tool calling,
+  streaming/structured output if officially stated;
+- data-use/training/retention and any rule about automated/agentic use;
+- whether the limits suggest safe guard settings for W-015 (in-flight cap,
+  cooldown, daily budget) — the numbers W-015/W-050 will encode.
+
 **Done when:** W-015 has an evidence table it can encode, and
 `RESEARCH_AND_OPEN_QUESTIONS.md` replaces dated snapshot numbers with dated
 official findings.
+
+**Completed 2026-10-18:**
+[`reports/FREE_PROVIDER_RESEARCH_2026-10-18.md`](reports/FREE_PROVIDER_RESEARCH_2026-10-18.md).
+The owner's `awesome-freellm-apis` fork (`fadce14…`, in sync with upstream)
+was used as the discovery list; all kept claims were verified on official
+provider pages read the same day. Results: OpenRouter and Groq are the
+best-evidenced free sources; Google is free per Flash-class model (unpaid
+content may train Google's models); NVIDIA is a prototyping trial with
+unpublished limits; Mistral Free mode is a monthly allowance (keep
+pay-as-you-go off); Cloudflare's 10,000 Neurons/day suits light work;
+**Cerebras is excluded** (no permanent free tier) and **GitHub Models is
+removed** (retired 2026-07-30). Exact Google/Mistral free limit numbers are
+login-only and were not invented. Free tiers are perishable: re-verify
+quarterly. Nothing was signed up for, no key was created, and no provider was
+called.
+
+### [ ] W-022 — Second-wave free providers from the discovery list (research only)
+
+**Depends on:** nothing; run only if the owner wants a bigger pool after
+W-050 shows the core pool is too small.
+
+Take **at most four** leads from the triage table in the W-020 report
+(recommended first: Hugging Face Inference Providers, Cohere, ModelScope,
+OVHcloud AI Endpoints) and apply the same official-source checklist as W-020:
+signup/key URL, card/phone/region/identity requirements, what "free" means
+and when it expires or bills, per-model limits, tool calling,
+OpenAI-compatibility, data-use/retention, and the W-015 eligibility rule +
+guard defaults. Update the W-020 report's format (new dated report) and Q5.
+
+**Done when:** each shortlisted provider is classified
+eligible/conditional/paid-risk/unknown from dated official sources, or the
+owner decides the core pool is enough and this item is parked.
 
 ### [ ] W-021 — Answer the old chat's pending questions
 
@@ -405,9 +505,10 @@ what still needs the owner's machine.
 
 ### [ ] W-050 — Design the quota-aware pool and adaptive council (design only)
 
-**Depends on:** W-020/W-021 evidence for provider and Colab claims. It may use
-clearly labelled assumptions before then only if the owner explicitly accepts
-an earlier rough draft.
+**Depends on:** W-021 evidence for Colab claims (W-020 provider evidence is
+done — see `reports/FREE_PROVIDER_RESEARCH_2026-10-18.md`, including its
+guard-default numbers). It may use clearly labelled assumptions before W-021
+only if the owner explicitly accepts an earlier rough draft.
 
 Compare OAT, Odysseus (owner's pinned repo), OpenCode, and Goose from primary
 docs/source/licences. Design around the owner's intended split—Odysseus as
@@ -428,6 +529,18 @@ that split wins. Answer:
 - how Google/NVIDIA/OpenRouter/other APIs and an online Colab/KoboldCpp
   session become one pool: free eligibility, capability, health/cooldown,
   shared budget, fallback, and graceful stop when quota is exhausted;
+- the runtime "do not combust on error" policy, end to end (owner requirement,
+  2026-10-18): where enforcement lives (LiteLLM router settings, scout state,
+  Odysseus, or OAT) given each tool's real capabilities; a queue with one
+  request in flight per provider by default instead of parallel hammering;
+  `Retry-After` handling; bounded retries with backoff/jitter that count
+  visibly against the task budget; circuit breaker with a single trial call
+  after cooldown; non-retryable error classes (refused key, payment required,
+  bad request, content/policy); per-task call/token ceilings and a reserve so
+  one task cannot drain the day; no fallback that repeats a tool action with
+  side effects; a clear owner-facing stop/pause and a plain status line
+  ("resting until 14:32 — daily free limit reached") rather than silent
+  spinning;
 - orchestrator and specialist sub-agent design (game code, programming,
   front-end/GUI, design, writing/daily use) without letting each persona make
   unbounded hidden calls;
@@ -443,8 +556,10 @@ provider routing from primary source; do not assume it already implements the
 owner's quota-aware adaptive design.
 
 **Done when:** the owner receives a beginner-friendly design—with call-count
-examples for a light question, a hard decision, and a PR task—and approves,
-rejects, or changes it. This item installs nothing.
+examples for a light question, a hard decision, and a PR task, plus one
+worked failure example (a provider returning `429` mid-task) showing exactly
+what the system does minute by minute—and approves, rejects, or changes it.
+This item installs nothing.
 
 ### [ ] W-051 — Native Odysseus integration (only if W-050 chooses it)
 

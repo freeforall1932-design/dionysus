@@ -24,7 +24,11 @@ workbench/ai-team-kit/
 ├─ kit/harness/                      Extracted canonical v1 kit (edit only in a named code task)
 ├─ reports/
 │  ├─ KIT_LEARNING_AND_CHAT_MATCH.md What v1 does + old-chat match + one self-test
-│  └─ CODE_AUDIT_2026-10-17.md       Static audit findings and fix order
+│  ├─ CODE_AUDIT_2026-10-17.md       Static audit findings and fix order
+│  ├─ OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md
+│  │                                 Owner's old-chat requests, extracted + reconciled
+│  └─ FREE_PROVIDER_RESEARCH_2026-10-18.md
+│                                    W-020: free tiers/terms/limits, officially verified
 └─ archive/
    ├─ 2026-10-16-handoff-snapshot/   Original HANDOFF/PROVEN/OPEN/FILES
    ├─ 2026-10-17-next-session-readme.md
@@ -49,6 +53,8 @@ should be generated from `kit/harness/` only in the future repackage task
 | “What did research find, and what is still unknown?” | [`RESEARCH_AND_OPEN_QUESTIONS.md`](RESEARCH_AND_OPEN_QUESTIONS.md) |
 | “What does the delivered kit actually do?” | [`reports/KIT_LEARNING_AND_CHAT_MATCH.md`](reports/KIT_LEARNING_AND_CHAT_MATCH.md) |
 | “What is broken, risky, or missing in code?” | [`reports/CODE_AUDIT_2026-10-17.md`](reports/CODE_AUDIT_2026-10-17.md) |
+| “Which free providers/models are real, and what are their limits?” | [`reports/FREE_PROVIDER_RESEARCH_2026-10-18.md`](reports/FREE_PROVIDER_RESEARCH_2026-10-18.md) |
+| “What did I originally ask for in the old chat?” | [`reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md`](reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md) |
 | “Where is Odysseus?” | [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) — a pointer to a separate repo, not a copy |
 | “I want the original snapshot wording.” | `archive/2026-10-16-handoff-snapshot/` |
 

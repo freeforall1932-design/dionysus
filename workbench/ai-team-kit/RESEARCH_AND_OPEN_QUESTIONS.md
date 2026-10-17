@@ -41,6 +41,24 @@ These points have direct evidence in this repo/session:
   `951d57db0e8758eadc3baed4af962860132a5f51` on 2026-10-17. That pin is a
   dated source inspection, not an install/runtime result. Re-check that repo's
   `main` immediately before calling the pin current.
+- The owner's substantive old-chat requests were extracted and reconciled on
+  2026-10-18: [`reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md`](reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md).
+  Hidden attachments (including the first plan) are not recoverable from the
+  share.
+- **W-020 free-provider research ran on 2026-10-18** from official provider
+  pages: [`reports/FREE_PROVIDER_RESEARCH_2026-10-18.md`](reports/FREE_PROVIDER_RESEARCH_2026-10-18.md).
+  Headline results: OpenRouter `:free` = 20/min + 50/day (1,000/day after ≥10
+  lifetime credits purchased; credits may expire after 365 days); Groq has a
+  permanent published free plan; Google's free tier is per-model (Flash-class)
+  and unpaid content may be used for training; NVIDIA's catalog is a
+  prototyping trial with unpublished rate limits; Mistral Free mode is an
+  included monthly allowance (numbers login-only, data may train unless opted
+  out, stay off pay-as-you-go); Cloudflare gives 10,000 Neurons/day on the
+  Free plan; **Cerebras has no permanent free tier** ($5/30-day trial after a
+  payment method); **GitHub Models was retired 2026-07-30**. The owner's
+  `awesome-freellm-apis` fork (`fadce14…`, in sync with upstream) was used as
+  a discovery list only — it is stale in places (e.g. Cerebras). Remaining
+  list providers are triaged leads (W-022), not verified.
 
 ---
 
@@ -130,13 +148,17 @@ Do not quote these as current facts without a fresh official check:
 
 - OpenRouter free-model requests were recorded as 20/minute, 50/day before
   $10 of lifetime purchased credit, and 1,000/day at $10+. Terms excerpts were
-  recorded from search results.
+  recorded from search results. *(Superseded as evidence on 2026-10-18: W-020
+  re-verified these same numbers in OpenRouter's own limits docs, plus the
+  365-day credit-expiry reservation in its terms — see Section 1.)*
 - Codespaces personal free allowance was recorded as about 120 core-hours/month
   and 15 GB storage, with idle/retention limits and a $0 default spending
-  limit.
+  limit. *(Still unverified; only refresh for a Codespaces task — A7.)*
 - Free-tier and data-use terms for NVIDIA, Mistral, Google, Groq, Cerebras,
-  GitHub Models, Cloudflare, AI Horde, and Colab were not all freshly proven
-  by the old chat and remain task-time research.
+  GitHub Models, and Cloudflare were **freshly checked in W-020
+  (2026-10-18)** — including two closures: Cerebras's permanent free tier is
+  gone and GitHub Models is retired. AI Horde and Colab remain task-time
+  research (W-021/Q3/Q14).
 
 ---
 
@@ -241,9 +263,9 @@ given to the owner, and its README/licence still need direct reading.
 |---|---|---|---|
 | Q1 | Did “MCP also” mean MCP for the OAT PR team? | **Resolved: yes.** Owner selected OAT MCP during the restart. | No research needed; build only when W-040 is named. |
 | Q2 | What is OpenMAIC and does it fit? | **Open.** Search results only. | Read its primary README, licence, install/runtime model, and maintenance state; answer in plain words (W-021). |
-| Q3 | How does AI Horde's OpenAI-compatible route behave live? | **Open.** Base path/model list/context/queue/anonymous use and current terms need direct checks. | Official docs plus a harmless live metadata check only if a named task authorises network use (W-020/W-021). |
+| Q3 | How does AI Horde's OpenAI-compatible route behave live? | **Open.** Base path/model list/context/queue/anonymous use and current terms need direct checks. | Official docs plus a harmless live metadata check only if a named task authorises network use (W-021). |
 | Q4 | What is The Agency repo's licence? | **Open.** | Read the repo `LICENSE` at a pinned commit before any persona conversion. |
-| Q5 | Current free limits/terms and per-model free eligibility for the intended pool? | **Open and date-sensitive.** The owner clarified Google/NVIDIA/OpenRouter and online Colab are intended sources, but “provider has a free tier” does not prove every listed model is free-tier eligible. Also refresh Mistral and candidates such as Groq/Cerebras/GitHub Models/Cloudflare. | Official provider docs/pricing/terms at task time, with a per-model eligibility table for W-015 (W-020; Colab detail also in Q14/W-021). |
+| Q5 | Current free limits/terms and per-model free eligibility for the intended pool? | **Answered for the core pool on 2026-10-18 (perishable).** W-020 verified OpenRouter/NVIDIA/Mistral/Google/Groq/Cloudflare from official pages and produced the per-provider eligibility rule table for W-015; Cerebras's permanent free tier is gone and GitHub Models is retired. Exact Google/Mistral free numbers are login-only. | Re-verify quarterly and whenever a provider announces changes or error patterns shift. Second-wave providers from the owner's list fork: W-022. Colab remains Q14/W-021. |
 | Q6 | What does a real workspace helper's output look like in Chat? | **Open.** Code assumes OAT log paths/format; old chat used a stand-in. | One real, owner-approved OAT run or a faithful captured fixture (W-016 and later runtime task). |
 | Q7 | Does a daemon-launched OAT agent load MCP tools, what startup delay do `npx` servers add, and does an OAT upgrade overwrite a patch? | **Open.** Old loader tests did not prove the daemon path. | Rebuild in scratch, test apply/unapply and a daemon-launched harmless tool call (W-040). |
 | Q8 | Odysseus programmatic providers/MCP, native ChromaDB, stability, shell risk, group chat/personas? | **Partially read, not run.** The restart inspected the owner's pinned fork docs/specs and downstream Providers/Auto/Council/MCP surfaces; changed spec bodies at the newer pin were not all re-read. No install/browser/runtime test. | Use `ODYSSEUS_SOURCE.md`, re-check pin vs `main`, read the exact routes/tests at task time, then only run if a named task authorises it. |
@@ -263,7 +285,7 @@ given to the owner, and its README/licence still need direct reading.
 | A1 | “MCP also” means MCP for OAT too. | **Confirmed by owner, 2026-10-17.** |
 | A2 | Odysseus can use LiteLLM as an OpenAI-compatible provider. | **Unverified runtime.** Pinned docs/source were inspected; no Odysseus run here. |
 | A3 | Real free models can pass the scout's tool-calling probe. | **Unverified with real accounts.** Fake-provider logic passed the one baseline run, minus skipped LiteLLM checks. |
-| A4 | Unpresented patch base URLs for AI Horde/Groq/Cerebras were correct. | **Unverified.** Check official docs before recreating presets. |
+| A4 | Unpresented patch base URLs for AI Horde/Groq/Cerebras were correct. | **Partly superseded by W-020 (2026-10-18).** Groq's official OpenAI-compatible base (`api.groq.com/openai/v1`) is confirmed from provider docs; Cerebras is excluded (no permanent free tier) so its preset is moot unless trial use is chosen; AI Horde remains unverified (Q3/W-021). Still re-check every preset against official docs in W-030. |
 | A5 | Real services behave like fake-provider tests. | **Unverified.** Provider error shapes and tool formats vary. |
 | A6 | WSL keeps running while the Start window stays open. | **Unverified; see Q13.** |
 | A7 | Codespaces figures are current. | **Dated claim.** Refresh from GitHub docs only for a Codespaces task. |

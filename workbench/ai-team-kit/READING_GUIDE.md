@@ -84,7 +84,7 @@ next task. They are preserved for verification and history.
 | W-001 | Your review gate: choose a slice or park it. |
 | W-010…W-015 | P0 fixes: secrets/boundary, installer trust, shell lifecycle, dashboard onboarding/jobs/PR, safe skill installs, scout validation/free rules and pool metadata. |
 | W-016 | Recreate lost dashboard/shell/OAT/LiteLLM tests and fixtures. |
-| W-020…W-021 | Fresh per-model free-tier/terms research and the still-unanswered AI Horde/OpenMAIC/online-Colab questions. |
+| W-020…W-022 | W-020 free-provider research **done 2026-10-18** (core eight verified; Cerebras excluded, GitHub Models retired); W-021 still owes AI Horde/OpenMAIC/online-Colab answers; W-022 is the optional second-wave provider research. |
 | W-030…W-032 | Rebuild dynamic scout roles/endpoints (including an online session endpoint only if W-021 permits it), then dynamic shell and dashboard. This is old T1/T3/T7. |
 | W-040 | Rebuild reversible MCP for OAT plus commands/UI. Old T4. |
 | W-050…W-051 | Design/compare the quota-aware pool and adaptive council first—Odysseus is the intended room centre, OAT the PR executor—then build Odysseus only if that design approves it. Old T5/T10 + Step 3. |
@@ -116,7 +116,7 @@ next task. They are preserved for verification and history.
 | 4. Old test reports | 68 scout, 84 dashboard, fresh-install, and fake end-to-end claims—labelled as old-chat reports except the partial self-test counterpart. |
 | 5. Add-on research | Odysseus (with a correction not to repeat “built on OpenCode”), AI Horde, personas/OpenCode/Goose, Qt/C# sandbox result, lost MCP sandbox builds, OpenMAIC search-only status. |
 | 6. Missing/blocked | Lost patch/MCP/tests, unwritten toolchains/commands/guide/package, pending answers, unbuilt room/MCP requests. |
-| 7. Q1–Q14 | Q1 resolved “MCP yes”; Q8 partially read; Q12 narrowed toward the Odysseus adaptive-council design; Q14 is the new Colab terms/limits/API gate; the rest remain open with a concrete way to resolve each. |
+| 7. Q1–Q14 | Q1 resolved “MCP yes”; Q5 answered for the core pool by W-020 (perishable; second wave = W-022); Q8 partially read; Q12 narrowed toward the Odysseus adaptive-council design; Q14 is the Colab terms/limits/API gate; the rest remain open with a concrete way to resolve each. |
 | 8. Assumptions A1–A11 | A1 confirmed; most others remain unverified or doc-level only. |
 | 9. Research rules | Official dated sources, no real secrets for research, separate evidence levels, update this file when facts change. |
 
@@ -169,6 +169,26 @@ Read the “Short verdict” first. Then:
 | Appendix A | Full member SHA-256 hashes for canonical and extra files. |
 | Appendix B | Full stdout of the one isolated scout self-test. |
 
+### `reports/FREE_PROVIDER_RESEARCH_2026-10-18.md` — which free offers are real (W-020)
+
+| Section | Summary |
+|---|---|
+| Method | The owner's `awesome-freellm-apis` fork as discovery list only; every kept claim verified on the provider's own pages; classes: eligible / conditional / paid-risk / unknown. |
+| 1. Headline results | One table for all eight: OpenRouter and Groq eligible; Google per-model; NVIDIA trial with unpublished limits; Mistral monthly allowance; Cloudflare small daily budget; Cerebras trial-only (excluded); GitHub Models retired. |
+| 2–9. Per provider | Where to get the key, signup requirements (card/phone/region/age), what "free" means and when it can bill, limits, API shape, data-use/training, and suggested anti-rate-limit guard numbers. |
+| 10. Rules for W-015 | The exact per-provider evidence rule that replaces `assume_free`, plus starting guard defaults per provider. |
+| 11. Rest of the list | The other ~22 list providers grouped as unverified leads, with the list's own errors flagged (stale Cerebras row, duplicated xAI, empty Cline links). Second wave = W-022. |
+| 12–13. Consequences + limits | What changes for W-015/W-030/W-050/W-070, and what desk research could not check (logins, live behaviour, support-only limits). |
+
+### `reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md` — what you originally asked for
+
+| Section | Summary |
+|---|---|
+| Limits | Hidden attachments (including the first plan) cannot be recovered from the shared-chat link; only your typed messages are used. |
+| 1. Your requests | Verbatim quotes for the short defining asks (smart selection + skills; beginner step-by-step; Odysseus/MCP/council/toolchains/persona room; "Native and MCP") and a 13-point decomposition of the big Oct 4 message (repo-memory orchestration, paced probing, GUI bar, self-extending helpers, OpenRouter $10 question…). |
+| 2. Added after restart | MCP-yes, quota-aware pool, online-Colab membership, adaptive council, anti-combustion rule, provider discovery — clearly separated from old-chat asks. |
+| 3. Reconciliation | Every intent mapped to a v1 feature or a `W-` item; nothing contradicts the current worklist. |
+
 ### `ODYSSEUS_SOURCE.md` — only for the room/Odysseus topic
 
 | Section | Summary |
@@ -196,7 +216,7 @@ come first unless you consciously choose otherwise.
 | Step 1 — Open a Linux terminal | Platform terminal setup, including a recommended separate Linux user. Read with audit A-03: separate user helps, but kit secrets still live with that user. |
 | Step 2 — Install basic tools | Git, GitHub CLI, Python 3.11+, and checks. |
 | Step 3 — Unzip kit and run installer | Delivered-zip flow. In this repo the zip has been extracted/deleted; a future release zip comes from W-080. Installer pinning is W-011. |
-| Step 4 — Get free AI keys | Where keys come from, OpenRouter free-allowance notes, and a warning that free services may use/log submitted data. Refresh terms in W-020. |
+| Step 4 — Get free AI keys | Where keys come from, OpenRouter free-allowance notes, and a warning that free services may use/log submitted data. Terms refreshed by W-020 (2026-10-18); guide text itself updates in W-070. |
 | Step 5 — Save keys one at a time | Hidden entry, test-before-save intent, refusal/offline handling, backup and status words. |
 | Step 6 — Test the model picker | 6a script self-test, 6b key check, 6c first real probe/ranking run, 6d memory/state behaviour. This session's one baseline covers only 6a's delivered test, with LiteLLM skipped. |
 | Step 7 — Sign in to GitHub | Fine-grained token creation and giving it to `gh`/Git. Dashboard parity is W-013. |

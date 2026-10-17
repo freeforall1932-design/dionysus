@@ -8,8 +8,10 @@
 > zip files were deleted only after their contents were extracted and the
 > extraction was recorded. No installer, router, OAT agent team, dashboard,
 > model provider, or GitHub runtime was started for the audit, and no kit code
-> was fixed or changed. The 2026-10-18 direction note is documentation, not an
-> implementation or fresh provider research.
+> was fixed or changed. Later on 2026-10-18 the owner's old-chat intent was
+> extracted, W-015/W-020/W-050 were strengthened against rate-limit
+> self-harm, and **W-020 verified the core providers' free offers on official
+> pages** — desk research only: no signups, keys, installs, or provider calls.
 
 This folder contains the AI Team Kit project for the owner's Gifscythe
 repository. The kit's aim is a beginner-friendly team of cloud AI helpers that
@@ -47,6 +49,8 @@ fallback—not more uncontrolled agents.
 | Understand the goal, parts, decisions, and old-chat direction | [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) |
 | See what is risky, broken, partial, or missing in code | [`reports/CODE_AUDIT_2026-10-17.md`](reports/CODE_AUDIT_2026-10-17.md) |
 | See how delivered v1 works and how old-chat claims matched it | [`reports/KIT_LEARNING_AND_CHAT_MATCH.md`](reports/KIT_LEARNING_AND_CHAT_MATCH.md) |
+| See which free providers/models are real, conditional, or gone (W-020) | [`reports/FREE_PROVIDER_RESEARCH_2026-10-18.md`](reports/FREE_PROVIDER_RESEARCH_2026-10-18.md) |
+| See the owner's original requests in the old chat | [`reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md`](reports/OWNER_INTENT_FROM_OLD_CHAT_2026-10-18.md) |
 | Check research findings and still-open questions | [`RESEARCH_AND_OPEN_QUESTIONS.md`](RESEARCH_AND_OPEN_QUESTIONS.md) |
 | Find any file or the zip-deletion record | [`FILE_MAP.md`](FILE_MAP.md) |
 | Find the separate Odysseus program source | [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) |
@@ -65,9 +69,11 @@ Static checks found no syntax failure and no obvious placeholder feature.
 What must not be overstated:
 
 - OpenRouter free status is price-checked, but NVIDIA, Mistral, and Google are
-  currently `assume_free` in the scout. The owner clarified those providers
-  are intended free-tier sources; v1 still cannot tell which individual
-  catalogue models are free-tier eligible or how much quota remains.
+  currently `assume_free` in the scout. W-020 (2026-10-18) has now published
+  the per-provider evidence rules — Google free is per Flash-class model,
+  NVIDIA is a prototyping trial with unpublished limits, Mistral free is a
+  monthly allowance — but **the code does not encode them yet** (W-015), and
+  v1 still cannot tell how much quota remains.
 - Installer downloads/versions are not pinned and verified strongly enough.
 - Helpers and kit secrets share one OS account; environment cleanup and skill
   instructions are not a complete security boundary.
@@ -97,7 +103,7 @@ workbench/ai-team-kit/
 ├─ FILE_MAP.md                       File locations + extraction record
 ├─ ODYSSEUS_SOURCE.md                Pointer to the separate Odysseus repo/pin
 ├─ kit/harness/                      Canonical extracted v1 source
-├─ reports/                          Learning report + code audit
+├─ reports/                          Learning report, code audit, owner-intent + provider research
 └─ archive/                          Original snapshots, former README, zip extras
 ```
 
@@ -126,8 +132,10 @@ only in worklist item W-080, after the code and guide it contains are ready.
 - MCP loader/apply, `harness mcp`, and dashboard MCP controls.
 - Odysseus integration, persona room, or adaptive-council implementation;
   only a source pointer and a design requirement exist.
-- A quota-aware multi-provider pool; Groq, Cerebras, GitHub Models,
-  Cloudflare, AI Horde, and online-Colab session support.
+- A quota-aware multi-provider pool in code; Groq/Cloudflare presets, AI
+  Horde, and online-Colab session support. (W-020 verified the offers on
+  paper only; Cerebras has no permanent free tier and GitHub Models is
+  retired, so neither is coming.)
 - `toolchains.sh`, Docker packaging, and a harness-comparison verdict.
 - Delivered dashboard/MCP test harnesses claimed in the old chat.
 - A real install/runtime proof with the owner's keys, GitHub account, and
@@ -147,11 +155,16 @@ only in worklist item W-080, after the code and guide it contains are ready.
   command/route/action cross-checks all passed as static checks.
 - The Odysseus pointer repo was inspected/read at a dated pin; it was not
   installed or run.
+- W-020 (2026-10-18): official pricing/limits/terms for OpenRouter, NVIDIA,
+  Mistral, Google, Groq, Cerebras, GitHub Models (retirement), and Cloudflare
+  were read and dated. That verifies what the providers *publish*, not how
+  their APIs behave with a real key.
 
 ### Not tested here
 
-Installer execution; LiteLLM; OAT; dashboard runtime; real providers, models,
-keys, quotas, or terms; real GitHub login/PR/merge/close; Windows/WSL; macOS;
+Installer execution; LiteLLM; OAT; dashboard runtime; real provider accounts,
+models, or keys (including every login-only limits page and all Colab
+behaviour); real GitHub login/PR/merge/close; Windows/WSL; macOS;
 Codespaces; Odysseus; MCP; Docker. Old-chat “tested” statements remain
 old-chat reports unless the learning/audit report explicitly reproduced them.
 
