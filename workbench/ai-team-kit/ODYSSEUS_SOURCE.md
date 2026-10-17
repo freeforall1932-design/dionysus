@@ -23,24 +23,27 @@
 
 ---
 
-## 1. Exact source inspected (verified 2026-10-17)
+## 1. Exact source inspected (verified 2026-10-17; pin updated later the same day)
 
-Verified in the 2026-10-17 session by GitHub metadata (`gh repo view`,
-branch/commit APIs) and a read-only shallow clone in scratch space
-(`/tmp/odysseus-inspect`, since discarded). Nothing was installed,
-built, run, or tested — only listed and read.
+First verified in the 2026-10-17 session by GitHub metadata (`gh repo view`,
+branch/commit APIs) and a read-only shallow clone in scratch space at
+`c35a9256…`. Later that day the owner pointed out that `main` had moved, so
+the new head was cloned and compared with the old pin before this file was
+updated. Scratch clones were discarded. Nothing was installed, built, run,
+or tested — only listed, read, and diffed.
 
 | Fact | Value at inspection |
 |---|---|
 | Repository | `freeforall1932-design/odysseus-fork-but-api-dev` |
 | URL | https://github.com/freeforall1932-design/odysseus-fork-but-api-dev |
 | Default branch | `main` |
-| Pinned commit (use this, not "latest") | `c35a9256f88b2d166cd49297b79efe3e46a40897` |
-| That commit | 2026-10-14, "Merge pull request #10 from `arena/3312ba46-odysseus-fork-but-api-dev`" |
+| Pinned commit (use this, not "latest") | `951d57db0e8758eadc3baed4af962860132a5f51` |
+| That commit | 2026-10-17 13:20 +07, merge of that repo's PR #15 (`chore(sync): merge upstream fork odysseus-fork-but-api (dev @ 9712a540) into main`); its parents are the previous pin `c35a9256…` and sync commit `8c5e9e70…` |
+| Previous pin | `c35a9256f88b2d166cd49297b79efe3e46a40897` (2026-10-14 PR #10 merge). It was `main` when first inspected on 2026-10-17, then superseded about ten minutes later by the PR #15 merge above. Kept here only as history and as the compare base — do not use it as the current pin. |
 | Latest GitHub release | None (`latestRelease: null`) — the commit SHA is the version anchor |
 | `HARNESS_VERSION` file | `0.20.19` |
 | Licence (repo metadata + `LICENSE`) | **AGPL-3.0-or-later** (GitHub key `agpl-3.0`) |
-| Size | GitHub disk usage 59,390 KB; fresh checkout ~51 MB, 2,517 files (1,432 of them under `tests/`) |
+| Size | GitHub disk usage reported 59,390 KB; fresh checkout at the current pin ~53 MB, 2,647 tracked files (1,457 of them under `tests/`) |
 | Main languages | Python, JavaScript, CSS, HTML (plus shell/PowerShell/Swift extras) |
 | Real entry points | `app.py` (FastAPI app), `setup.py` (first-run setup), `requirements.txt`; native run command in `website/setup.md` |
 | GitHub "fork?" flag | `isFork: false`, no parent — see topology below before calling it a GitHub fork |
@@ -74,7 +77,7 @@ the commit, for example in scratch space or on the target machine
 ```bash
 git clone https://github.com/freeforall1932-design/odysseus-fork-but-api-dev.git
 cd odysseus-fork-but-api-dev
-git checkout c35a9256f88b2d166cd49297b79efe3e46a40897
+git checkout 951d57db0e8758eadc3baed4af962860132a5f51
 git rev-parse HEAD   # must print the same SHA
 ```
 
@@ -89,10 +92,11 @@ in the same session, with the date and reason.
 
 ## 2. Why the program is not copied into this folder
 
-- **Size and shape:** ~51 MB / 2,517 files of application code, tests,
+- **Size and shape:** ~53 MB / 2,647 files of application code, tests,
   media and docs would land inside a dotfiles fork whose rule is "owner
   additions live under `workbench/`, upstream untouched". A dead copy
-  would also go stale the moment the Odysseus repo's daily sync moves.
+  would also go stale the moment the Odysseus repo's daily sync moves —
+  exactly what happened between the two pins recorded in Section 1.
 - **Licence:** Odysseus is AGPL-3.0-or-later, with third-party material
   inventoried in its `THIRD_PARTY_PROVENANCE.json`, `ACKNOWLEDGMENTS.md`
   and `licenses/`. Keeping it as a separate repo keeps those obligations
@@ -185,6 +189,7 @@ Steps 1–3. Nothing below was executed in this session.
 | `website/setup.md` "Built-in MCP servers" + `mcp_servers/email_server.py`, `image_gen_server.py`, `memory_server.py`, `rag_server.py` | The built-in MCP servers it ships. |
 | `routes/mcp/mcp_routes.py`, `src/mcp_manager.py`, `src/builtin_mcp.py`, `scripts/odysseus-mcp` | How MCP servers are configured and run — the code behind the spec. |
 | `specs/memory-skills.md`, `docs/skills-lifecycle.md` | How skills (`SKILL.md` under its data dir) and memory actually work there, including GitHub skill import safety rules. |
+| `docs/skills-audit-architecture.md`, `docs/skills-audit-second-review.md`, `services/skills/` (`evaluation.py`, `audit_workflow.py`, `agent_runner.py`, `job_coordinator.py`, `publication.py`, `model_selection.py`, `dependencies.py`, `prompts.py`), `routes/skills_routes.py` | Added/reshaped by the 2026-10-17 sync's skills evaluation/audit refactor. Needed before relying on any skill test/audit behaviour at the current pin; the spec remains the entry point. |
 | `specs/agent-tools.md`, `specs/integrations.md` | Agent tool behaviour and the scoped external-agent HTTP surface (`/api/codex/*`, API tokens with scopes; Claude/Codex bundles under `integrations/`). |
 
 ### 3.5 Needed only at real install time (never committed to `dionysus`)
@@ -212,22 +217,39 @@ or pasted into chat.
 
 ## 4. Facts vs claims (keep this separation)
 
-**Verified in this session (2026-10-17), at the pin:**
+**Verified in this session (2026-10-17):**
 
-- Repo identity, default branch, pinned commit, licence key/file, size,
-  file counts, language mix, and the existence of every path listed in
-  Section 3 (checked one by one in the clone).
-- The textual contents summarized above from: `README.md`,
-  `SESSION_HANDOFF.md`, `WORKLIST.md`, `UPSTREAM_SYNC.md` (topology,
-  downstream manifest, verification), `website/setup.md` (native recipe,
-  headings, security notes), `website/providers-auto-council.md`,
-  `specs/shell-mcp.md`, `specs/memory-skills.md`, `specs/integrations.md`
-  (first sections), the provider specs for the generic OpenAI-compatible
-  reader, NVIDIA NIM, and Google, `pyproject.toml`, `package.json`,
-  `requirements.txt` (head), and `.env.example` (key names only; example
-  values were redacted in output).
-- GitHub reports no release, `isFork: false`, and `main` last pushed
-  2026-10-14.
+- At both pins: repo identity, default branch, licence key/file, and the
+  existence of every path listed in Section 3 (checked one by one in each
+  clone). At the current pin: head SHA/date/parents, `HARNESS_VERSION`
+  still `0.20.19`, size/file counts in Section 1, and the downstream
+  provider/Auto route lines still present in `app.py`.
+- The textual contents summarized above were read at the first pin
+  (`c35a9256…`) from: `README.md`, `SESSION_HANDOFF.md`, `WORKLIST.md`,
+  `UPSTREAM_SYNC.md` (topology, downstream manifest, verification),
+  `website/setup.md` (native recipe, headings, security notes),
+  `website/providers-auto-council.md`, `specs/shell-mcp.md`,
+  `specs/memory-skills.md`, `specs/integrations.md` (first sections),
+  the provider specs for the generic OpenAI-compatible reader, NVIDIA
+  NIM, and Google, `pyproject.toml`, `package.json`, `requirements.txt`
+  (head), and `.env.example` (key names only; example values were
+  redacted in output).
+- At the pin bump to `951d57db…`, the compare `c35a9256…...951d57db…`
+  was measured (ahead by 18 commits, behind by 0; 198 files changed,
+  29,541 insertions, 7,959 deletions). Licence/security/handoff/audit/
+  sync/setup/configuration/providers-Auto-Council docs, `.env.example`,
+  requirements, `setup.py`, and all downstream provider/Auto/Council
+  code and tests listed in Section 3.3 are byte-unchanged between the
+  pins. Changed among Section 3 paths: `README.md` (community/star-history
+  section only, in the diff read), `app.py`, `routes/mcp/mcp_routes.py`
+  (OAuth callback handling, hunks read), `mcp_servers/image_gen_server.py`,
+  and the spec files `llm-models`, `settings-admin`, `shell-mcp`,
+  `memory-skills`, `agent-tools`, `integrations`, and the provider
+  `_readme` (their new "Last updated" stamps and diff sizes were checked;
+  the changed spec bodies were **not** fully re-read — a Step 3 session
+  must read them at the current pin rather than trusting the summaries
+  above). GitHub still reports no release; `main` was pushed
+  2026-10-17 for the current pin.
 
 **Claims by that repo's docs/specs (read, not re-proven here):**
 
@@ -280,10 +302,13 @@ tree line-by-line.
 - **Any install** is its own owner-named task after the Step 3 design is
   approved: native recipe, loopback-first exposure, auth on, audit
   worklist read first, keys only on the owner's machine.
-- **Still missing and still blocking the kit work:** `HANDOFF.md`,
-  `PROVEN.md`, `OPEN.md`, `FILES.md`, `ai-team-kit.zip` (and the setup
-  guide if separate) in `workbench/ai-team-kit/` — see `README.md`
-  Section 2. This Odysseus pointer does not replace any of them.
+- **Kit files (updated 2026-10-17):** `HANDOFF.md`, `PROVEN.md`,
+  `OPEN.md`, `FILES.md`, `ai-team-kit.zip`, and the separate setup guide
+  are now present in `workbench/ai-team-kit/` (owner commit `97a9fcc`),
+  so the pointer no longer needs to warn that they are missing. This
+  Odysseus pointer still does not replace any of them, and the detailed
+  Step 0 compare/selftest remains a separate owner-named task — see
+  `README.md` Sections 2 and 9.
 
 ---
 
@@ -298,3 +323,11 @@ tree line-by-line.
   discrepancy entries. Left on purpose: no code copied, no submodule, no
   install/run/test of Odysseus, no Step 3 verdict. Not verifiable here:
   Odysseus runtime behaviour at the pin (see Section 4).
+- 2026-10-17 (later) — Pin bumped `c35a9256…` → `951d57db…` after the owner
+  flagged that `main` had moved that day. Verified: GitHub compare
+  (18 commits ahead, 0 behind; 198 files; PR #15 parents), fresh shallow
+  clone at the new head plus a fetch of the old pin for diffing, Section 3
+  existence re-checked path by path, `HARNESS_VERSION` and key unchanged/
+  changed files as recorded in Section 4. Left on purpose: changed spec
+  bodies not fully re-read, no install/run/test, no verdict. The old pin is
+  retained in Section 1 only as dated history.

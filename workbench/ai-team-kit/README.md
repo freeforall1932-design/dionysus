@@ -2,16 +2,20 @@
 
 > **STOP — read this before doing anything.**
 >
-> Status on **2026-10-17**: **WAITING FOR THE OWNER'S FILES.**
+> Status on **2026-10-17**: **OWNER FILES ARRIVED ON THE PR BRANCH —
+> DETAILED STEP 0 NOT RUN YET.**
 >
 > The v1 kit (`ai-team-kit.zip`) and the four handoff notes (`HANDOFF.md`,
-> `PROVEN.md`, `OPEN.md`, `FILES.md`) are **not in this repository and did
-> not arrive in the 2026-10-17 restart chat's workspace**, even though the
-> owner believed they were attached. Until they are committed to this folder
-> (or attached in chat), the only allowed work is: receive the files,
-> compare them with `FILES.md`, list the zip without changing it, and run
-> the model picker's selftest once as a baseline. Do not start research,
-> do not start building v2, and do not regenerate kit files from memory.
+> `PROVEN.md`, `OPEN.md`, `FILES.md`) did not arrive in the restart chat's
+> workspace, but the owner then committed them to this folder on the draft
+> PR branch (commit `97a9fcc`, 2026-10-17 13:22 +07), together with
+> `AI-Team-Setup-Guide.md` and an extra `harness.zip`. A preliminary folder
+> check has been done (names, sizes, hashes, zip directory listings only —
+> see Section 2). The full Step 0 (line-by-line compare with `FILES.md`,
+> reading the real kit files, and running the model picker's selftest once
+> as a baseline) has **not** run and still needs the owner to name it. Do
+> not extract-and-run, install, research, or build v2 before that, and do
+> not regenerate kit files from memory.
 >
 > The owner names **one task at a time**. If the owner sends only "next"
 > or "continue", ask which numbered task they mean (see the work queue).
@@ -26,13 +30,17 @@ root unless they say otherwise.
   (once this README is merged, use whatever branch the current session is
   actually on — check with `git branch --show-current`, never assume)
 
-Files currently in this folder:
+Files currently in this folder (checked 2026-10-17 after owner commit
+`97a9fcc`):
 
 | File | What it is |
 |---|---|
 | `README.md` (this file) | The next-session entry point and record. |
-| [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) | Added 2026-10-17 at the owner's request: the pinned address of the owner's Odysseus program repo, its licence and traps, and exactly which files this project needs from it. The Odysseus program itself is **not** copied here. |
-| The Section 2 handoff files and `ai-team-kit.zip` | **Still missing** — the blocker below is unchanged by the Odysseus pointer. |
+| [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) | The pinned address of the owner's Odysseus program repo (pin updated to that repo's 2026-10-17 `main` head), its licence and traps, and exactly which files this project needs from it. The Odysseus program itself is **not** copied here. |
+| `HANDOFF.md`, `PROVEN.md`, `OPEN.md`, `FILES.md` | The four handoff notes (snapshot dated 2026-10-16). Now **present and read** in the preliminary check; treat their claims per Section 4. |
+| `ai-team-kit.zip` | The delivered v1 kit per `FILES.md` (83,953 bytes). **Present, not extracted or run.** Its directory listing was checked only. |
+| `AI-Team-Setup-Guide.md` | The current beginner setup guide per `FILES.md` (41,293 bytes). Present; inventoried, not yet read in full. |
+| `harness.zip` | **Extra — not named in `FILES.md`** (108,680 bytes). Preliminary listing: the same 16 kit files (same sizes/CRCs) plus 4 extra files. Not the canonical delivered kit; do not use it as the Step 0 baseline until the owner/Step 0 says what it is for. See discrepancy X9. |
 
 ---
 
@@ -78,26 +86,36 @@ the pull-request team as well.
 
 ---
 
-## 2. What the next session NEEDS from the owner (the blocker)
+## 2. Owner files: needed, then received (preliminary check done)
 
-Commit these files **unchanged** into `workbench/ai-team-kit/` — do not
-unzip and re-zip the kit, so it can be compared with `FILES.md` exactly as
-delivered:
+The files this project needed were committed by the owner to this folder
+on the draft PR branch in commit `97a9fcc070879983e8850023a33b295dd61cf094`
+("Add files via upload", 2026-10-17 13:22 +07). The local workspace was
+fast-forwarded to that commit and the folder was checked at inventory
+level: file names, byte sizes, SHA-256 of the top-level files, "is this a
+zip" signature checks, and the two zips' directory listings (entry names,
+sizes, CRCs). **Nothing was extracted, installed, or run, and no file
+inside either zip was opened.** The full compare/selftest is Step 0.
 
-| # | File | Here yet? (2026-10-17) |
+| # | File | Status after `97a9fcc` (preliminary only) |
 |---|---|---|
-| 1 | `HANDOFF.md` | ❌ Missing |
-| 2 | `PROVEN.md` | ❌ Missing |
-| 3 | `OPEN.md` | ❌ Missing |
-| 4 | `FILES.md` | ❌ Missing |
-| 5 | `ai-team-kit.zip` (the delivered v1) | ❌ Missing |
-| 6 | `AI-Team-Setup-Guide.md` — only if it was a separate download and is **not** already inside the zip (the old chat showed it as a separate file) | ❌ Missing / unknown |
+| 1 | `HANDOFF.md` | ✅ Present (7,237 bytes). Read in full (snapshot 2026-10-16). |
+| 2 | `PROVEN.md` | ✅ Present (7,531 bytes). Read in full. |
+| 3 | `OPEN.md` | ✅ Present (5,671 bytes). Read in full. |
+| 4 | `FILES.md` | ✅ Present (5,473 bytes). Read in full; used for this table. |
+| 5 | `ai-team-kit.zip` (the delivered v1) | ✅ Present (83,953 bytes; valid zip signature). Listing only: a `harness/` folder with 16 files (`GUIDE.md`, `README.txt`, `harness.sh`, `harness_ui.py`, `install.sh`, `model_scout.py`, `mac/` ×2, `skills/` ×6, `windows/` ×2), matching the shape `FILES.md` describes at name level. Contents not read; selftest still **0 runs**. |
+| 6 | `AI-Team-Setup-Guide.md` | ✅ Present as a separate top-level file (41,293 bytes), as `FILES.md` says. Same size and CRC32 as `harness/GUIDE.md` inside the zip (directory metadata), so it looks like the same guide; a byte-for-byte hash of the extracted copy is a Step 0 detail. Not read in full yet. |
+| 7 | `harness.zip` | ⚠️ **Extra, not in `FILES.md`** (108,680 bytes; valid zip). Listing only: the same 16 kit entries with the same sizes/CRCs as `ai-team-kit.zip`, plus 4 extras — `harness/GIFSCYTHE_PLANNING_REPORT.md`, `harness/gifscythe-ai-team-setup-guide.md` (the superseded earlier guide per `FILES.md`), `harness/gifscythe-independent-review.md`, and `harness/draft query that need refinement.txt`. Contents not read. Treat `ai-team-kit.zip`, not this, as the canonical delivered kit until Step 0/owner says otherwise (see X9). |
 
-Also useful **only if the owner still has local copies** (the owner has
-said these were never delivered and are gone, so expect "no"): the patched
-`model_scout.py`, the MCP loader/apply files, the dashboard test files.
-If they truly are gone, Step 4 rebuilds them from their descriptions and
-says out loud what had to be guessed.
+Still **not** present anywhere in this folder or in either zip's listing:
+the patched `model_scout.py`, `mcp/oat_mcp_loader.py`,
+`mcp/oat_mcp_apply.py`, and the dashboard/MCP sandbox test files — exactly
+as `FILES.md`/`OPEN.md` describe (never presented; rebuild from
+descriptions in their numbered tasks, with guesses said out loud).
+
+If local copies of those lost in-progress/test files ever surface outside
+these uploads, they would be useful — but plan on "gone": the owner said
+so, `FILES.md` says so, and the preliminary listings agree.
 
 No Odysseus files are needed from the owner: the program source is the
 owner's own repo recorded in [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md),
@@ -106,14 +124,14 @@ which any session can clone at the pinned commit when a task names it.
 **Never commit:** API keys, GitHub tokens/PATs, `keys.env`, passwords, or
 any file containing them.
 
-After committing, the owner should tell the next session, in one message:
-
-1. "Files committed" + the **branch name** they were committed to
-   (so the agent can sync/fetch the right place), **or** simply attach the
-   files in the chat instead — that is the easiest route and the agent
-   will place them in this folder.
-2. Whether the setup guide was separate or inside the zip.
-3. **One** task name from the work queue (for example: "Do Step 0").
+The upload step is done. What the next session needs from the owner now is
+only **one named task** — suggested next words: **"Do Step 0"** (the full
+compare against `FILES.md` + one selftest baseline run, then stop and
+report). Note the numbering clash in X10: the handoff's own to-do list uses
+T1–T10 with "Exact next action: T1", while this README's Step 0 comes first
+by the owner's restart instruction (compare files, run the selftest once,
+then name tasks one at a time). Step 0's report must reconcile Steps vs
+T-numbers before any T-task starts.
 
 ---
 
@@ -190,29 +208,42 @@ Keep these layers separate. Never upgrade a lower layer into proof.
   and does **not** apply to this docs task (no Qt/CMake build entry
   point); re-check that decision when real kit code is being worked on.
 - Later the same day, for the owner-named Odysseus-pointer task: the
-  owner's repo `freeforall1932-design/odysseus-fork-but-api-dev` at
-  commit `c35a9256f88b2d166cd49297b79efe3e46a40897` (GitHub metadata plus
-  a read-only shallow clone in scratch space; selected docs/specs read —
-  the exact list and findings are in
+  owner's repo `freeforall1932-design/odysseus-fork-but-api-dev`, first at
+  `c35a9256…`, then — after the owner flagged that `main` had moved that
+  day — re-checked and compared at `951d57db…` (GitHub metadata plus
+  read-only shallow clones in scratch space; selected docs/specs read —
+  the exact list, per-pin limits, and findings are in
   [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) Section 4). Nothing was
   installed, run, or tested, and no code was copied into this repo.
+- Also later the same day, after owner commit `97a9fcc`: `FILES.md`,
+  `HANDOFF.md`, `PROVEN.md`, and `OPEN.md` read in full (snapshot dated
+  2026-10-16; claims inside remain "old chat reported" until Step 0
+  re-checks them against the real kit), plus the inventory-level zip
+  checks in Section 2. `AI-Team-Setup-Guide.md` was inventoried (size,
+  SHA-256, CRC match with the in-zip guide) but **not yet read in full**,
+  and **nothing inside either zip has been opened, extracted, or run**.
 
-**NOT read (because missing), NOT checked, NOT researched yet:**
+**NOT read yet, NOT checked, NOT researched yet:**
 
-- `HANDOFF.md`, `PROVEN.md`, `OPEN.md`, `FILES.md` — contents unknown.
-- Everything inside `ai-team-kit.zip`, including the real
-  `model_scout.py`, dashboard, router config, and setup guide.
+- The **contents** of every file inside `ai-team-kit.zip` and
+  `harness.zip`, including the real `model_scout.py`, dashboard, helper,
+  installer, skills, and the four `harness.zip`-only documents. Only zip
+  directory metadata (names/sizes/CRCs) has been seen.
+- `AI-Team-Setup-Guide.md` in full (inventoried only).
+- Any line-by-line verification of `HANDOFF.md` / `PROVEN.md` / `OPEN.md`
+  claims against the real kit — reading them is not verifying them.
+  That is Step 0.
 - Current free-tier limits and terms of any AI service (OpenRouter,
   NVIDIA NIM, Google AI Studio, Mistral, AI Horde, …). These change and
   must be looked up from official sources when the matching task is
   named — never from memory, never from the old chat's numbers.
 - OAT, OpenCode, Goose, OpenMAIC, "The Agency", SkillOpt — nothing about
-  them was re-checked in this session. Odysseus is the partial exception:
-  its identity, licence, topology, native recipe location, downstream
-  Providers/Auto/Council docs, and MCP/skills spec map were read at the
-  pin (see `ODYSSEUS_SOURCE.md`), but it was **not installed, run, or
-  evaluated as the Step 3 winner**, and the rest of its tree was not
-  read.
+  them was re-checked in this session, beyond what the handoff files
+  report. Odysseus is the partial exception: its identity, licence,
+  topology, native recipe location, downstream Providers/Auto/Council
+  docs, and MCP/skills spec map were read (per-pin reading limits in
+  `ODYSSEUS_SOURCE.md`), but it was **not installed, run, or evaluated
+  as the Step 3 winner**, and the rest of its tree was not read.
 - Google Colab's current terms for the KoboldCpp notebook.
 
 ---
@@ -394,6 +425,14 @@ against current official pages (later steps).
 - The owner answered the MCP multiple-choice question: **YES — give the
   OAT pull-request team MCP too** (see Decisions).
 - This README in the new isolated folder is the second named task.
+- Third named task: the Odysseus pointer (`ODYSSEUS_SOURCE.md`) plus a
+  draft PR so the owner could commit the required files to its branch.
+- The owner then committed the seven files in Section 2 (`97a9fcc`) and
+  flagged that Odysseus `main` had moved the same day. Fourth task:
+  sync/inventory this folder and bump the Odysseus pin after a real
+  compare (Section 2 and `ODYSSEUS_SOURCE.md` Sections 1/4/6). The full
+  Step 0 has still not been named, so the selftest remains 0 runs — now
+  blocked on task naming, not on missing files.
 
 ---
 
@@ -460,7 +499,7 @@ against current official pages (later steps).
 
 | # | Discrepancy | What to do |
 |---|---|---|
-| X1 | Owner said 5 files were attached; none arrived in the restart sandbox, and the shared chat hides its attachments. | Step 0 only starts when the files are committed here or attached in chat. |
+| X1 | Owner said 5 files were attached; none arrived in the restart sandbox, and the shared chat hides its attachments. | **Resolved 2026-10-17:** the owner committed the files to this folder on the draft PR branch (`97a9fcc`). Step 0 can start when the owner names it. Kept here as the record of why the first baseline attempt could not run. |
 | X2 | Old chat (Oct 10) said NVIDIA NIM and Google AI Studio were already covered; the restart message says the handoff leaves them out and missing pieces should be added. | The real kit config/code decides (Step 0/2). Report what the kit actually contains before adding anything. |
 | X3 | Owner lists Odysseus-coverage and Colab-usability as "replies I never got", yet the shared snapshot contains an Oct 10 answer covering both. | Treat those questions as still open (Steps 1a/1b). Possibly the owner never saw it or found it incomplete — answer fresh and briefly, with current sources. |
 | X4 | Self-check counts in the old chat grew as the code grew (23 → 33/34 → 68 for the picker; 84 for the dashboard). | Expect the delivered zip's own number, measured in Step 0. Never quote an old count as the current result. |
@@ -468,6 +507,8 @@ against current official pages (later steps).
 | X6 | Odysseus persona group chats rest on "one review" and were never tested, even by the old chat. | Superseded in part on 2026-10-17: the fork's own downstream Council doc describes optional personas with a separate chair (see `ODYSSEUS_SOURCE.md`). Still a doc claim — do not claim the owner's "persona room" exists until Step 3 tests what Council actually does. |
 | X7 | Old chat: Odysseus "agent mode is built on OpenCode". Fork docs/specs read at the 2026-10-17 pin show OpenCode only as a model-provider shape, plus a scoped `/api/codex/*` surface for Codex/Claude. | Do not repeat the old sentence. Step 3 settles what the agent runtime actually is, from primary source in the pinned repo. |
 | X8 | The word "fork" misleads twice: GitHub marks `odysseus-fork-but-api-dev` as not-a-fork (ZIP-seeded, histories linked by merge on 2026-10-14), and its README/setup clone commands point at upstream, not at itself. | Always clone the address and pin in `ODYSSEUS_SOURCE.md`; treat upstream URLs inside that repo's docs as inherited examples. |
+| X9 | `harness.zip` was uploaded alongside the kit but is not named anywhere in `FILES.md`. Listing check: it duplicates all 16 `ai-team-kit.zip` entries (same sizes/CRCs) and adds 4 files, one of which `FILES.md` calls superseded (the earlier guide) and one it restricts to Gifscythe worklist tasks (`GIFSCYTHE_PLANNING_REPORT.md`). | The Step 0 baseline is `ai-team-kit.zip` only. In Step 0, report `harness.zip` as an extra and ask/record what it is for before anyone reads or uses its 4 extra files; do not silently treat the superseded guide inside it as current. |
+| X10 | Two numbering systems now compete: this README's proposed Steps 0–5 vs the handoff's T1–T10 (`HANDOFF.md` says "Exact next action: T1" and its opening message says compare files first, then wait for a T-number). | Step 0 (compare + one selftest run) still comes first per the owner's restart instruction. Its report must map Steps ↔ T-numbers and propose one reconciled queue; until then, do not start T1 just because the handoff says so, and do not start a Step just because this README lists it. The owner names the task. |
 
 ---
 
@@ -480,14 +521,18 @@ before touching code.
 
 ### Step 0 — Unblock + baseline (no building, no research)
 
-Entry: the Section 2 files are in this folder (or attached in chat).
-Do: compare every file with `FILES.md` and flag mismatches → list the
-zip's contents with sizes (and hashes if `FILES.md` gives any) without
-modifying anything → read `HANDOFF.md`, `PROVEN.md`, `OPEN.md` → find the
-selftest command from the **real** `model_scout.py`/guide → run it
-**once** and record the exact command, Python version, exit code, and
-output → report which model services the kit's real config actually
-supports.
+Entry: the Section 2 files are in this folder. **(Satisfied on
+2026-10-17 by owner commit `97a9fcc`; the preliminary inventory in
+Section 2 is done, but Step 0 itself still needs the owner to name it.)**
+Do: compare every file with `FILES.md` in detail and flag mismatches
+(including what `harness.zip` is and is not) → list the canonical zip's
+contents with sizes/hashes without modifying the delivered files → read
+the real kit code/guide needed to find the selftest command (the handoff
+notes have now been read, but their claims still need checking against
+the code) → run the selftest **once** and record the exact command,
+Python version, exit code, and output → report which model services the
+kit's real config actually supports → reconcile this README's Steps with
+the handoff's T1–T10 into one proposed queue (see X10).
 Done means: a baseline report a stranger could re-run. If the selftest
 fails, report and stop — fixing it is a separate named task.
 
@@ -556,11 +601,11 @@ for any credit.
 
 ### For the owner (2 minutes)
 
-1. Commit the Section 2 files to `workbench/ai-team-kit/` (or attach
-   them in the chat). No keys/tokens, ever.
-2. Say which branch you committed to (or "attached"), whether the guide
-   was a separate file, and name **one** task — suggested first words:
-   **"Do Step 0."**
+1. (Done 2026-10-17: the Section 2 files were committed to this folder
+   on the draft PR branch; the guide was separate *and* inside the zip.
+   No keys/tokens were included in the top-level file list checked.)
+2. Name **one** task — suggested first words: **"Do Step 0."** Nothing
+   else is needed from the owner until that report comes back.
 
 ### For the next agent
 
@@ -676,3 +721,39 @@ for any credit.
   behavioural and test-count claims; whether its pending audit items
   still apply line-by-line; everything in the previous entry's list.
 - Docs touched: `ODYSSEUS_SOURCE.md` (new) and this README.
+
+### 2026-10-17 — folder re-check + Odysseus pin bump (same Arena session)
+
+- Changed: no kit files were touched. Records only: `ODYSSEUS_SOURCE.md`
+  pin bumped `c35a9256…` → `951d57db…` after the owner flagged that
+  Odysseus `main` had moved that day (PR #15 merged minutes after the
+  first inspection); this README's status, Section 2, evidence,
+  discrepancies (X1 resolved; X9–X10 added), Step 0 entry conditions,
+  owner checklist, and this entry updated to match the checked folder.
+  The draft PR's title/body were also refreshed on GitHub to say the
+  owner files have arrived (GitHub remains the source of truth there).
+- Partial: the folder check is inventory-level only. There is still
+  **no selftest baseline (0 runs)**, no detailed `FILES.md` compare, and
+  no reading of any file inside either zip. That is Step 0, awaiting the
+  owner naming it.
+- Left (on purpose): extracting/running/installing anything from the
+  zips; reading the 4 `harness.zip`-only documents; adopting the
+  handoff's T1–T10 over this README's Steps (or vice versa) — see X10;
+  all research and v2 building.
+- Verified in this session: fetched the PR branch and fast-forwarded to
+  owner commit `97a9fcc` (+7 files); folder inventory (9 top-level
+  files with sizes and SHA-256); both zips have valid zip signatures;
+  `ai-team-kit.zip` lists 16 `harness/` files; `harness.zip` lists the
+  same 16 names with identical sizes/CRCs plus 4 extras; top-level
+  guide size/CRC32 matches the in-zip `GUIDE.md` directory entry;
+  `FILES.md`/`HANDOFF.md`/`PROVEN.md`/`OPEN.md` read in full; PR checks
+  on the owner commit passed; Odysseus compare and re-clone as recorded
+  in `ODYSSEUS_SOURCE.md`; then the workbench gate for this docs change
+  (exact result in that day's chat report — re-run rather than trusting
+  a quoted number later).
+- Not verifiable here: any kit behaviour or selftest result; the truth
+  of handoff "tested" claims; what `harness.zip` is *for*; current
+  free-tier limits/terms; Windows/Mac/Codespace behaviour; real GitHub
+  PR flows with the owner's accounts; Odysseus runtime at either pin.
+- Docs touched: `ODYSSEUS_SOURCE.md` and this README (owner-uploaded
+  files untouched).
