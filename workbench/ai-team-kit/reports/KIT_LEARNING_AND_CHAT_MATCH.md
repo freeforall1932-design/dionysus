@@ -2,6 +2,15 @@
 
 Snapshot: **2026-10-17** (Asia/Jakarta)
 
+> **Reorganisation note (later on 2026-10-17):** this report's findings were
+> used to extract the canonical kit to `../kit/harness/`, the four
+> `harness.zip`-only documents to `../archive/harness-zip-extras/`, and the
+> four snapshot files to `../archive/2026-10-16-handoff-snapshot/`. Both zip
+> files and the duplicate top-level guide were then deleted. References below
+> to the zips or former top-level paths describe the state **when this report
+> was written**. Current navigation is in `../README.md` and
+> `../FILE_MAP.md`.
+
 ## Short answer
 
 `ai-team-kit.zip` is the delivered **v1 coding-team kit**. It does not contain

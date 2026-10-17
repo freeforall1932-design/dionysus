@@ -302,13 +302,13 @@ tree line-by-line.
 - **Any install** is its own owner-named task after the Step 3 design is
   approved: native recipe, loopback-first exposure, auth on, audit
   worklist read first, keys only on the owner's machine.
-- **Kit files (updated 2026-10-17):** `HANDOFF.md`, `PROVEN.md`,
-  `OPEN.md`, `FILES.md`, `ai-team-kit.zip`, and the separate setup guide
-  are now present in `workbench/ai-team-kit/` (owner commit `97a9fcc`),
-  so the pointer no longer needs to warn that they are missing. This
-  Odysseus pointer still does not replace any of them, and the detailed
-  Step 0 compare/selftest remains a separate owner-named task — see
-  `README.md` Sections 2 and 9.
+- **Kit files (reorganised 2026-10-17):** the canonical kit is extracted in
+  `kit/harness/`; the original snapshot files are preserved under
+  `archive/2026-10-16-handoff-snapshot/`; and both uploaded zips plus the
+  duplicate top-level guide were deleted after extraction. This Odysseus
+  pointer still does not replace the kit learning/audit reports. Current
+  navigation and next-task gating are in `README.md`,
+  `SESSION_HANDOFF.md`, and `WORKLIST.md` (especially W-050/W-051).
 
 ---
 
@@ -331,3 +331,8 @@ tree line-by-line.
   changed files as recorded in Section 4. Left on purpose: changed spec
   bodies not fully re-read, no install/run/test, no verdict. The old pin is
   retained in Section 1 only as dated history.
+- 2026-10-17 (reorganisation) — Section 5 wording updated for the extracted
+  kit/archived snapshot layout and the new README/handoff/worklist files.
+  The Odysseus pin was not changed or re-verified in this edit, and no
+  Odysseus code was copied, installed, run, or tested. Re-check `main`
+  against the pin in the next task that relies on this pointer.
