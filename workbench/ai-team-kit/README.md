@@ -2,20 +2,25 @@
 
 > **STOP — read this before doing anything.**
 >
-> Status on **2026-10-17**: **OWNER FILES ARRIVED ON THE PR BRANCH —
-> DETAILED STEP 0 NOT RUN YET.**
+> Status on **2026-10-17**: **OWNER FILES ARRIVED; DETAILED UNPACK / LEARN
+> / OLD-CHAT MATCH DONE — AWAITING THE NEXT OWNER-NAMED TASK.**
 >
 > The v1 kit (`ai-team-kit.zip`) and the four handoff notes (`HANDOFF.md`,
 > `PROVEN.md`, `OPEN.md`, `FILES.md`) did not arrive in the restart chat's
 > workspace, but the owner then committed them to this folder on the draft
 > PR branch (commit `97a9fcc`, 2026-10-17 13:22 +07), together with
-> `AI-Team-Setup-Guide.md` and an extra `harness.zip`. A preliminary folder
-> check has been done (names, sizes, hashes, zip directory listings only —
-> see Section 2). The full Step 0 (line-by-line compare with `FILES.md`,
-> reading the real kit files, and running the model picker's selftest once
-> as a baseline) has **not** run and still needs the owner to name it. Do
-> not extract-and-run, install, research, or build v2 before that, and do
-> not regenerate kit files from memory.
+> `AI-Team-Setup-Guide.md` and an extra `harness.zip`. The owner later named
+> the unpack/learn/match task: both zips were extracted **only to scratch**,
+> the real kit files and the four `harness.zip`-only documents were read,
+> the visible old chat was re-read and matched claim by claim, and the
+> delivered model-picker self-test was run **once** under an isolated
+> scratch `HOME`/`TMPDIR`. The full record is
+> [`KIT_LEARNING_AND_CHAT_MATCH.md`](KIT_LEARNING_AND_CHAT_MATCH.md):
+> Python 3.11.2, exit 0, **62 checks passed and the 6 LiteLLM Router checks
+> skipped** because LiteLLM is not installed in that Python. Nothing was
+> installed, no harness/OAT/LiteLLM/dashboard runtime was started, and no
+> v2 work was built. Do not install, research, or build v2 until the owner
+> names a task, and do not regenerate kit files from memory.
 >
 > The owner names **one task at a time**. If the owner sends only "next"
 > or "continue", ask which numbered task they mean (see the work queue).
@@ -37,10 +42,11 @@ Files currently in this folder (checked 2026-10-17 after owner commit
 |---|---|
 | `README.md` (this file) | The next-session entry point and record. |
 | [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) | The pinned address of the owner's Odysseus program repo (pin updated to that repo's 2026-10-17 `main` head), its licence and traps, and exactly which files this project needs from it. The Odysseus program itself is **not** copied here. |
-| `HANDOFF.md`, `PROVEN.md`, `OPEN.md`, `FILES.md` | The four handoff notes (snapshot dated 2026-10-16). Now **present and read** in the preliminary check; treat their claims per Section 4. |
-| `ai-team-kit.zip` | The delivered v1 kit per `FILES.md` (83,953 bytes). **Present, not extracted or run.** Its directory listing was checked only. |
-| `AI-Team-Setup-Guide.md` | The current beginner setup guide per `FILES.md` (41,293 bytes). Present; inventoried, not yet read in full. |
-| `harness.zip` | **Extra — not named in `FILES.md`** (108,680 bytes). Preliminary listing: the same 16 kit files (same sizes/CRCs) plus 4 extra files. Not the canonical delivered kit; do not use it as the Step 0 baseline until the owner/Step 0 says what it is for. See discrepancy X9. |
+| [`KIT_LEARNING_AND_CHAT_MATCH.md`](KIT_LEARNING_AND_CHAT_MATCH.md) | The 2026-10-17 unpack/learn report: how the delivered kit works, byte-level zip comparison, old-chat claim matching, `harness.zip` extra classification, and the one isolated model-picker self-test (62 passed, 6 LiteLLM checks skipped). Read this before quoting any old “tested” claim. |
+| `HANDOFF.md`, `PROVEN.md`, `OPEN.md`, `FILES.md` | The four handoff notes (snapshot dated 2026-10-16). Present and read; treat their claims per Section 4 and the learning report. |
+| `ai-team-kit.zip` | The delivered v1 kit per `FILES.md` (83,953 bytes) and the canonical baseline. Extracted only to scratch for reading; canonical zip untouched. Only `model_scout.py --selftest` was run from the extracted copy, once and isolated. |
+| `AI-Team-Setup-Guide.md` | The current beginner setup guide per `FILES.md` (41,293 bytes). Read in the learning task and proven byte-identical to `harness/GUIDE.md` inside both zips. |
+| `harness.zip` | **Extra — not named in `FILES.md`** (108,680 bytes). Byte-proven superset: the same 16 kit files as `ai-team-kit.zip` plus 4 extra documents (a superseded guide, a Gifscythe planning report, a Gifscythe source review, and the handoff-generation draft prompt). Not the canonical baseline. See discrepancy X9 and the learning report. |
 
 ---
 
@@ -58,11 +64,15 @@ The owner wants an **"AI team"** that is:
   as pull requests (PRs). **The owner reads and merges them.** Nothing may
   merge itself behind the owner's back.
 
-Version 1 was reportedly delivered in the old chat as `ai-team-kit.zip`
-plus a setup guide. According to that chat, v1 contains: OAT helpers (the
-workers), a LiteLLM router (one doorway that can send requests to several
-AI services), a model picker (`model_scout.py`) that finds and tests
-currently-free models, a browser dashboard, and install scripts.
+Version 1 was delivered in the old chat as `ai-team-kit.zip` plus a setup
+guide. The uploaded zip was read on 2026-10-17: it contains the glue for
+OAT helpers (the workers) and a LiteLLM router (one doorway that can send
+requests to several AI services), a model picker (`model_scout.py`) that
+finds and tests currently-free-looking models, a browser dashboard, and
+install scripts. OAT and LiteLLM themselves are downloaded by the
+installer; they are not bundled binaries. Runtime behaviour beyond the
+model-picker self-test was not reproduced in that learning task — see
+[`KIT_LEARNING_AND_CHAT_MATCH.md`](KIT_LEARNING_AND_CHAT_MATCH.md).
 
 Version 2 (not designed yet, not built yet) is where these open wishes
 belong: more model sources, a native "room" with personas for writing and
@@ -86,36 +96,45 @@ the pull-request team as well.
 
 ---
 
-## 2. Owner files: needed, then received (preliminary check done)
+## 2. Owner files: needed, received, then unpacked and learned
 
 The files this project needed were committed by the owner to this folder
 on the draft PR branch in commit `97a9fcc070879983e8850023a33b295dd61cf094`
-("Add files via upload", 2026-10-17 13:22 +07). The local workspace was
-fast-forwarded to that commit and the folder was checked at inventory
-level: file names, byte sizes, SHA-256 of the top-level files, "is this a
-zip" signature checks, and the two zips' directory listings (entry names,
-sizes, CRCs). **Nothing was extracted, installed, or run, and no file
-inside either zip was opened.** The full compare/selftest is Step 0.
+("Add files via upload", 2026-10-17 13:22 +07). The first follow-up check
+was inventory-only. Later the same day, the owner named the unpack/learn
+task: both zips were safely extracted **only to scratch**
+(`/tmp/ai-team-kit-learn-20261017/`), all extracted files were inventoried
+with byte sizes and SHA-256 hashes, the real kit/guide/extras were read,
+and the delivered model-picker self-test was run once under isolated
+scratch `HOME`/`TMPDIR`. The canonical zips in this folder were not
+modified, nothing was installed, and no harness/OAT/LiteLLM/dashboard
+runtime was started. Details:
+[`KIT_LEARNING_AND_CHAT_MATCH.md`](KIT_LEARNING_AND_CHAT_MATCH.md).
 
-| # | File | Status after `97a9fcc` (preliminary only) |
+| # | File | Status after `97a9fcc` and the 2026-10-17 learning task |
 |---|---|---|
 | 1 | `HANDOFF.md` | ✅ Present (7,237 bytes). Read in full (snapshot 2026-10-16). |
 | 2 | `PROVEN.md` | ✅ Present (7,531 bytes). Read in full. |
 | 3 | `OPEN.md` | ✅ Present (5,671 bytes). Read in full. |
-| 4 | `FILES.md` | ✅ Present (5,473 bytes). Read in full; used for this table. |
-| 5 | `ai-team-kit.zip` (the delivered v1) | ✅ Present (83,953 bytes; valid zip signature). Listing only: a `harness/` folder with 16 files (`GUIDE.md`, `README.txt`, `harness.sh`, `harness_ui.py`, `install.sh`, `model_scout.py`, `mac/` ×2, `skills/` ×6, `windows/` ×2), matching the shape `FILES.md` describes at name level. Contents not read; selftest still **0 runs**. |
-| 6 | `AI-Team-Setup-Guide.md` | ✅ Present as a separate top-level file (41,293 bytes), as `FILES.md` says. Same size and CRC32 as `harness/GUIDE.md` inside the zip (directory metadata), so it looks like the same guide; a byte-for-byte hash of the extracted copy is a Step 0 detail. Not read in full yet. |
-| 7 | `harness.zip` | ⚠️ **Extra, not in `FILES.md`** (108,680 bytes; valid zip). Listing only: the same 16 kit entries with the same sizes/CRCs as `ai-team-kit.zip`, plus 4 extras — `harness/GIFSCYTHE_PLANNING_REPORT.md`, `harness/gifscythe-ai-team-setup-guide.md` (the superseded earlier guide per `FILES.md`), `harness/gifscythe-independent-review.md`, and `harness/draft query that need refinement.txt`. Contents not read. Treat `ai-team-kit.zip`, not this, as the canonical delivered kit until Step 0/owner says otherwise (see X9). |
+| 4 | `FILES.md` | ✅ Present (5,473 bytes). Read in full; used for the detailed compare. |
+| 5 | `ai-team-kit.zip` (the delivered v1) | ✅ Present (83,953 bytes; SHA-256 `aea5c8df…`). Safely extracted to scratch only: a `harness/` folder with 16 files. Guide/code/skills/launchers read. Model-picker self-test: **1 isolated run**, Python 3.11.2, exit 0, **62 passed + 6 LiteLLM Router checks skipped**. Nothing else from the kit was executed. |
+| 6 | `AI-Team-Setup-Guide.md` | ✅ Present as a separate top-level file (41,293 bytes), as `FILES.md` says. Read in the learning task and proven byte-identical by SHA-256 to `harness/GUIDE.md` inside both zips. |
+| 7 | `harness.zip` | ⚠️ **Extra, not in `FILES.md`** (108,680 bytes; SHA-256 `d1e0b3b8…`). Byte-proven superset: the same 16 kit entries, SHA-256-identical to `ai-team-kit.zip`, plus 4 classified extras — `GIFSCYTHE_PLANNING_REPORT.md`, the superseded `gifscythe-ai-team-setup-guide.md`, `gifscythe-independent-review.md`, and `draft query that need refinement.txt`. Treat `ai-team-kit.zip`, not this, as the canonical delivered kit (see X9). |
 
-Still **not** present anywhere in this folder or in either zip's listing:
-the patched `model_scout.py`, `mcp/oat_mcp_loader.py`,
-`mcp/oat_mcp_apply.py`, and the dashboard/MCP sandbox test files — exactly
-as `FILES.md`/`OPEN.md` describe (never presented; rebuild from
-descriptions in their numbered tasks, with guesses said out loud).
+Still **not** present anywhere in this folder or inside either extracted
+zip: the patched `model_scout.py`, `mcp/oat_mcp_loader.py`,
+`mcp/oat_mcp_apply.py`, `toolchains.sh`, and the dashboard/MCP sandbox test
+files — exactly as `FILES.md`/`OPEN.md` describe (never presented; rebuild
+from descriptions in their numbered tasks, with guesses said out loud).
+The extracted delivered scout also lacks the patched features by code
+search: no writer/editor roles, `only_roles`, endpoint presets,
+`--list-services`, or `--add-endpoint`.
 
 If local copies of those lost in-progress/test files ever surface outside
 these uploads, they would be useful — but plan on "gone": the owner said
-so, `FILES.md` says so, and the preliminary listings agree.
+so, `FILES.md` says so, and the scratch extraction/search agrees. The
+owner has said the expired old-chat file(s) are secured offline; they were
+not needed to identify the delivered v1 zip in this task.
 
 No Odysseus files are needed from the owner: the program source is the
 owner's own repo recorded in [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md),
@@ -124,14 +143,12 @@ which any session can clone at the pinned commit when a task names it.
 **Never commit:** API keys, GitHub tokens/PATs, `keys.env`, passwords, or
 any file containing them.
 
-The upload step is done. What the next session needs from the owner now is
-only **one named task** — suggested next words: **"Do Step 0"** (the full
-compare against `FILES.md` + one selftest baseline run, then stop and
-report). Note the numbering clash in X10: the handoff's own to-do list uses
-T1–T10 with "Exact next action: T1", while this README's Step 0 comes first
-by the owner's restart instruction (compare files, run the selftest once,
-then name tasks one at a time). Step 0's report must reconcile Steps vs
-T-numbers before any T-task starts.
+The upload step and the detailed Step 0-style learning task are done. What
+the next session needs from the owner now is only **one named task**. The
+learning report reconciles this README's Steps with the handoff's T1–T10
+(see X10): the owner might choose, for example, **“Do T2”** (answers only),
+**“Rebuild the T1 scout patch as a spec”**, or **“Do Step 3”**. Do not infer
+a task from “next” or “continue.”
 
 ---
 
@@ -217,22 +234,29 @@ Keep these layers separate. Never upgrade a lower layer into proof.
   installed, run, or tested, and no code was copied into this repo.
 - Also later the same day, after owner commit `97a9fcc`: `FILES.md`,
   `HANDOFF.md`, `PROVEN.md`, and `OPEN.md` read in full (snapshot dated
-  2026-10-16; claims inside remain "old chat reported" until Step 0
-  re-checks them against the real kit), plus the inventory-level zip
-  checks in Section 2. `AI-Team-Setup-Guide.md` was inventoried (size,
-  SHA-256, CRC match with the in-zip guide) but **not yet read in full**,
-  and **nothing inside either zip has been opened, extracted, or run**.
+  2026-10-16), followed by the owner-named unpack/learn task recorded in
+  [`KIT_LEARNING_AND_CHAT_MATCH.md`](KIT_LEARNING_AND_CHAT_MATCH.md): both
+  zips safely extracted only to scratch; all 16 canonical kit files and
+  the 4 `harness.zip`-only documents inventoried by SHA-256 and read; the
+  visible old chat re-read in 4 chunks and matched claim by claim; Python
+  AST and shell syntax checks run; and the delivered
+  `model_scout.py --selftest` run **once** under isolated scratch
+  `HOME`/`TMPDIR` (Python 3.11.2, exit 0, 62 passed, 6 LiteLLM Router
+  checks skipped). No installer, harness runtime, OAT, LiteLLM, or
+  dashboard server was run.
 
-**NOT read yet, NOT checked, NOT researched yet:**
+**NOT run, NOT checked, NOT researched yet:**
 
-- The **contents** of every file inside `ai-team-kit.zip` and
-  `harness.zip`, including the real `model_scout.py`, dashboard, helper,
-  installer, skills, and the four `harness.zip`-only documents. Only zip
-  directory metadata (names/sizes/CRCs) has been seen.
-- `AI-Team-Setup-Guide.md` in full (inventoried only).
-- Any line-by-line verification of `HANDOFF.md` / `PROVEN.md` / `OPEN.md`
-  claims against the real kit — reading them is not verifying them.
-  That is Step 0.
+- Any full runtime of the delivered kit: installer, LiteLLM download/load,
+  OAT daemon/workers, dashboard server/browser behaviour, the claimed 84
+  dashboard checks, or `harness.sh` start/stop/doctor/open flows. The kit
+  contents have been **read** and static-checked; only the model-picker
+  self-test was executed (62 passed, LiteLLM Router checks skipped).
+- Real-provider behavior of the picker/dashboard with the owner's keys.
+- Line-by-line truth of every external claim in `HANDOFF.md` /
+  `PROVEN.md` / `OPEN.md`. The learning report matches their readable kit
+  claims to delivered files, but old sandbox outcomes that left no test
+  files in the zip remain “old chat reported.”
 - Current free-tier limits and terms of any AI service (OpenRouter,
   NVIDIA NIM, Google AI Studio, Mistral, AI Horde, …). These change and
   must be looked up from official sources when the matching task is
@@ -430,9 +454,16 @@ against current official pages (later steps).
 - The owner then committed the seven files in Section 2 (`97a9fcc`) and
   flagged that Odysseus `main` had moved the same day. Fourth task:
   sync/inventory this folder and bump the Odysseus pin after a real
-  compare (Section 2 and `ODYSSEUS_SOURCE.md` Sections 1/4/6). The full
-  Step 0 has still not been named, so the selftest remains 0 runs — now
-  blocked on task naming, not on missing files.
+  compare (Section 2 and `ODYSSEUS_SOURCE.md` Sections 1/4/6). At that
+  point the selftest was still 0 runs.
+- Fifth task (same day): the owner named the unpack/learn/match job. Both
+  zips were extracted only to scratch, the real files and extras were
+  read, the visible old chat was matched to them, and the delivered
+  model-picker self-test was run once in isolation (62 passed, 6 LiteLLM
+  checks skipped). The detailed evidence is
+  [`KIT_LEARNING_AND_CHAT_MATCH.md`](KIT_LEARNING_AND_CHAT_MATCH.md). No
+  installer/harness/OAT/LiteLLM/dashboard runtime, T1 work, or v2 building
+  was started.
 
 ---
 
@@ -499,42 +530,40 @@ against current official pages (later steps).
 
 | # | Discrepancy | What to do |
 |---|---|---|
-| X1 | Owner said 5 files were attached; none arrived in the restart sandbox, and the shared chat hides its attachments. | **Resolved 2026-10-17:** the owner committed the files to this folder on the draft PR branch (`97a9fcc`). Step 0 can start when the owner names it. Kept here as the record of why the first baseline attempt could not run. |
-| X2 | Old chat (Oct 10) said NVIDIA NIM and Google AI Studio were already covered; the restart message says the handoff leaves them out and missing pieces should be added. | The real kit config/code decides (Step 0/2). Report what the kit actually contains before adding anything. |
-| X3 | Owner lists Odysseus-coverage and Colab-usability as "replies I never got", yet the shared snapshot contains an Oct 10 answer covering both. | Treat those questions as still open (Steps 1a/1b). Possibly the owner never saw it or found it incomplete — answer fresh and briefly, with current sources. |
-| X4 | Self-check counts in the old chat grew as the code grew (23 → 33/34 → 68 for the picker; 84 for the dashboard). | Expect the delivered zip's own number, measured in Step 0. Never quote an old count as the current result. |
+| X1 | Owner said 5 files were attached; none arrived in the restart sandbox, and the shared chat hides its attachments. | **Resolved 2026-10-17:** the owner committed the files to this folder on the draft PR branch (`97a9fcc`), and the later owner-named learning task unpacked/matched them (see `KIT_LEARNING_AND_CHAT_MATCH.md`). Kept here as the record of why the first baseline attempt could not run. |
+| X2 | Old chat (Oct 10) said NVIDIA NIM and Google AI Studio were already covered; the restart message says the handoff leaves them out and missing pieces should be added. | **Resolved at delivered-config level 2026-10-17:** `model_scout.py` defaults contain OpenRouter, NVIDIA, Mistral, and Google (Google filtered to `flash`). Current free status/terms were not re-researched and NVIDIA/Mistral/Google use `assume_free: true`; any Step 2/T-task must look those up fresh before adding/changing sources. |
+| X3 | Owner lists Odysseus-coverage and Colab-usability as "replies I never got", yet the shared snapshot contains an Oct 10 answer covering both. | Odysseus coverage is now answered at file level: **not in delivered v1**. Colab usability/terms remain open (Step 1b/T2-style research with current official sources). Do not treat the Oct 10 snapshot answer as a fresh terms check. |
+| X4 | Self-check counts in the old chat grew as the code grew (23 → 33/34 → 68 for the picker; 84 for the dashboard). | **Picker count reconciled 2026-10-17:** delivered `selftest()` has 64 `check_` call sites; two inside a 3-role LiteLLM loop make 68 logical checks when LiteLLM is installed. This session's one run: **62 passed + skip** (no LiteLLM). Dashboard **84 remains unverified** because its test harnesses are not in either zip. Never quote an old count as a current result. |
 | X5 | Codespace free allowance was quoted in two different shapes ("about 60 hours a month" vs "about 120 core-hours"). | Look up the current official figure only when a Codespace task is named. |
 | X6 | Odysseus persona group chats rest on "one review" and were never tested, even by the old chat. | Superseded in part on 2026-10-17: the fork's own downstream Council doc describes optional personas with a separate chair (see `ODYSSEUS_SOURCE.md`). Still a doc claim — do not claim the owner's "persona room" exists until Step 3 tests what Council actually does. |
 | X7 | Old chat: Odysseus "agent mode is built on OpenCode". Fork docs/specs read at the 2026-10-17 pin show OpenCode only as a model-provider shape, plus a scoped `/api/codex/*` surface for Codex/Claude. | Do not repeat the old sentence. Step 3 settles what the agent runtime actually is, from primary source in the pinned repo. |
 | X8 | The word "fork" misleads twice: GitHub marks `odysseus-fork-but-api-dev` as not-a-fork (ZIP-seeded, histories linked by merge on 2026-10-14), and its README/setup clone commands point at upstream, not at itself. | Always clone the address and pin in `ODYSSEUS_SOURCE.md`; treat upstream URLs inside that repo's docs as inherited examples. |
-| X9 | `harness.zip` was uploaded alongside the kit but is not named anywhere in `FILES.md`. Listing check: it duplicates all 16 `ai-team-kit.zip` entries (same sizes/CRCs) and adds 4 files, one of which `FILES.md` calls superseded (the earlier guide) and one it restricts to Gifscythe worklist tasks (`GIFSCYTHE_PLANNING_REPORT.md`). | The Step 0 baseline is `ai-team-kit.zip` only. In Step 0, report `harness.zip` as an extra and ask/record what it is for before anyone reads or uses its 4 extra files; do not silently treat the superseded guide inside it as current. |
-| X10 | Two numbering systems now compete: this README's proposed Steps 0–5 vs the handoff's T1–T10 (`HANDOFF.md` says "Exact next action: T1" and its opening message says compare files first, then wait for a T-number). | Step 0 (compare + one selftest run) still comes first per the owner's restart instruction. Its report must map Steps ↔ T-numbers and propose one reconciled queue; until then, do not start T1 just because the handoff says so, and do not start a Step just because this README lists it. The owner names the task. |
+| X9 | `harness.zip` was uploaded alongside the kit but is not named anywhere in `FILES.md`. | **Classified 2026-10-17:** byte-proven superset — all 16 canonical entries SHA-256-identical to `ai-team-kit.zip`, plus a superseded earlier guide, a Gifscythe planning report, a Gifscythe independent source review, and the handoff-generation draft prompt. The baseline remains `ai-team-kit.zip` only; do not treat the superseded guide as current or the two Gifscythe documents as kit evidence. Details: `KIT_LEARNING_AND_CHAT_MATCH.md` Section 4. |
+| X10 | Two numbering systems compete: this README's Steps 0–5 vs the handoff's T1–T10 (`HANDOFF.md` says "Exact next action: T1" and its opening message says compare files first, then wait for a T-number). | **Reconciled 2026-10-17 in `KIT_LEARNING_AND_CHAT_MATCH.md` Section 8.** The Step 0-style compare/read/self-test is done. T1 cannot proceed as written until a named rebuild/spec task recreates the lost scout patch on top of the delivered file; T2 is answers-only with fresh sources; Step 3 remains design/comparison. The owner still names exactly one next task. |
 
 ---
 
 ## 9. Work queue (order proposed on 2026-10-17)
 
 This numbering is the restart session's proposal so the owner can name
-tasks ("Do Step 0") — the owner has not locked the order, and
-`HANDOFF.md` / `OPEN.md` may re-order it once read. If they do, say so
-before touching code.
+tasks — the owner has not locked the order. `HANDOFF.md` / `OPEN.md` have
+now been read and their T1–T10 queue is reconciled with these Steps in
+[`KIT_LEARNING_AND_CHAT_MATCH.md`](KIT_LEARNING_AND_CHAT_MATCH.md)
+Section 8. Do not start a Step or a T-task unless the owner names it.
 
-### Step 0 — Unblock + baseline (no building, no research)
+### Step 0 — Unblock + baseline (DONE 2026-10-17 as the unpack/learn task)
 
-Entry: the Section 2 files are in this folder. **(Satisfied on
-2026-10-17 by owner commit `97a9fcc`; the preliminary inventory in
-Section 2 is done, but Step 0 itself still needs the owner to name it.)**
-Do: compare every file with `FILES.md` in detail and flag mismatches
-(including what `harness.zip` is and is not) → list the canonical zip's
-contents with sizes/hashes without modifying the delivered files → read
-the real kit code/guide needed to find the selftest command (the handoff
-notes have now been read, but their claims still need checking against
-the code) → run the selftest **once** and record the exact command,
-Python version, exit code, and output → report which model services the
-kit's real config actually supports → reconcile this README's Steps with
-the handoff's T1–T10 into one proposed queue (see X10).
-Done means: a baseline report a stranger could re-run. If the selftest
-fails, report and stop — fixing it is a separate named task.
+Done: owner files arrived (`97a9fcc`); both zips were safely extracted
+only to scratch without modifying the delivered files; every extracted
+file was listed with sizes/SHA-256 and compared with `FILES.md`; the real
+guide/code/skills/launchers and the four `harness.zip` extras were read;
+the visible old chat was re-read and matched claim by claim; the delivered
+`model_scout.py --selftest` was run **once** under isolated scratch
+`HOME`/`TMPDIR` (Python 3.11.2, exit 0, 62 passed, 6 LiteLLM Router checks
+skipped, full output in the learning report); actual delivered provider
+config was reported (OpenRouter, NVIDIA, Mistral, Google Flash); and Steps
+↔ T1–T10 were reconciled. No installer or full runtime was started.
+Evidence: [`KIT_LEARNING_AND_CHAT_MATCH.md`](KIT_LEARNING_AND_CHAT_MATCH.md).
 
 ### Step 1 — Quick answers the owner never got (answers only)
 
@@ -542,7 +571,9 @@ Current official sources and licences checked at task time; short,
 beginner-worded answers; no building.
 
 - **1a.** Does the plan already cover Odysseus or similar harnesses?
-  (Straight yes/no + what exists today.)
+  (**Answered at delivered-file level by the learning report: no —
+  Odysseus/similar room integration is absent from v1.** Any fresh
+  recommendation belongs to Step 3.)
 - **1b.** Is the owner's KoboldCpp Colab link usable for this project
   under Colab's current terms?
 - **1c.** AI Horde (community models, kudos): does the kit/router support
@@ -553,12 +584,16 @@ beginner-worded answers; no building.
 
 ### Step 2 — Model sources: NVIDIA NIM + Google AI Studio
 
-From the Step 0 inventory: state what is already in the kit. Look up both
-services' **current** free limits and terms from official pages. Add only
-what is missing, editing the real files in place. Test what can be tested
-without the owner's keys (for example against a fake local service, as
-the old chat reportedly did) and say plainly what still needs the owner's
-real keys to prove.
+Step 0 finding: NVIDIA and Google are already in the delivered scout
+defaults (Google limited to IDs matching `flash`; both use
+`assume_free: true`), alongside OpenRouter and Mistral. Look up the
+services' **current** free limits and terms from official pages before
+changing anything. Add only what is actually missing, editing the real
+files in place. This overlaps handoff T1/T3 where the lost scout patch and
+dynamic service list are involved; do not begin without the owner naming
+the exact scope. Test what can be tested without the owner's keys (for
+example against a fake local service) and say plainly what still needs the
+owner's real keys to prove.
 
 ### Step 3 — Compare harnesses + design v2 (design only, owner approves)
 
@@ -604,8 +639,11 @@ for any credit.
 1. (Done 2026-10-17: the Section 2 files were committed to this folder
    on the draft PR branch; the guide was separate *and* inside the zip.
    No keys/tokens were included in the top-level file list checked.)
-2. Name **one** task — suggested first words: **"Do Step 0."** Nothing
-   else is needed from the owner until that report comes back.
+2. Name **one** task. The Step 0-style unpack/learn/self-test baseline is
+   done; possible next names are **“Do T2”**, **“Rebuild the T1 scout
+   patch as a spec”**, or **“Do Step 3”** — see
+   `KIT_LEARNING_AND_CHAT_MATCH.md` Section 8. Nothing else is needed
+   from the owner until that named task reports back.
 
 ### For the next agent
 
@@ -613,17 +651,20 @@ for any credit.
    load the `universal-agent-context` skill (SKILL.md → v4 guide →
    session-protocol) and say what you loaded. Load a workload skill only
    if the repo's real build entry point matches it.
-2. Read this README, then — once present — `FILES.md` (inventory),
-   `HANDOFF.md` (route), `PROVEN.md` (do not redo its research),
-   `OPEN.md` (its own work list). Real kit files outrank all four for
-   "what the code does"; the owner's latest message outranks everything
-   for "what to do".
+2. Read this README, then `KIT_LEARNING_AND_CHAT_MATCH.md` (what the real
+   delivered kit does and what was actually tested), `FILES.md`
+   (inventory), `HANDOFF.md` (route), `PROVEN.md` (do not redo its
+   research), and `OPEN.md` (its own work list). Real kit files outrank
+   all summaries for "what the code does"; the owner's latest message
+   outranks everything for "what to do".
 3. Record the baseline before edits: branch, base commit, `git status`
    (explain any dirt), and sync/fetch the branch the owner named.
-4. Inventory the zip read-only. Read scripts before running anything —
-   never blind-run installers or self-modifying "apply" steps.
-5. Run the picker's selftest once (Step 0) and report it exactly:
-   command, Python version, exit code, counts from *this* run.
+4. Treat the uploaded zips as canonical and read scripts before running
+   anything — never blind-run installers or self-modifying "apply" steps.
+5. Do **not** rerun the picker's selftest as a ritual. The Step 0 baseline
+   is recorded in `KIT_LEARNING_AND_CHAT_MATCH.md` (Python 3.11.2, exit 0,
+   62 passed + LiteLLM checks skipped). Rerun only when a named code task
+   changes the scout or its environment, and report *that* run exactly.
 6. Do the one named task only. Keep diffs small; prove claims at the
    level they need (a syntax check is not a test; a test pass here is
    not proof on Windows/Mac/Codespace).
@@ -648,9 +689,10 @@ for any credit.
   does not isolate them; the kit's reported answers were a separate
   Linux user or a Codespace. Re-read the real guide before advising.
 - **The router must not be open to the network without its password**
-  (the original plan's flaw, reportedly fixed in v1 — verify in the real
-  config during Step 0 if `FILES.md` makes that checkable without
-  running it).
+  (the original plan's flaw). Delivered code was read in Step 0: the
+  generated list references `LITELLM_MASTER_KEY` from the environment and
+  `harness` starts LiteLLM with `--host 127.0.0.1`. That is a code-level
+  check only; no router runtime was started here.
 - **MCP tools are power tools**: allow-list one by one, read-only first,
   and remember the OAT patch (D2) is custom work to re-check after OAT
   updates.
@@ -757,3 +799,39 @@ for any credit.
   PR flows with the owner's accounts; Odysseus runtime at either pin.
 - Docs touched: `ODYSSEUS_SOURCE.md` and this README (owner-uploaded
   files untouched).
+
+### 2026-10-17 — unpack, learn, and match the old chat (same Arena session)
+
+- Changed: added `KIT_LEARNING_AND_CHAT_MATCH.md` and updated this README
+  (status, file table, Sections 1–2, evidence, restart story,
+  discrepancies X2/X4/X9/X10, Step 0/queue, checklists, safety note, and
+  this entry). **No kit code, guide, handoff note, zip, or Odysseus
+  pointer was edited.** Scratch extraction lived only under
+  `/tmp/ai-team-kit-learn-20261017/` and is not committed.
+- Learned: `ai-team-kit.zip` is the canonical v1 PR-team glue kit
+  (installer, `harness`, model picker, local dashboard, two skills,
+  templates, launchers, guide). `harness.zip` is a byte-identical copy of
+  those 16 files plus four extra documents, now classified in the report.
+  Delivered provider config is OpenRouter, NVIDIA, Mistral, and Google
+  Flash. The later patched scout, MCP loader/apply, Odysseus commands,
+  extra provider presets, persona room, and toolchain installer are
+  absent from both zips.
+- Verified in this session: safe scratch extraction; full SHA-256
+  inventory; 16/16 common zip members byte-identical; top-level guide =
+  in-zip guide; kit/guide/skills/extras read; visible old chat re-read in
+  four chunks and matched claim by claim; Python AST parse for both
+  Python files; `bash -n` for both shell scripts; and exactly one
+  isolated delivered `model_scout.py --selftest` run (Python 3.11.2,
+  exit 0, stderr empty, **62 ok / 0 FAIL**, with
+  `skip LiteLLM checks (litellm is not installed in this Python)`; full
+  output in the learning report). The workbench gate result for this docs
+  change belongs in the session's final chat report — re-run rather than
+  trusting a quoted number later.
+- Partial / not reproduced: the six LiteLLM Router checks inside the
+  scout self-test (skipped, not passed here); all dashboard/`harness.sh`
+  runtime claims and the claimed 84 dashboard checks; fresh install;
+  real OAT/LiteLLM behaviour; real provider/GitHub flows. Current
+  free-tier limits and terms remain unresearched for a future named task.
+- Left (on purpose): no installer or runtime started; no T1/T2/Step 3 or
+  v2 work begun; draft PR remains unmerged for owner review.
+- Docs touched: `KIT_LEARNING_AND_CHAT_MATCH.md` (new) and this README.
