@@ -1,9 +1,11 @@
 # AI Team Kit — session handoff
 
-**Status on 2026-10-17:** extraction, repository reorganisation, and a static
-code audit are complete. **No next build task has been named yet.** The next
-session must stop at [`WORKLIST.md`](WORKLIST.md) item **W-001** and wait for
-the owner to name one item.
+**Status on 2026-10-18:** extraction, repository reorganisation, and a static
+code audit are complete, and the owner's quota-aware provider-pool/adaptive-
+council direction has been recorded in the context, worklist, and research
+files. **No next build/research task has been named yet.** The next session
+must stop at [`WORKLIST.md`](WORKLIST.md) item **W-001** and wait for the
+owner to name one item.
 
 > If the owner sends only “next” or “continue”, ask which `W-` item they mean.
 > Do not choose one.
@@ -12,7 +14,14 @@ the owner to name one item.
 
 ## 1. What just changed
 
-The owner-named 2026-10-17 reorganisation/audit task did the following:
+The owner-named 2026-10-18 documentation task recorded the intended
+quota-aware pooling of Google/NVIDIA/OpenRouter/other APIs plus an online
+Colab/KoboldCpp session, an Odysseus-centred room intent, and the adaptive
+council default. It edited documentation only; no provider terms were freshly
+researched and no council code was written.
+
+The preceding owner-named 2026-10-17 reorganisation/audit task did the
+following:
 
 - Safely fast-forwarded the session branch to the learning-report commit
   `935b179fdf2553dd3cfbd4243a3a9e1ca14b5526` after proving a restored
@@ -68,7 +77,13 @@ current head/checks at the start of the next session.
   checked on 2026-10-17). No code was copied, installed, or run. Re-check that
   repo's `main` before calling the pin current.
 - **Owner-confirmed future directions:** MCP for OAT is wanted; Odysseus is
-  native rather than Docker *if* chosen. Neither is built.
+  native rather than Docker *if* chosen. On 2026-10-18 the owner clarified
+  the destination as a quota-aware pool spanning Google, NVIDIA,
+  OpenRouter/other APIs, and Colab/KoboldCpp while the Colab session is
+  online, with an adaptive council (simulated personas → small real council
+  → OAT execution) and Odysseus as the intended room surface. None of that
+  pool/council behaviour is built, and current provider/Colab terms/limits
+  remain W-020/W-021 research.
 
 ---
 
@@ -107,8 +122,8 @@ report that new run exactly.
 1. Owner reviews the reorganisation, preferably through
    [`READING_GUIDE.md`](READING_GUIDE.md), then decides the draft PR's fate.
    Agents do not merge it.
-2. Owner names **one** worklist item (for example `W-010`, `W-021`, or
-   `W-050`).
+2. Owner names **one** worklist item (for example `W-010`, `W-020`, `W-021`,
+   or `W-050`).
 3. The next agent does only that item, updates the worklist/handoff in the
    same session, and reports tested/not-tested.
 
@@ -149,5 +164,7 @@ Recommended order is in `WORKLIST.md`, but a recommendation is not permission.
 - Helpers run commands as the install user. Treat skill repos, MCP servers,
   and agent shell access as code execution, not as harmless text.
 - Terms/licences come before using a provider, persona pack, skill, or
-  third-party code.
+  third-party code. In particular, do not build or rely on a Colab endpoint
+  pattern until Q14/W-021 has checked the current official terms and any
+  tunnel exposure.
 - The owner reviews and merges pull requests. No auto-merge assumption.

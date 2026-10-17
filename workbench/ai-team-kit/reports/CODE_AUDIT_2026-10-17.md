@@ -31,6 +31,17 @@ extracted v1 tree.
 
 > This audit did not fix kit code. Every fix below is a recommendation and is
 > mapped to an item in [`../WORKLIST.md`](../WORKLIST.md).
+>
+> **Owner clarification added 2026-10-18.** Finding A-01 does not mean Google
+> or NVIDIA lacks a free tier. The owner intends both—as well as OpenRouter,
+> other suitable providers, the delivered Mistral source, and an online
+> Colab/KoboldCpp session—to form a quota-aware model pool. A-01 remains open
+> because the delivered code cannot yet prove which individual catalogue
+> models are free-tier eligible, track remaining quota/cooldown, represent a
+> Colab session endpoint, or allocate calls across an adaptive council. The
+> clarification is recorded in [`../PROJECT_CONTEXT.md`](../PROJECT_CONTEXT.md)
+> and `../RESEARCH_AND_OPEN_QUESTIONS.md`; current official limits/terms are
+> still W-020/W-021 work.
 
 ---
 

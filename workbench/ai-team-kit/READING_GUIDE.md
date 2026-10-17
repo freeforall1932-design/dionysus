@@ -40,7 +40,8 @@ Add:
    — how v1 works, claim-by-claim old-chat matching, discrepancies, the one
    self-test, hashes, and full self-test output.
 10. [`RESEARCH_AND_OPEN_QUESTIONS.md`](RESEARCH_AND_OPEN_QUESTIONS.md) — old
-    findings with the correct evidence label, Q1–Q13, and assumptions.
+    findings with the correct evidence label, owner-reported 2026-10-18
+    experience, Q1–Q14, and assumptions.
 11. [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md) only when Odysseus/room design
     is the topic.
 
@@ -68,7 +69,7 @@ next task. They are preserved for verification and history.
 | Section | Summary |
 |---|---|
 | 1. What just changed | Extraction, archive moves, guide deduplication, zip deletion, and “no kit code edited”. |
-| 2. Current truth in one screen | Providers/roles in v1, absent v2 pieces, audit verdict, Odysseus pointer status, confirmed MCP/native directions. |
+| 2. Current truth in one screen | Providers/roles in v1, absent v2 pieces, audit verdict, Odysseus pointer status, confirmed MCP/native directions, and the 2026-10-18 quota-pool/online-Colab/adaptive-council destination. |
 | 3. Evidence and limits | What was checked here versus everything still unrun; why the self-test must not be ritual-rerun. |
 | 4. Exact next gate | Your review/decision comes first; then one named `W-` item. |
 | 5. Next-agent checklist | Git sync trap, scope, gate, and PR-update mechanics for a future session. You can skim this. |
@@ -78,15 +79,15 @@ next task. They are preserved for verification and history.
 
 | Part | Summary |
 |---|---|
-| Rules + recommended order | One owner-named item at a time; P0 hardening and tests before v2 expansion; guide/repackage last. |
-| Done | Baseline, learning report, one self-test, Odysseus pointer, extraction/audit/reorganisation. |
+| Rules + owner direction + recommended order | One owner-named item at a time; the 2026-10-18 quota-pool/online-Colab/adaptive-council destination; P0 hardening and tests before v2 expansion; guide/repackage last. |
+| Done | Baseline, learning report, one self-test, Odysseus pointer, extraction/audit/reorganisation, and the docs-only owner-direction recording. |
 | W-001 | Your review gate: choose a slice or park it. |
-| W-010…W-015 | P0 fixes: secrets/boundary, installer trust, shell lifecycle, dashboard onboarding/jobs/PR, safe skill installs, scout validation/free rules. |
+| W-010…W-015 | P0 fixes: secrets/boundary, installer trust, shell lifecycle, dashboard onboarding/jobs/PR, safe skill installs, scout validation/free rules and pool metadata. |
 | W-016 | Recreate lost dashboard/shell/OAT/LiteLLM tests and fixtures. |
-| W-020…W-021 | Fresh provider terms research and the still-unanswered AI Horde/OpenMAIC/Colab questions. |
-| W-030…W-032 | Rebuild dynamic scout roles/endpoints, then dynamic shell and dashboard. This is old T1/T3/T7. |
+| W-020…W-021 | Fresh per-model free-tier/terms research and the still-unanswered AI Horde/OpenMAIC/online-Colab questions. |
+| W-030…W-032 | Rebuild dynamic scout roles/endpoints (including an online session endpoint only if W-021 permits it), then dynamic shell and dashboard. This is old T1/T3/T7. |
 | W-040 | Rebuild reversible MCP for OAT plus commands/UI. Old T4. |
-| W-050…W-051 | Compare harnesses/design the room first; build Odysseus only if that design chooses it. Old T5/T10 + Step 3. |
+| W-050…W-051 | Design/compare the quota-aware pool and adaptive council first—Odysseus is the intended room centre, OAT the PR executor—then build Odysseus only if that design approves it. Old T5/T10 + Step 3. |
 | W-060 | Admin toolchain installer for Qt/CMake/C# etc. Old T6. |
 | W-070…W-080 | Update the guide, then generate and verify a new release zip. Old T8/T9. |
 | W-090 | Parked ideas that need a fresh owner decision. |
@@ -98,10 +99,10 @@ next task. They are preserved for verification and history.
 |---|---|
 | 1. Goal | Free/cloud-only, beginner-friendly AI team for Gifscythe through owner-merged PRs; `dionysus` is the workbench, Gifscythe is the target. |
 | 2. What v1 is | Each part's role and the normal install → scout → router/OAT → dashboard → PR flow. |
-| 3. Decisions to keep | Free-only, owner merge gate, paced probing, stable roles, MCP yes, Odysseus native if used, pinned pointer, one-task and evidence rules. |
-| 4. Rejected/dropped | llm-keypool, OmniRoute, Claw, wrong installer URL, multi-account limit tricks, Colab as core, AI Horde for tool roles, Docker for Odysseus, parallel probing. |
+| 3. Decisions to keep | Free-only, owner merge gate, paced probing, stable roles, MCP yes, Odysseus native if used, pinned pointer, quota-aware pool with Colab while online, adaptive-council default, one-task and evidence rules. |
+| 4. Rejected/dropped | llm-keypool, OmniRoute, Claw, wrong installer URL, multi-account limit tricks, Colab as an assumed always-on core API, AI Horde for tool roles, Docker for Odysseus, parallel probing. |
 | 5. Old chat's next phase | Creative roles/endpoints, dynamic harness/dashboard, MCP, Odysseus room, toolchains, guide/repackage, optional choices—and why those are now gated behind hardening. |
-| 6. Not decided | Winning room harness, sub-agent design, AI Horde/Colab/OpenMAIC use, extra providers/personas/tools, paying anyone. |
+| 6. Not decided | Final W-050 harness approval, adaptive escalation thresholds, sub-agent detail, AI Horde/OpenMAIC use, exact Colab permission/reliability, extra providers/personas/tools, paying anyone. |
 | 7. Evidence hierarchy | Owner instruction > real kit files > dated session reports > Odysseus pointer > archived snapshots > visible old-chat claims. |
 
 ### `RESEARCH_AND_OPEN_QUESTIONS.md` — what is known vs merely reported
@@ -109,12 +110,13 @@ next task. They are preserved for verification and history.
 | Section | Summary |
 |---|---|
 | 1. Verified in restart | Canonical kit, superset relation, four providers/three roles, one self-test result, static parses, missing lost files, Odysseus pin. |
+| 1A. Owner experience/direction | Colab/SillyTavern experience, failed direct multi-key agentic attempt, intended provider pool, adaptive council—clearly labelled as owner report/requirement, not current provider evidence. |
 | 2. OAT findings | Old-chat reported installer/CLI/config/state/skills behaviour and one unresolved silent `oat-agent` check. |
 | 3. Router/keys | LiteLLM fallback/order findings, loopback/master-key context, and dated OpenRouter/Codespaces numbers that must be refreshed before use. |
 | 4. Old test reports | 68 scout, 84 dashboard, fresh-install, and fake end-to-end claims—labelled as old-chat reports except the partial self-test counterpart. |
 | 5. Add-on research | Odysseus (with a correction not to repeat “built on OpenCode”), AI Horde, personas/OpenCode/Goose, Qt/C# sandbox result, lost MCP sandbox builds, OpenMAIC search-only status. |
 | 6. Missing/blocked | Lost patch/MCP/tests, unwritten toolchains/commands/guide/package, pending answers, unbuilt room/MCP requests. |
-| 7. Q1–Q13 | Q1 resolved “MCP yes”; Q8 partially read; Q12 narrowed; the rest remain open with a concrete way to resolve each. |
+| 7. Q1–Q14 | Q1 resolved “MCP yes”; Q8 partially read; Q12 narrowed toward the Odysseus adaptive-council design; Q14 is the new Colab terms/limits/API gate; the rest remain open with a concrete way to resolve each. |
 | 8. Assumptions A1–A11 | A1 confirmed; most others remain unverified or doc-level only. |
 | 9. Research rules | Official dated sources, no real secrets for research, separate evidence levels, update this file when facts change. |
 
@@ -259,7 +261,7 @@ reassembly lost nothing.
 | Original section | Where it lives now |
 |---|---|
 | Blocked work and what is missing | Research Section 6; worklist rebuild items. |
-| Research questions Q1–Q13 | Research Section 7 with current status. |
+| Research questions Q1–Q13 | Research Section 7 with current status; Q14 was added there on 2026-10-18 for the online-Colab gate. |
 | Assumptions A1–A11 | Research Section 8 with current status. |
 
 ### Archived `FILES.md`

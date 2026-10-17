@@ -98,6 +98,47 @@ IDs.
   pinned in [`ODYSSEUS_SOURCE.md`](ODYSSEUS_SOURCE.md). It is pointed to, not
   copied into `dionysus`.
 
+### Owner clarification recorded on 2026-10-18: provider pool + adaptive council
+
+This clarification corrects and sharpens the intended target. It is a design
+direction, not a claim that any of it is implemented yet.
+
+- **Why a team/council is needed:** the owner has already tried pasting API
+  keys into tools and asking for agentic work; the result ran into rate limits
+  and was effectively unusable. A useful system must therefore treat quota as
+  a shared budget, not as something each agent can spend freely.
+- **Intended model pool:** Google free tier, NVIDIA free tier, OpenRouter
+  free models, other suitable free providers, and an owner-started Google
+  Colab/KoboldCpp endpoint **when that Colab session is online**. The existing
+  v1 Mistral entry is not removed by this clarification.
+- **Colab's intended status:** a core pool member while online, with
+  automatic fallback to provider APIs when the runtime/session is offline.
+  The owner reports using Colab/KoboldCpp for SillyTavern as a practical
+  high-token source whose practical constraints are rented runtime and
+  hardware rather than per-token API billing. That is owner experience, not
+  yet a verified statement about current Colab terms, quotas, endpoint
+  stability, or agentic use; W-020/W-021 and Q14 must check those before the
+  design relies on them.
+- **Odysseus is the intended simpler council/room surface to design around**,
+  in the spirit of multi-persona council systems the owner has seen, but using
+  API/cloud endpoints instead of local models. This still needs W-050's
+  primary-source design check before it becomes an approved build choice; OAT
+  remains the pull-request execution team in the current architecture.
+- **Default council style is adaptive:**
+  1. use one model to simulate several persona viewpoints and then chair the
+     synthesis for light questions and drafts;
+  2. use a small real council of two or three models/providers for important
+     or contested decisions;
+  3. reserve separate OAT agents and tool-heavy provider calls for actual
+     repository/PR execution, normally in an architect → implementer →
+     reviewer sequence rather than many parallel workers.
+- **What this means for audit A-01:** the issue is not “Google/NVIDIA have no
+  free tier”. It is that v1 cannot yet distinguish free-tier-eligible models
+  and remaining quota from every model merely listed by an endpoint, and it
+  has no Colab/custom-endpoint or council budget layer at all. W-015 plus the
+  provider-pool work in W-020/W-030/W-050 must encode eligible models,
+  capability, health/cooldown, task budgets, and fallback.
+
 ### Working rules
 
 - The owner names **one task at a time**. “Next” or “continue” alone means ask
@@ -127,9 +168,12 @@ old-chat findings, not fresh 2026-10-17 re-tests:
   the kit uses Root-IO-Labs/open-agent-teams.
 - **Multiple OpenRouter accounts/keys to raise free limits:** dropped based on
   the old chat's reading of OpenRouter docs.
-- **Colab/KoboldCpp as a core model source:** dropped as a core plan because
-  the old chat read Colab's terms as disallowing the intended remote-service
-  pattern. A fresh terms answer is still an open task before any use.
+- **Colab/KoboldCpp as an assumed always-available core API:** dropped in the
+  old chat because it read Colab's terms as disallowing the intended
+  remote-service pattern. The owner's 2026-10-18 clarification reopens it as
+  an intended **owner-started pool endpoint while online**, but current
+  terms, quota/session behaviour, and API compatibility remain unverified and
+  must be checked before any design or use relies on it.
 - **AI Horde for tool-using coding roles:** rejected for those roles because
   its OpenAI-compatible route was reported to lack tools/functions and other
   agent features. Text-only creative use remains a research/design question.
@@ -181,12 +225,16 @@ process lifecycle, dynamic config, skill installation, and missing tests.
 
 Do not build on these as if they were approvals:
 
-- Which harness should be the persona “room” (Odysseus, OpenCode, Goose, or
-  another), and how responsibilities should be split between room and PR team.
-- The orchestrator/sub-agent design (game code, programming, front-end/GUI,
-  design, writing/daily-use personas).
+- Final approval of Odysseus as the room/council after W-050 checks it against
+  OpenCode, Goose, and OAT; the owner's intended design centre is Odysseus,
+  but responsibilities and safety still need the design task.
+- The detailed orchestrator/sub-agent design (game code, programming,
+  front-end/GUI, design, writing/daily-use personas) and the exact adaptive
+  council thresholds for switching from simulated to real multi-model work.
 - Whether AI Horde should be added after a fresh live/terms check.
-- Whether the owner's KoboldCpp Colab link may be used under current terms.
+- Whether the owner's KoboldCpp Colab endpoint may be used for this workflow
+  under current terms, and how its session/API limits behave in practice.
+  Intended use is now clear; permission and reliability are not yet proven.
 - Any use or opinion of OpenMAIC beyond “needs reading”.
 - Extra providers beyond the delivered four (Groq, Cerebras, GitHub Models,
   Cloudflare, custom endpoints) until their current free terms and API shapes

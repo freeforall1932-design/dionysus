@@ -1,18 +1,41 @@
 # AI Team Kit
 
-> **Status on 2026-10-17: extracted, reorganised, and statically audited —
-> waiting for the owner to name the next worklist item.**
+> **Status on 2026-10-18: extracted, reorganised, and statically audited;
+> intended provider-pool/council direction recorded — waiting for the owner
+> to name the next worklist item.**
 >
 > The canonical v1 kit is now visible as source in `kit/harness/`. Both old
 > zip files were deleted only after their contents were extracted and the
 > extraction was recorded. No installer, router, OAT agent team, dashboard,
 > model provider, or GitHub runtime was started for the audit, and no kit code
-> was fixed or changed.
+> was fixed or changed. The 2026-10-18 direction note is documentation, not an
+> implementation or fresh provider research.
 
 This folder contains the AI Team Kit project for the owner's Gifscythe
 repository. The kit's aim is a beginner-friendly team of cloud AI helpers that
 uses free models only, works through GitHub pull requests, and leaves merging
 to the owner.
+
+### Intended next destination (not implemented in v1)
+
+Recorded from the owner's clarification on 2026-10-18:
+
+- a **quota-aware model pool** spanning Google free tier, NVIDIA free tier,
+  OpenRouter free models, other suitable providers, and the delivered
+  Mistral source;
+- an **online Colab/KoboldCpp session as a core pool member** while it is up,
+  with API fallback when it is offline (current terms/API behaviour still
+  require W-021 research);
+- an **adaptive council**: one model simulates persona viewpoints for light
+  questions, two or three real models decide important questions, and OAT
+  agents are reserved for repository/PR work;
+- **Odysseus as the intended simpler room/council surface**, subject to the
+  W-050 design comparison and approval.
+
+This matters because the owner's earlier attempt to use several directly
+entered API keys for agentic work hit rate limits and became effectively
+unusable. The pool therefore needs shared budgets, cooldowns, health, and
+fallback—not more uncontrolled agents.
 
 ## Start here
 
@@ -42,7 +65,9 @@ Static checks found no syntax failure and no obvious placeholder feature.
 What must not be overstated:
 
 - OpenRouter free status is price-checked, but NVIDIA, Mistral, and Google are
-  currently `assume_free` in the scout.
+  currently `assume_free` in the scout. The owner clarified those providers
+  are intended free-tier sources; v1 still cannot tell which individual
+  catalogue models are free-tier eligible or how much quota remains.
 - Installer downloads/versions are not pinned and verified strongly enough.
 - Helpers and kit secrets share one OS account; environment cleanup and skill
   instructions are not a complete security boundary.
@@ -99,8 +124,10 @@ only in worklist item W-080, after the code and guide it contains are ready.
 - Any audit fix (the audit was read-only for kit code).
 - Writer/editor roles, dynamic endpoints/services, `add-endpoint`.
 - MCP loader/apply, `harness mcp`, and dashboard MCP controls.
-- Odysseus integration or persona room; only a source pointer exists.
-- Groq, Cerebras, GitHub Models, Cloudflare, AI Horde, or Colab support.
+- Odysseus integration, persona room, or adaptive-council implementation;
+  only a source pointer and a design requirement exist.
+- A quota-aware multi-provider pool; Groq, Cerebras, GitHub Models,
+  Cloudflare, AI Horde, and online-Colab session support.
 - `toolchains.sh`, Docker packaging, and a harness-comparison verdict.
 - Delivered dashboard/MCP test harnesses claimed in the old chat.
 - A real install/runtime proof with the owner's keys, GitHub account, and

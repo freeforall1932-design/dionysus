@@ -11,8 +11,9 @@ current research record. The raw snapshots remain under
 > terms must be checked again from official sources when a task relies on it.
 
 Decisions and rejected options from `PROVEN.md` are consolidated in
-[`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md), with the one important update that
-the owner confirmed MCP for OAT on 2026-10-17.
+[`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md), with two later owner updates: MCP
+for OAT confirmed on 2026-10-17, and the quota-aware provider-pool/adaptive-
+council direction clarified on 2026-10-18.
 
 ---
 
@@ -40,6 +41,31 @@ These points have direct evidence in this repo/session:
   `951d57db0e8758eadc3baed4af962860132a5f51` on 2026-10-17. That pin is a
   dated source inspection, not an install/runtime result. Re-check that repo's
   `main` immediately before calling the pin current.
+
+---
+
+## 1A. Owner-reported experience and direction, recorded 2026-10-18
+
+These are **owner reports and design requirements**, not freshly verified
+provider facts:
+
+- The owner has used Google Colab with KoboldCpp for SillyTavern and reports
+  that, in practice, limits felt mainly like available runtime/hardware and
+  session time rather than a per-token API meter. That experience has not yet
+  been checked against current official Colab terms/quota pages, and it does
+  not prove the same pattern is allowed or reliable for an agentic harness.
+- The owner previously tried giving tools multiple provider keys and asking
+  for agentic work; rate limits made that approach effectively unusable. Any
+  council design therefore needs call budgets, cooldowns, and fallback
+  instead of multiplying background model calls.
+- The intended pool is Google free tier, NVIDIA free tier, OpenRouter/other
+  suitable providers, and an owner-started Colab/KoboldCpp endpoint while it
+  is online. Mistral remains in the delivered v1 pool and is not removed by
+  the clarification.
+- The owner wants an Odysseus-based council that is simpler than the
+  multi-agent systems they have seen, with an adaptive default: simulated
+  personas in one call for light work, two or three real models for important
+  decisions, and OAT agents for PR/code execution.
 
 ---
 
@@ -211,21 +237,22 @@ given to the owner, and its README/licence still need direct reading.
 
 ## 7. Research questions: current status
 
-| ID | Question | Status on 2026-10-17 | How to resolve |
+| ID | Question | Status on 2026-10-18 | How to resolve |
 |---|---|---|---|
 | Q1 | Did “MCP also” mean MCP for the OAT PR team? | **Resolved: yes.** Owner selected OAT MCP during the restart. | No research needed; build only when W-040 is named. |
 | Q2 | What is OpenMAIC and does it fit? | **Open.** Search results only. | Read its primary README, licence, install/runtime model, and maintenance state; answer in plain words (W-021). |
 | Q3 | How does AI Horde's OpenAI-compatible route behave live? | **Open.** Base path/model list/context/queue/anonymous use and current terms need direct checks. | Official docs plus a harmless live metadata check only if a named task authorises network use (W-020/W-021). |
 | Q4 | What is The Agency repo's licence? | **Open.** | Read the repo `LICENSE` at a pinned commit before any persona conversion. |
-| Q5 | Current free limits/terms for Groq, Cerebras, GitHub Models, Cloudflare? | **Open and date-sensitive.** Also refresh the delivered four providers before trusting `assume_free`. | Official provider docs/pricing/terms at task time (W-020). |
+| Q5 | Current free limits/terms and per-model free eligibility for the intended pool? | **Open and date-sensitive.** The owner clarified Google/NVIDIA/OpenRouter and online Colab are intended sources, but “provider has a free tier” does not prove every listed model is free-tier eligible. Also refresh Mistral and candidates such as Groq/Cerebras/GitHub Models/Cloudflare. | Official provider docs/pricing/terms at task time, with a per-model eligibility table for W-015 (W-020; Colab detail also in Q14/W-021). |
 | Q6 | What does a real workspace helper's output look like in Chat? | **Open.** Code assumes OAT log paths/format; old chat used a stand-in. | One real, owner-approved OAT run or a faithful captured fixture (W-016 and later runtime task). |
 | Q7 | Does a daemon-launched OAT agent load MCP tools, what startup delay do `npx` servers add, and does an OAT upgrade overwrite a patch? | **Open.** Old loader tests did not prove the daemon path. | Rebuild in scratch, test apply/unapply and a daemon-launched harmless tool call (W-040). |
 | Q8 | Odysseus programmatic providers/MCP, native ChromaDB, stability, shell risk, group chat/personas? | **Partially read, not run.** The restart inspected the owner's pinned fork docs/specs and downstream Providers/Auto/Council/MCP surfaces; changed spec bodies at the newer pin were not all re-read. No install/browser/runtime test. | Use `ODYSSEUS_SOURCE.md`, re-check pin vs `main`, read the exact routes/tests at task time, then only run if a named task authorises it. |
 | Q9 | Does the real GitHub flow work end to end? | **Open.** Needs the owner's token/account and a disposable test PR. | Owner-run or owner-approved runtime task; report exact errors without exposing secrets. |
 | Q10 | Does GitHub's remote MCP server accept a PAT for non-Copilot accounts? | **Open.** | Current official GitHub MCP docs at task time; test only with an approved scoped token. |
 | Q11 | How should the Windows `.exe` be built/tested? | **Open; Gifscythe-side.** The snapshot suggested GitHub Actions `windows-latest`, with workflow-permission care. | A separate Gifscythe PR/workflow task, not assumed by the kit worklist. |
-| Q12 | OpenCode extra harness, dashboard persona presets, or Docker? | **Partly narrowed.** Odysseus is native if used; Docker only if asked. OpenCode/persona presets remain owner choices. | Harness comparison/design first (W-050), then owner decision. |
+| Q12 | OpenCode extra harness, dashboard persona presets, or Docker? | **Partly narrowed again on 2026-10-18.** Odysseus is the intended room/council design centre and would be native if used; Docker only if asked. Final harness choice, persona presets, and adaptive escalation thresholds still need W-050 approval. | Quota-aware pool/adaptive-council design first (W-050), then owner decision. |
 | Q13 | What happens when the WSL Start window closes? | **Open.** Sources conflicted. | Test on the owner's Windows/WSL setup and then fix guide wording. |
+| Q14 | May the owner's Google Colab/KoboldCpp session be used as an online pool endpoint for Odysseus/the harness, and what limits/API behaviour apply? | **Open; owner intends this role while the session is online.** Owner roleplay experience is recorded in Section 1A, but current official terms, free/paid runtime quotas, disconnect/session rules, tunnel exposure, and KoboldCpp/OpenAI-compatible tool behaviour have not been freshly verified. | Official Colab terms/quota docs plus KoboldCpp primary API docs, and a harmless owner-approved endpoint check only if the named task permits it (W-021, then W-030/W-050 for design/implementation). |
 
 ---
 
@@ -243,7 +270,7 @@ given to the owner, and its README/licence still need direct reading.
 | A8 | Agency personas can be converted/installed through the Skills tab. | **Unverified; licence first (Q4).** The audit also requires skill-install hardening. |
 | A9 | Chat can read real OAT workspace logs at the assumed path. | **Code assumption confirmed; real log unverified.** |
 | A10 | Snapshot's OpenMAIC line is reliable. | **Treat as unconfirmed.** It was based on search wording/titles. |
-| A11 | Odysseus group chat works as a persona room. | **Doc-level only.** The pinned fork's Council material describes optional personas with a chair; behaviour was not run here. |
+| A11 | Odysseus group chat/Council can support the owner's quota-aware adaptive council. | **Doc-level only and design-open.** The pinned fork's Council material describes optional personas with a chair, and the owner wants simulated-first/real-council escalation, but neither quota budgeting nor real runtime behaviour has been proven here. W-050 must verify the design. |
 
 ---
 

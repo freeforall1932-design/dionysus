@@ -20,6 +20,19 @@ are kept as cross-references so nothing is lost.
 - Update `SESSION_HANDOFF.md`, this worklist, and any affected context/research
   file in the same session as the work.
 
+## Owner direction recorded on 2026-10-18
+
+| direction | what it means in plain terms | work that must honour it |
+|---|---|---|
+| Quota-aware team, not “keys pasted everywhere” | A previous non-team attempt to do agentic work through provider keys hit rate limits and became effectively unusable. Provider/model choice must therefore track free-tier eligibility, capability, recent `429`/cooldown state, task budgets, and fallback. | W-015, W-020, W-030, W-032, W-050 |
+| Online Colab is part of the pool | An owner-started Google Colab/KoboldCpp endpoint is a core pool member while its session is online. API providers are the fallback when Colab is offline. Current terms/quota/API behaviour are not yet verified. | W-021 first for terms/API evidence; then W-030/W-031 if allowed |
+| Adaptive council by default | One model simulates persona viewpoints for light work; two or three real models deliberate for important decisions; separate OAT agents are reserved for repository/PR execution. | W-050 design; W-051 implementation only after owner selection |
+| Simpler Odysseus-centred target | Odysseus is the intended room/council surface to design around—less complex than the multi-agent systems the owner benchmarked mentally—but W-050 must still compare it with alternatives and prove which surface owns what. | W-050, then W-051 |
+
+This direction does **not** close audit A-01. Google and NVIDIA having free
+tiers does not prove that every model their APIs list is free-tier eligible,
+and neither provider's exact current limits have been freshly recorded here.
+
 ## Recommended order
 
 ```text
@@ -29,7 +42,7 @@ Owner review / choose a slice
   -> Fresh provider research and pending answers (W-020, W-021)
   -> Dynamic scout / shell / dashboard (W-030…W-032)
   -> MCP (W-040)
-  -> Harness + room design, then Odysseus only if chosen (W-050, W-051)
+  -> Quota-aware pool + adaptive-council design, then Odysseus only if chosen (W-050, W-051)
   -> Toolchains (W-060)
   -> Guide, then repackage/release checks (W-070, W-080)
 ```
@@ -53,6 +66,11 @@ consolidate the full harness in W-016.
   canonical kit in `kit/harness/`, extras/snapshots archived, zips and the
   duplicate guide removed, findings in
   [`reports/CODE_AUDIT_2026-10-17.md`](reports/CODE_AUDIT_2026-10-17.md).
+- [x] **Owner provider/council clarification recorded (2026-10-18)** —
+  quota-aware pool, online Colab membership, Odysseus-centred room intent, and
+  adaptive-council default recorded in `PROJECT_CONTEXT.md` and reflected in
+  W-015/W-020/W-021/W-030–W-032/W-050. This is documentation only; it does not
+  supply fresh provider terms/limits or implement the council.
 
 ---
 
@@ -189,7 +207,13 @@ limits, and the owner sees provenance before install.
   must report the same config state.
 - Replace blanket `assume_free` with provider-specific free-evidence rules
   from W-020. Until then, label those services “assumed, not proven” wherever
-  picks are shown.
+  picks are shown. The owner confirmed Google/NVIDIA free tiers are intended
+  pool sources; that does not make every catalogue entry free-tier eligible.
+- Define the pool metadata the adaptive council will later need: endpoint kind
+  (provider API or owner-started session), live availability, tool/reasoning
+  capability, free-evidence state, recent `429`/failure cooldown, shared task
+  budget, and fallback order. Do not invent a council implementation here;
+  W-050 owns that design.
 - Decide and encode policies for unknown context, borrowed roles, provider
   cap relaxation, pins, and previous picks. The report must say when a rule was
   relaxed or a pick is unverified.
@@ -243,11 +267,15 @@ are either fixture-tested or explicitly listed as runtime-unproven.
 **Research only; no code.** Use official docs/pricing/terms, dated and linked,
 for:
 
-- delivered: OpenRouter, NVIDIA, Mistral, Google AI Studio/Gemini;
+- delivered and still intended: OpenRouter, NVIDIA, Mistral, and Google AI
+  Studio/Gemini (or the provider's current equivalent name);
 - candidates: Groq, Cerebras, GitHub Models, Cloudflare, and any custom
   endpoint shape considered for W-030;
 - data-use/training/logging, tool calling, rate/request/token limits, account
-  or credit thresholds, and whether “listed in catalogue” means free.
+  or credit thresholds, and whether “listed in catalogue” means free;
+- enough per-model eligibility evidence for the quota-aware pool to separate
+  “free-tier eligible”, “free only under conditions”, “metered/paid risk”,
+  and “unknown”. A provider merely having a free tier is not sufficient.
 
 **Done when:** W-015 has an evidence table it can encode, and
 `RESEARCH_AND_OPEN_QUESTIONS.md` replaces dated snapshot numbers with dated
@@ -263,12 +291,17 @@ official findings.
 - **OpenMAIC:** read primary README/licence and give a fit/no-fit opinion for
   a persona classroom/room.
 - **Colab/KoboldCpp:** fresh official-terms answer for the owner's intended
-  use; do not rely on the snapshot.
+  online-pool use; do not rely on the snapshot or on roleplay experience alone.
+  Include the current free/paid runtime and session limits, whether exposing
+  an interactive endpoint to the owner's other tools is allowed, which
+  KoboldCpp/OpenAI-compatible API a harness can call, tool-calling capability,
+  and what happens when the runtime disconnects.
 - **Odysseus coverage:** already answered at file level—absent from v1. Any
-  recommendation belongs to W-050.
+  recommendation about its Council/personas and the adaptive design belongs
+  to W-050.
 
 **Done when:** the owner receives short, sourced, beginner-worded answers and
-Q2/Q3 are updated. No provider is added by this item.
+Q2/Q3/Q14 are updated. No provider is added by this item.
 
 ---
 
@@ -277,7 +310,8 @@ Q2/Q3 are updated. No provider is added by this item.
 ### [ ] W-030 — Rebuild the lost creative-roles/dynamic-endpoint scout patch
 
 **Old ID:** T1. **Depends on:** W-015 design choices; W-020 for real provider
-presets.
+presets; W-021's fresh Colab terms/API answer before any Colab preset is
+implemented.
 
 First write a small spec from the archived descriptions and label every guess
 (the original patch is lost). Only after owner approval of that spec, implement
@@ -287,11 +321,19 @@ in the delivered scout:
   for models that cannot call tools;
 - `only_roles` or an equivalent role-capability rule;
 - endpoint/provider presets and safe `add_endpoint`/`--add-endpoint` handling;
-- `--list-services` output the shell/dashboard can consume;
+- an owner-started session endpoint kind suitable for Colab/KoboldCpp
+  **only if W-021 permits it**: online/offline health, a short-lived/changing
+  URL, session expiry, capability limits, free-evidence class, and API
+  fallback when offline;
+- `--list-services` output the shell/dashboard can consume, including
+  availability/cooldown and cost/free-evidence state needed by the adaptive
+  council;
 - probe tasks appropriate to writing/editing, plus explicit free-evidence and
-  budget rules;
+  shared task-budget rules;
 - updated fake answers/fixtures and self-test cases, including the old
-  expected break where a no-tools model is no longer globally excluded.
+  expected break where a no-tools model is no longer globally excluded and an
+  offline session endpoint that must fall back rather than hang or spend API
+  quota unexpectedly.
 
 **Done when:** the rebuilt behaviour is spec-backed, guesses are marked, and
 the updated self-test result is reported exactly (including any LiteLLM skip).
@@ -304,9 +346,11 @@ the updated self-test result is reported exactly (including any LiteLLM skip).
   with scout-provided service metadata.
 - Add `harness add-endpoint` only with the validation/HTTP rules from W-015.
 - Make secret stripping, key prompts, status, and doctor dynamic and safe for
-  unknown service metadata.
+  unknown service metadata. Status/doctor must distinguish “configured but
+  session offline” from “broken” for an owner-started Colab endpoint.
 - Generate the OAT model list in `connect-oat` from enabled roles rather than
-  a fixed trio.
+  a fixed trio, while keeping tool-incompatible/text-only pool members out of
+  OAT tool roles.
 
 **Done when:** adding a valid service/role in scout settings does not require
 editing shell lists, and invalid metadata fails safely.
@@ -318,7 +362,9 @@ editing shell lists, and invalid metadata fails safely.
 - Read role names/labels from scout state/config for Ask, Tasks, and Models.
 - Show writer/editor or future roles without hard-coded page lists.
 - Build Connections key cards from enabled services and their key-env metadata,
-  without exposing secret values.
+  without exposing secret values. Show pool state in beginner words: free
+  evidence, online/offline, cooling down after `429`, capability, and which
+  endpoint would be used next/fallback.
 - Update API validation to use the dynamic role/service sets.
 - Extend the recreated dashboard tests for an added role/service and a removed
   one.
@@ -357,23 +403,47 @@ what still needs the owner's machine.
 
 ## Harness comparison and native room (old T5/T10, restart Step 3)
 
-### [ ] W-050 — Compare harnesses and design v2 (design only)
+### [ ] W-050 — Design the quota-aware pool and adaptive council (design only)
+
+**Depends on:** W-020/W-021 evidence for provider and Colab claims. It may use
+clearly labelled assumptions before then only if the owner explicitly accepts
+an earlier rough draft.
 
 Compare OAT, Odysseus (owner's pinned repo), OpenCode, and Goose from primary
-docs/source/licences. Answer:
+docs/source/licences. Design around the owner's intended split—Odysseus as
+the simpler room/council and OAT as the PR execution team—but do not assume
+that split wins. Answer:
 
-- who runs the PR team;
-- who, if anyone, is the native persona room for writing/daily use;
+- who runs the PR team and who, if anyone, is the native persona room for
+  writing/daily use;
+- how the **adaptive council** works end to end:
+  1. one selected model simulates several persona viewpoints and chairs the
+     synthesis for light tasks;
+  2. exactly two or three real models/providers deliberate for important or
+     contested decisions, with explicit agreement/disagreement and one chair;
+  3. separate OAT agents are used only for repository/PR execution, normally
+     sequentially rather than as many parallel tool loops;
+- when the system escalates between those modes, who chooses, and how the
+  owner can override it;
+- how Google/NVIDIA/OpenRouter/other APIs and an online Colab/KoboldCpp
+  session become one pool: free eligibility, capability, health/cooldown,
+  shared budget, fallback, and graceful stop when quota is exhausted;
+- orchestrator and specialist sub-agent design (game code, programming,
+  front-end/GUI, design, writing/daily use) without letting each persona make
+  unbounded hidden calls;
 - where MCP belongs and what patch/maintenance cost it creates;
-- orchestrator and specialist sub-agent design;
 - how the LiteLLM role router is shared without leaking provider keys;
-- security exposure, especially shell/filesystem tools and first-run auth;
+- security exposure, especially shell/filesystem tools, a public/changing
+  Colab tunnel, and first-run auth;
 - how Qt/CMake/C# toolchains fit.
 
 For Odysseus, re-check the pointer pin against current `main` before reading,
-and read that repo's own audit/worklist first.
+and read that repo's own audit/worklist first. Inspect its actual Council and
+provider routing from primary source; do not assume it already implements the
+owner's quota-aware adaptive design.
 
-**Done when:** the owner receives a beginner-friendly design and approves,
+**Done when:** the owner receives a beginner-friendly design—with call-count
+examples for a light question, a hard decision, and a PR task—and approves,
 rejects, or changes it. This item installs nothing.
 
 ### [ ] W-051 — Native Odysseus integration (only if W-050 chooses it)
@@ -386,8 +456,13 @@ rejects, or changes it. This item installs nothing.
 - Decide how first-run admin creation, ChromaDB/memory, providers, MCP, and
   personas/Council are configured—programmatically only if primary source
   supports it safely.
+- Configure the approved adaptive-council modes and pool budget/cooldown
+  controls from W-050. If W-021 permits Colab and W-050 includes it, support
+  the owner-entered/rotating Colab endpoint as an online pool member with API
+  fallback; never pretend it is always-on.
 - Add a dashboard link/status without weakening either dashboard's auth.
-- Test loopback exposure and auth before any forwarded/public use.
+- Test loopback exposure and auth before any forwarded/public use, including
+  what credentials or tunnel exposure a Colab endpoint requires.
 
 **Done when:** the chosen native flow is installed/run in an authorised test
 environment, or the exact owner-machine steps and untested parts are reported.
