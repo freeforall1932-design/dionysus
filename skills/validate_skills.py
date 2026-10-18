@@ -23,9 +23,10 @@ enforces mechanically"). Promises that are not checked do not survive sessions.
   8. index.json (the triage table) covers every unit on disk and every entry
      names an existing file; README.md names every unit
 
-Two layouts, one script (so the catalog and the proving ground share a gate):
+Three layouts, one script (so the catalog and the proving ground share a gate):
   workbench  <root>/skills/<skill>/ + projects/ + research/ + tools/ + AGENTS.md
   catalog    <root>/variants/<skill>/  (the owner's skills-repo coding-agents/)
+  portable   <root>/skills/<skill>/ (no workbench/project/catalog requirements)
 The layout is detected from the directory that exists; --layout overrides.
 
 Usage:  python3 workbench/skills/validate_skills.py [--root DIR] [--layout L] [--quiet]
@@ -85,7 +86,7 @@ def looks_like_repo_path(tok: str) -> bool:
     first, _, rest = tok.partition("/")
     if first in ("references", "templates", "scripts") and rest == "":
         return False  # bare layout descriptor ("put files in `references/`"), not a path claim
-    if LAYOUT == "catalog" and first == ".github":
+    if LAYOUT in ("catalog", "portable") and first in (".github", "projects", "research", "workbench", "coding-agents"):
         return False  # `.github/copilot-instructions.md` etc. are install targets in the user's repo
     return first in KNOWN_ROOTS  # ".." = a sibling skill, judged from the skill directory
 
@@ -212,7 +213,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--root", default=None,
                     help="tree root (default: parent of this script's directory, or this script's "
                          "directory when it sits beside variants/)")
-    ap.add_argument("--layout", choices=("workbench", "catalog"), default=None,
+    ap.add_argument("--layout", choices=("workbench", "catalog", "portable"), default=None,
                     help="force a layout (default: detect from skills/ vs variants/)")
     ap.add_argument("--quiet", action="store_true", help="print failures and the summary only")
     a = ap.parse_args(argv)
@@ -221,10 +222,13 @@ def main(argv: list[str]) -> int:
         root = os.path.abspath(a.root)
     elif os.path.isdir(os.path.join(here, "variants")):
         root = here  # catalog: validate_skills.py sits beside variants/
+    elif os.path.isdir(os.path.join(os.path.dirname(here), "workbench")):
+        root = os.path.join(os.path.dirname(here), "workbench")
     else:
-        root = os.path.dirname(here)  # workbench: skills/validate_skills.py
+        root = os.path.dirname(here)  # portable: parent containing skills/
     layout = a.layout or ("catalog" if os.path.isdir(os.path.join(root, "variants"))
-                          and not os.path.isdir(os.path.join(root, "skills")) else "workbench")
+                          and not os.path.isdir(os.path.join(root, "skills")) else
+                          "workbench" if os.path.isdir(os.path.join(root, "projects")) else "portable")
     global LAYOUT
     LAYOUT = layout
     skills_dirname = "variants" if layout == "catalog" else "skills"
@@ -243,7 +247,7 @@ def main(argv: list[str]) -> int:
 
     # The page that must name every skill: skills/README.md in the workbench,
     # the catalog's own README.md (coding-agents/README.md) in the catalog.
-    readme = os.path.join(skills_dir if layout == "workbench" else root, "README.md")
+    readme = os.path.join(skills_dir if layout in ("workbench", "portable") else root, "README.md")
     readme_rel = os.path.relpath(readme, root)
     if check(os.path.isfile(readme), f"{readme_rel} exists"):
         check_paths_in(readme, root, None)
@@ -257,14 +261,15 @@ def main(argv: list[str]) -> int:
     if layout == "workbench":
         if check(os.path.isdir(projects_dir), "projects/ exists"):
             check(os.path.isfile(os.path.join(projects_dir, "README.md")), "projects/README.md exists")
-            for dirpath, dirnames, filenames in os.walk(projects_dir):
+            for dirpath, dirnames, filenames in os.walk(projects_dir, followlinks=True):
                 for fn in sorted(filenames):
                     if fn.endswith(".md"):
                         check_paths_in(os.path.join(dirpath, fn), root, None)
         check_loader_files(root)
         check_dropin_sync(root)
 
-    check_index(root, skills_dirname)
+    if layout != "portable":
+        check_index(root, skills_dirname)
     check_python(skills_dir, root)
     check_qt_lint_selftest(skills_dir, a.quiet)
     return finish(a.quiet)

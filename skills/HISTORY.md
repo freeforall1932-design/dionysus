@@ -1,3 +1,6 @@
+> Historical authoring notes and source attributions from before the root migration.
+> Paths and installation claims below are dated; use README.md and INSTALL.md instead.
+
 # Skills — the agent context layers
 
 **Prepared:** 2026-10-13 (session 1 of this layer) · **Gate:** `python3 skills/validate_skills.py` (from `workbench/`; CI: `.github/workflows/skills-gate.yml`) · **Location:** `workbench/skills/` — paths in this tree are relative to `workbench/`
