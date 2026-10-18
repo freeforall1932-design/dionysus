@@ -186,7 +186,7 @@ cell **only if** W-021 clears it against current terms.
   reachability from Odysseus/OAT; Colab terms, session limits, and
   keep-alive acceptability (W-021/Q14 — still the gate before real use).
 
-## 6. Implementation note (later on 2026-10-18)
+## 6. Implementation note (later on 2026-10-18; superseded by §7)
 
 At the owner's explicit request, the fine-tuned form was implemented as
 [`kobold-cli.ipynb`](kobold-cli.ipynb), with
@@ -200,3 +200,44 @@ environment variables so a later admin enable cannot silently start
 unprotected. The notebook's default cells and download helper were
 tested locally, but it still had **not run on Colab** when added, and
 W-021/Q14 remains open before it is relied on.
+
+## 7. Owner runtime correction and upstream-based rebuild (later on 2026-10-18)
+
+The owner then ran the §6 custom notebook in real Colab and it failed
+immediately:
+
+```text
+FileNotFoundError: [Errno 2] No such file or directory: '/content/kobold-cli'
+```
+
+Root cause: the custom preflight chose `/content/kobold-cli` for
+`shutil.disk_usage()` merely because `/content` existed, before creating
+the child directory. The earlier local test had not reproduced the exact
+fresh-Colab state (`/content` exists, `/content/kobold-cli` does not).
+That failure invalidates using the §6 design as the owner's test
+notebook.
+
+At the owner's correction, [`kobold-cli.ipynb`](kobold-cli.ipynb) was
+rebuilt from the actual upstream file read in §1 (branch `concedo`,
+commit `f41f621e09822cc6ba48f3d791c41c239ebb6335`, git blob
+`e47b699caed03db066575af01006d83067564b59`). The replacement retains the
+official one-cell selection/download/load/launch mechanics — including
+`%cd /content`, `--model <URL>` handled by KoboldCpp itself, upstream's
+`wget` latest-binary line and mirror fallback, `aria2` installation, the
+feature command fragments, deletion block, GPU check, Drive handling, and
+localtunnel fallback. The narrow changes are the badge/instructions,
+four coding/API quick presets and manual model dropdown, context
+defaults, `DeleteExistingModels` default OFF, small Dionysus setting
+fragments for `--quantkv`, flash attention, batch size, generation limit,
+parallel requests, MMQ, web search, remote tunnel, generated password
+environment values, and `ExtraArgs`, plus omission of the non-loader
+silent-audio cell.
+
+This intentionally supersedes §6's pinned-binary/custom-downloader
+choices in order to preserve upstream's working inner code at the owner's
+direction. The rebuilt notebook was executed locally in a Jupyter kernel
+under the exact fresh-`/content` condition with stubbed
+`wget`/`apt`/KoboldCpp commands; the unmodified upstream loader was run
+in the same harness, and all four adapted presets plus a manual override
+reached the expected fake launch arguments. A real Colab GPU/model/tunnel
+run by the owner is still pending, and W-021/Q14 remains open.

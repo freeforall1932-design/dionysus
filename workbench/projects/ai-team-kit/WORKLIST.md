@@ -402,10 +402,16 @@ owner decides the core pool is enough and this item is parked.
   the owner explicitly requested a direct test link, so an owner-directed
   test notebook was added at `workbench/projects/kobold-cli/kobold-cli.ipynb`
   with a one-line link in `workbench/projects/kobold-cli/COLAB_LINK.txt`.
-  It defaults to preflight-only, includes no keep-alive trick, and had not
-  been run on Colab when added. That exception does **not** close this item:
-  terms/limits/runtime evidence remains open before the endpoint is relied
-  on. The same session's broader stale/bug sweep is
+  The first custom version then failed in the owner's real Colab run
+  (`FileNotFoundError: /content/kobold-cli`) and was replaced the same day
+  by an adaptation of the actual official notebook: upstream's
+  download/load/launch cell is retained, with coding/API presets/defaults
+  changed and the silent-audio keep-alive cell omitted. The replacement
+  passed local Jupyter execution with stubbed download/binary commands,
+  but a successful real Colab GPU/model/tunnel run is still pending. That
+  exception does **not** close this item: terms/limits/runtime evidence
+  remains open before the endpoint is relied on. The same session's
+  broader stale/bug sweep is
   `workbench/projects/CODEBASE_SWEEP_AUDIT_2026-10-18.md`.
 - **Odysseus coverage:** already answered at file level—absent from v1. Any
   recommendation about its Council/personas and the adaptive design belongs

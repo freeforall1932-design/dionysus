@@ -231,3 +231,21 @@ above, not silent fixes.
 LiteLLM/dashboard runtime; real provider accounts; Qt/CMake compilation
 (no Qt/CMake in this sandbox); Hyprland/Waybar desktop behaviour; any
 linked repo's full test suite beyond the hash/lint checks named above.
+
+## Postscript — owner Colab runtime correction (later on 2026-10-18)
+
+The Kobold notebook described in SW-04 was then run by the owner in real
+Colab and failed with `FileNotFoundError: /content/kobold-cli`: its
+custom preflight called `shutil.disk_usage()` on that child directory
+before creating it. The local evidence in §1 therefore did **not** cover
+the exact fresh-Colab filesystem state. At the owner's correction, the
+notebook was replaced by an adaptation of the actual official KoboldCpp
+`colab.ipynb` at `concedo@f41f621…`, retaining upstream's
+download/load/launch cell and changing coding/API presets/defaults; the
+silent-audio cell was omitted. The replacement was executed locally in a
+Jupyter kernel with `/content` present and no `/content/kobold-cli`,
+using stubbed `wget`/`apt`/KoboldCpp commands, and all presets/manual
+override reached the expected fake launch. The current description and
+remaining limits are in `kobold-cli/README.md` and §7 of
+`kobold-cli/COLAB_NOTEBOOK_DISSECTION_2026-10-18.md`; treat SW-04's
+custom-notebook details as superseded history.

@@ -66,7 +66,7 @@
       "id": "projects/kobold-cli",
       "kind": "project",
       "layer": "project",
-      "stack": "KoboldCpp on Google Colab (owner test notebook; not yet run on Colab)",
+      "stack": "KoboldCpp on Google Colab (adapted official notebook; replacement not yet owner-run on Colab)",
       "entry": "projects/kobold-cli/README.md",
       "read_when": "the task involves running KoboldCpp on Colab as a pooled API endpoint for the AI team, the test notebook, or its direct Colab link",
       "skip_when": "any other project; do not treat the endpoint as relied-on infrastructure until W-021 terms evidence exists",

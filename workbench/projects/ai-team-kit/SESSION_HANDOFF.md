@@ -54,12 +54,17 @@ quantization and a generic args field are genuinely absent).
 The owner then explicitly asked for a direct Colab test link and a
 codebase sweep. That added `workbench/projects/kobold-cli/kobold-cli.ipynb`
 plus the one-line `workbench/projects/kobold-cli/COLAB_LINK.txt`, and
-`workbench/projects/CODEBASE_SWEEP_AUDIT_2026-10-18.md`. The notebook
-defaults to preflight-only (no download/tunnel), pins and hash-checks
-KoboldCpp `v1.123.1`, and had **not** been run on Colab when committed.
-This owner-directed exception does not close W-021/Q14: Colab
-terms/limits/runtime evidence is still required before the endpoint is
-relied on.
+`workbench/projects/CODEBASE_SWEEP_AUDIT_2026-10-18.md`. The first custom
+notebook failed in the owner's real Colab run with
+`FileNotFoundError: /content/kobold-cli`; at the owner's correction it was
+then rebuilt from the actual official KoboldCpp notebook, retaining
+upstream's download/load/launch cell and changing only coding/API
+presets/default settings (plus omitting the silent-audio cell). The
+replacement passed local Jupyter execution with stubbed
+download/binary commands, but a successful real Colab GPU/model/tunnel
+run is still pending. This owner-directed exception does not close
+W-021/Q14: Colab terms/limits/runtime evidence is still required before
+the endpoint is relied on.
 
 The preceding owner-named 2026-10-17 reorganisation/audit task did the
 following:
@@ -216,6 +221,6 @@ Recommended order is in `WORKLIST.md`, but a recommendation is not permission.
 - Terms/licences come before using a provider, persona pack, skill, or
   third-party code. In particular, do not rely on the owner-directed Colab
   test notebook as pool infrastructure until Q14/W-021 has checked the
-  current official terms and any tunnel exposure; its default preflight
-  mode is the safe first step.
+  current official terms and any tunnel exposure. The rebuilt notebook is
+  an upstream-based adaptation, not Colab-runtime proof.
 - The owner reviews and merges pull requests. No auto-merge assumption.

@@ -48,12 +48,32 @@ jobs:
       - name: validate_skills (frontmatter, links, machine paths, universal hash, projects pointers)
         run: python3 workbench/skills/validate_skills.py
 
-      - name: Notebooks parse, code cells compile, and no outputs are committed
+      - name: Notebooks parse, Python portions compile, and no outputs are committed
         run: |
           python3 - <<'PY'
           import ast
           import json
           from pathlib import Path
+
+          def python_portion(source):
+              # Colab/Jupyter cells may contain IPython shell escapes (!) and
+              # line magics (%cd, etc.), which are not Python syntax. The
+              # official KoboldCpp loader cell uses both. Replace only those
+              # standalone IPython lines with pass so the remaining Python
+              # is still syntax-checked. Cell magics (%%...) are not Python
+              # cell bodies and are skipped.
+              lines = source.splitlines()
+              if any(line.strip().startswith("%%") for line in lines):
+                  return ""
+              out = []
+              for line in lines:
+                  stripped = line.lstrip()
+                  indent = line[: len(line) - len(stripped)]
+                  if stripped.startswith(("!", "%")):
+                      out.append(indent + "pass")
+                  else:
+                      out.append(line)
+              return "\n".join(out)
 
           paths = sorted(Path("workbench").rglob("*.ipynb"))
           for path in paths:
@@ -64,7 +84,7 @@ jobs:
                       continue
                   source = cell.get("source", "")
                   source = "".join(source) if isinstance(source, list) else source
-                  ast.parse(source, filename=f"{path}:cell-{index}")
+                  ast.parse(python_portion(source), filename=f"{path}:cell-{index}")
                   assert cell.get("outputs", []) == [], f"{path}:cell-{index}: outputs must not be committed"
                   assert cell.get("execution_count") is None, f"{path}:cell-{index}: execution_count must be null"
               print("ok", path)
