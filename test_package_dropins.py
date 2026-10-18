@@ -14,7 +14,8 @@ class DropinTests(unittest.TestCase):
     def test_real_roots_and_legacy_targets(self):
         for name, old in (("skills", "workbench/skills"),
                           ("gifscythe", "workbench/projects/gifscythe"),
-                          ("shotgun-king-anew", "workbench/projects/shotgun-king-anew")):
+                          ("shotgun-king-anew", "workbench/projects/shotgun-king-anew"),
+                          ("Odysseus API model team kit", "workbench/projects/ai-team-kit")):
             self.assertTrue((pkg.ROOT / name).is_dir())
             self.assertFalse((pkg.ROOT / name).is_symlink())
             self.assertEqual((pkg.ROOT / old).resolve(), pkg.ROOT / name)
@@ -35,6 +36,8 @@ class DropinTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp)
             paths = pkg.build(pkg.ROOT, output)
+            self.assertEqual({p.stem for p in paths}, set(pkg.NAMES))
+            self.assertEqual(len(paths), 4)
             first = {p.name: hashlib.sha256(p.read_bytes()).digest() for p in paths}
             for p in pkg.build(pkg.ROOT, output):
                 self.assertEqual(hashlib.sha256(p.read_bytes()).digest(), first[p.name])

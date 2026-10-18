@@ -1,3 +1,7 @@
+> **Team-kit migration update:** the live ai-team-kit project is now the real
+> root folder named Odysseus API model team kit, downloadable as a fourth ZIP.
+> Its old projects/ai-team-kit path remains a compatibility symlink.
+
 > **2026-10-18 migration update:** Dionysus is the skills testing ground. Live
 > reusable skills and the two portable project-support folders now live at the
 > repository root. Old workbench paths below resolve through compatibility

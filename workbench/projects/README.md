@@ -1,3 +1,7 @@
+> **Migration update:** ai-team-kit now lives in the real root folder named
+> Odysseus API model team kit. The old project path below is a compatibility
+> symlink. Read the root folder MIGRATION.md for portable installation.
+
 # projects/ — pointers to project overlays (layer 3)
 
 A project overlay — status register, handoff, task board, decision log, IDs,

@@ -10,6 +10,8 @@ This repository remains the owner's skills testing ground after migration.
 Root skills/ is canonical here. Root gifscythe/ and shotgun-king-anew/ are
 portable supporting-material folders, not the full projects or authoritative
 project status. Begin with their MIGRATION.md. Keep future skills in root skills/.
+The root folder "Odysseus API model team kit" holds the live team-kit project
+(previously workbench/projects/ai-team-kit); read its MIGRATION.md before use.
 The old workbench paths are compatibility symlinks only. Historical research
 bundles are frozen evidence, not another authoring source.
 

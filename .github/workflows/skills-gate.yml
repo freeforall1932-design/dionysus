@@ -13,6 +13,7 @@ on:
     paths:
       - "workbench/**"
       - "skills/**"
+      - "Odysseus API model team kit/**"
       - "gifscythe/**"
       - "shotgun-king-anew/**"
       - "package_dropins.py"
@@ -25,6 +26,7 @@ on:
     paths:
       - "workbench/**"
       - "skills/**"
+      - "Odysseus API model team kit/**"
       - "gifscythe/**"
       - "shotgun-king-anew/**"
       - "package_dropins.py"
@@ -55,11 +57,16 @@ jobs:
           python3 -m unittest -v test_package_dropins
           python3 package_dropins.py
 
+      - name: Team-kit shell syntax (no installation or provider calls)
+        run: |
+          bash -n "Odysseus API model team kit/kit/harness/install.sh"
+          bash -n "Odysseus API model team kit/kit/harness/harness.sh"
+
       - name: Python version (the gate targets the runner's stock python3)
         run: python3 --version
 
       - name: Syntax of every Python file under workbench/
-        run: python3 -m compileall -q workbench
+        run: python3 -m compileall -q workbench "Odysseus API model team kit"
 
       - name: qt_lint self-test (the guard must be able to fail)
         run: python3 workbench/skills/qt6-cmake-cpp/scripts/qt_lint.py --selftest

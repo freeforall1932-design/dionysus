@@ -78,3 +78,33 @@ upload. It reported upload-artifact v5 targeting deprecated Node 20. Checked
 upstream action metadata on 2026-10-18: v6 declares node24; changed the new
 artifact step to v6. Final-revision CI is reported in the PR/session response.
 PR: https://github.com/freeforall1932-design/dionysus/pull/4
+
+## Fourth portable folder — owner follow-up, 2026-10-18
+
+Changed: moved the live ai-team-kit project to the real root folder named
+Odysseus API model team kit. Kept its old workbench path as a compatibility
+symlink. Added MIGRATION.md, renamed the README heading and updated root
+loaders, catalog pointers, CI triggers/syntax checks and packaging to produce
+four ZIPs. Existing harness source is unchanged; the name is not a claim that
+the planned Odysseus integration is implemented. Nested harness skills remain
+project-specific runtime assets.
+
+Verified: workbench validator 376 passed; portable gate 74 passed; packaging
+suite 5 passed with four archive names explicitly asserted. All four ZIPs
+extracted byte-for-byte and reproduced identically. New team-kit archive has
+38 source/document files plus its generated SHA-256 manifest. Python compileall
+and bash -n on installer/harness passed; diff whitespace checks passed.
+
+Partial / left: no destination repository changes, installs, model calls,
+service startup or new kit behavior. The Kobold CLI companion remains separate
+and is explicitly not included in this ZIP. Existing audit/worklist issues are
+unchanged. No merge performed.
+
+Not verifiable here: live installation, provider quotas, router/OAT
+compatibility and actual Odysseus/Colab integration. Migration instructions
+warn about unpinned dependencies, remote installers, runtime state, launcher
+home-directory assumptions and the need to quote paths containing spaces.
+
+Docs touched: root README/loaders, workbench README/project index and table,
+team-kit README and MIGRATION, this session log. Next: inspect final PR CI,
+then download the fourth ZIP from portable-dropins or extract the root folder.
