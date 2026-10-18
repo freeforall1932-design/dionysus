@@ -241,3 +241,25 @@ under the exact fresh-`/content` condition with stubbed
 in the same harness, and all four adapted presets plus a manual override
 reached the expected fake launch arguments. A real Colab GPU/model/tunnel
 run by the owner is still pending, and W-021/Q14 remains open.
+
+## 8. Preset-list correction (later on 2026-10-18)
+
+The owner then objected to editorial preset names such as “Fast smoke
+test” and asked for a larger modern list plus the source of the real
+KoboldCpp presets. The source is not a separate preset repo: it is the
+`Template`/`Model` form variables and `if Template == ...` assignments in
+upstream's `colab.ipynb` at the commit/blob above.
+
+The four §7 presets were therefore replaced with **17 plainly named
+model + quantization presets** using direct Hugging Face
+`resolve/main/.../*.gguf` links in upstream's style. The default is now
+`Qwen3.5-9B Q5_K_M`. The full list, file sizes, preset contexts,
+Hugging Face sources, 16 GB T4-class fit criteria, and too-large modern
+models deliberately excluded are recorded in
+[`MODEL_PRESETS.md`](MODEL_PRESETS.md). Only the Template/Model setting
+values and preset assignments changed in this correction; the upstream
+download/load/launch mechanics retained in §7 were not rewritten. All 17
+presets plus the manual override were then re-executed in the local
+stubbed Jupyter harness and reached the expected fake launch arguments.
+Real Colab downloads/loads for these models remain untested by this
+session.

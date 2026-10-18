@@ -34,14 +34,16 @@ README to the `dionysus` branch in one small commit.
 
 1. Open the link and choose a GPU runtime if Colab does not already offer
    one.
-2. Leave the quick preset on **Fast smoke test - Qwen2.5-Coder 1.5B** and
-   leave the manual loader checkboxes unchecked.
+2. Leave the quick preset on **Qwen3.5-9B Q5_K_M** and
+   leave the manual loader checkboxes unchecked. Preset names are plain
+   model name + quantization; the full 17-entry list is in
+   [`MODEL_PRESETS.md`](MODEL_PRESETS.md).
 3. Press **Play on the one big code cell**. There is no separate preflight
    cell to run.
 4. Wait. Just like the official notebook, the first run downloads the
    current KoboldCpp Linux binary (about 0.65 GB), runs `apt update`,
    installs `aria2`, and then KoboldCpp downloads/loads the selected
-   model (about 1 GB for the smoke test). Several minutes before the
+   model (about 6.6 GB for the default preset). Several minutes before the
    Cloudflare URL appears is normal.
 5. Copy the printed **Dionysus API password**. For an API client, use the
    printed tunnel URL plus `/v1` as the base URL and that password as the
@@ -63,12 +65,12 @@ The adaptation is intentionally narrow:
 - The badge now reopens this Dionysus notebook, and the welcome text gives
   coding/API instructions.
 - The 15 upstream quick templates and long roleplay/general model dropdown
-  are replaced by four coding/API presets:
-  - Qwen2.5-Coder 1.5B Q4_K_M, context 16384 (fast smoke test);
-  - Qwen2.5-Coder 7B Q5_K_M, context 32768;
-  - Qwen2.5-Coder 14B Q4_K_M, context 32768;
-  - Mistral Small 3.2 24B Q4_K_S, context 10240 (tight fit).
-  The manual model field still accepts a custom GGUF URL, exactly as
+  are replaced by 17 plainly named presets (**model name + quantization
+  only**), curated for a 16 GB T4-class runtime in
+  [`MODEL_PRESETS.md`](MODEL_PRESETS.md). They span current Qwen3.5,
+  Qwen3, Qwen2.5-Coder, Qwen3-Coder, Devstral, Ministral 3, Mistral Small,
+  GPT-OSS, Gemma 4, Qwen3-VL, GLM-4.7-Flash, and Phi-4 GGUF files. The
+  manual model field still accepts a custom GGUF URL, exactly as
   upstream's manual path does.
 - Manual context defaults to 16384 and offers larger sizes.
 - `DeleteExistingModels` defaults **OFF** instead of upstream's ON, so a
@@ -113,8 +115,10 @@ Because the owner asked for upstream's working inner code to stay intact,
 this adaptation also retains upstream's **unpinned latest-binary
 download without a notebook-level hash check**. That is a deliberate
 trade-off in this rebuild, not a claim that pinning would be worse. The
-four preset model URLs themselves are pinned to Hugging Face revisions.
-KoboldCpp's remote-tunnel helper remains upstream behaviour.
+preset model URLs also follow upstream's style: direct Hugging Face
+`resolve/main/.../*.gguf` links, checked against the file trees on
+2026-10-18 and listed in `MODEL_PRESETS.md`. KoboldCpp's remote-tunnel
+helper remains upstream behaviour.
 
 ## Local execution evidence for this replacement
 
@@ -127,15 +131,18 @@ On 2026-10-18, after the owner's real-Colab error report:
 - the adapted notebook was executed in a Jupyter kernel with `/content`
   present but **no `/content/kobold-cli`**, a dummy
   `/opt/bin/nvidia-smi` file for upstream's existence check, and stub
-  `wget`/`apt`/KoboldCpp commands. It selected the 1.5B preset, reached
-  the fake launch, passed `--quantkv q8_0`, batch 512, parallel 1,
-  remote tunnel, and set both password environment variables;
+  `wget`/`apt`/KoboldCpp commands. In the current preset list it selected
+  `Qwen3.5-9B Q5_K_M`, reached the fake launch, passed `--quantkv q8_0`,
+  batch 512, parallel 1, remote tunnel, and set both password
+  environment variables;
 - the unmodified upstream loader cell was run in the same harness as a
   baseline and reached its fake launch;
-- all four adapted presets and a manual override (custom model URL,
+- all 17 adapted presets and a manual override (custom model URL,
   flash attention off, MMQ off, web search on, generation limit, and an
   extra draft-model argument) were executed the same way and produced
-  the expected final arguments.
+  the expected final model/context/projector arguments. The preset file
+  names and sizes were checked in the linked Hugging Face trees in
+  `MODEL_PRESETS.md`.
 
 That is real execution of the notebook logic, but it is **not** a real
 Colab run: the sandbox cannot allocate the owner's Colab GPU or use the
@@ -150,6 +157,10 @@ Colab run.
   changes above).
 - [`COLAB_LINK.txt`](COLAB_LINK.txt) — exactly one line: the direct
   “open this repo notebook in Colab” URL.
+- [`MODEL_PRESETS.md`](MODEL_PRESETS.md) — where the official KoboldCpp
+  preset source lives, plus the curated 17-model Hugging Face list,
+  file sizes, preset contexts, fit criteria, and excluded too-large
+  modern models.
 - [COLAB_NOTEBOOK_DISSECTION_2026-10-18.md](COLAB_NOTEBOOK_DISSECTION_2026-10-18.md)
   — primary-source anatomy and flag verdicts, plus a correction note
   recording why the first custom implementation was replaced by this
@@ -158,8 +169,8 @@ Colab run.
 ## Next steps (owner-named, not automatic)
 
 1. Owner opens the rebuilt notebook in Colab and presses Play on the big
-   cell with the default 1.5B smoke-test preset; report the tunnel/model
-   load result or the exact error.
+   cell with the default `Qwen3.5-9B Q5_K_M` preset; report the
+   tunnel/model load result or the exact error.
 2. W-021/Q14: verify current Colab free terms, session/usage rules, and
    whether tunnel/API use is acceptable before relying on this endpoint.
 3. Record the first successful real run here: GPU, VRAM, model, context,
