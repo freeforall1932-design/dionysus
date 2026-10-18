@@ -38,7 +38,7 @@ README to the `dionysus` branch in one small commit.
    one.
 2. Leave the quick preset on **Qwen3.5-9B Q5_K_M** and
    leave the manual loader checkboxes unchecked. Preset names are plain
-   model name + quantization; the full 17-entry list is in
+   model name + quantization; the full 20-entry list is in
    [`MODEL_PRESETS.md`](MODEL_PRESETS.md).
 3. Press **Play on the one big code cell**. There is no separate preflight
    cell to run.
@@ -83,12 +83,12 @@ The adaptation is intentionally narrow:
 - The badge now reopens this Dionysus notebook, and the welcome text gives
   coding/API instructions.
 - The 15 upstream quick templates and long roleplay/general model dropdown
-  are replaced by 17 plainly named presets (**model name + quantization
-  only**), curated for full-GPU loading on a free-Colab T4-class
-  runtime (about 15 GB usable VRAM) in
-  [`MODEL_PRESETS.md`](MODEL_PRESETS.md). They span current Qwen3.5,
+  are replaced by 20 plainly named presets (**model name + quantization
+  only**) for a free-Colab T4-class runtime (about 15 GB usable VRAM)
+  in [`MODEL_PRESETS.md`](MODEL_PRESETS.md). They span current Qwen3.5,
   Qwen3, Qwen2.5-Coder, Qwen3-Coder, Devstral, Ministral 3, Mistral Small,
-  GPT-OSS, Gemma 4, Qwen3-VL, GLM-4.7-Flash, and Phi-4 GGUF files. The
+  GPT-OSS, Gemma 4, Qwen3-VL, GLM-4.7-Flash, Phi-4, Bonsai, and
+  Ternary-Bonsai GGUF files. The
   manual model field still accepts a custom GGUF URL, exactly as
   upstream's manual path does.
 - Upstream's image-generation, speech-recognition, TTS, embeddings,
@@ -155,10 +155,24 @@ The important Colab correction is that “16 GB” is not the whole
 machine, but it is also not one pooled memory budget. A T4 is marketed
 at 16 GB VRAM, Colab commonly exposes about 15 GB usable GPU RAM, and
 a standard runtime has roughly 12–13 GB separate system RAM. Quick
-presets set GPU layers to 999 and are therefore curated for full-GPU
+presets set GPU layers to 999 and are therefore aimed at full-GPU
 loading. Manual `Layers = Auto` can spill some layers into system RAM
 at lower speed, but both pools still have to hold their own portions
 plus runtime overhead.
+
+For the owner's stricter screen, count it as **model GiB + 1 GiB
+CUDA/driver + 1 GiB other runtime/compute + at least 1 GiB
+KV/context (more for longer context) <= about 15 GiB usable**. That
+leaves roughly 12 GiB for weights before longer-context KV. The three
+added Bonsai presets pass with slack: Bonsai-8B `Q1_0` is about
+5.33 GiB strict-estimated at 32768, Bonsai-27B `Q1_0` about
+6.54 GiB, and Ternary-Bonsai-27B `Q2_g64` about 10.07 GiB. The
+checked KoboldCpp source has standard `Q1_0` and group-64 `Q2_0`
+CUDA paths; Bonsai 2 special packs are **not** included because that
+build does not yet contain Bonsai 2's Hadamard runtime. Under this
+stricter arithmetic, the earlier 13.3–13.5 GB presets are tight
+rather than strict-safe; use manual `Auto`/lower context if one
+reports OOM. Arithmetic details are in `MODEL_PRESETS.md`.
 
 ## Local execution evidence for this replacement
 
@@ -177,7 +191,7 @@ On 2026-10-18, after the owner's real-Colab error report:
   environment variables;
 - the unmodified upstream loader cell was run in the same harness as a
   baseline and reached its fake launch;
-- after streamlining, all 17 adapted presets, a manual override
+- after streamlining and the Bonsai update, all 20 adapted presets, a manual override
   (custom model URL, flash attention off, MMQ off, web search on,
   generation limit, and an extra draft-model argument), and a manual
   Qwen3-VL image-reader selection were executed the same way and
@@ -201,7 +215,7 @@ Colab run.
 - [`COLAB_LINK.txt`](COLAB_LINK.txt) — exactly one line: the direct
   “open this repo notebook in Colab” URL.
 - [`MODEL_PRESETS.md`](MODEL_PRESETS.md) — where the official KoboldCpp
-  preset source lives, plus the curated 17-model Hugging Face list,
+  preset source lives, plus the curated 20-model Hugging Face list,
   file sizes, preset contexts, targeted article/community coding
   shortlist, explicit Colab VRAM/system-RAM findings, fit criteria, and
   excluded too-large modern models.
@@ -216,8 +230,9 @@ Colab run.
    cell with the default `Qwen3.5-9B Q5_K_M` preset; report the
    tunnel/model load result or the exact error.
 2. After that first proof, owner can compare one shortlisted coding
-   preset (Devstral, GPT-OSS, or Qwen3-Coder) and optionally test
-   Qwen3-VL with a non-sensitive app screenshot.
+   preset (Devstral, GPT-OSS, or Qwen3-Coder), optionally try a Bonsai
+   preset for its much smaller strict-memory footprint, and optionally
+   test Qwen3-VL with a non-sensitive app screenshot.
 3. W-021/Q14: verify current Colab free terms, session/usage rules, and
    whether tunnel/API use is acceptable before relying on this endpoint.
 4. Record the first successful real run here: GPU, VRAM, model, context,

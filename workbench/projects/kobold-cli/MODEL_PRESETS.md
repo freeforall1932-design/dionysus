@@ -70,6 +70,87 @@ the decimal GB shown by Hugging Face.
 | `Qwen3-VL-8B-Instruct Q6_K` | 6.73 GB + 1.16 GB `mmproj-BF16.gguf` | 32768 | Sole image-reader/OCR preset; the template also sets the matching projector. Upload/send a screenshot or image; it cannot view your screen automatically | [unsloth/Qwen3-VL-8B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-VL-8B-Instruct-GGUF/tree/main) |
 | `GLM-4.7-Flash Q3_K_S` | 13.3 GB | 8192 | Current GLM coding/agent MoE in a smaller quant for T4 headroom | [unsloth/GLM-4.7-Flash-GGUF](https://huggingface.co/unsloth/GLM-4.7-Flash-GGUF/tree/main) |
 | `Phi-4 Q4_K` | 9.05 GB | 16384 | Microsoft Phi-4 reasoning/coding model; preset stays at its 16K context class | [microsoft/phi-4-gguf](https://huggingface.co/microsoft/phi-4-gguf/tree/main) |
+| `Bonsai-8B Q1_0` | 1.16 GB | 32768 | PrismML 1-bit Qwen3-8B in the standard `Q1_0` GGUF pack; strict-reserve estimate about 5.33 GiB total (see Bonsai section) | [prism-ml/Bonsai-8B-gguf](https://huggingface.co/prism-ml/Bonsai-8B-gguf/tree/main) |
+| `Bonsai-27B Q1_0` | 3.8 GB | 32768 | PrismML 1-bit Qwen3.6-27B hybrid-attention model in the standard `Q1_0` pack; strict-reserve estimate about 6.54 GiB total | [prism-ml/Bonsai-27B-gguf](https://huggingface.co/prism-ml/Bonsai-27B-gguf/tree/main) |
+| `Ternary-Bonsai-27B Q2_g64` | 7.59 GB | 32768 | PrismML ternary Qwen3.6-27B in the official group-64 `Q2_0` pack; strict-reserve estimate about 10.07 GiB total | [prism-ml/Ternary-Bonsai-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-27B-gguf/tree/main) |
+
+## Bonsai additions and the owner's strict reserve rule
+
+The owner proposed a stricter back-of-the-envelope full-GPU rule:
+reserve **1 GiB for CUDA/driver**, **1 GiB for other runtime/compute
+buffers**, and **at least 1 GiB for KV/context — more for longer
+context**. The model weights must fit what remains:
+
+```text
+strict total (GiB) = model-file GiB + 1.00 CUDA/driver
+                   + 1.00 other runtime/compute
+                   + max(1.00, estimated q8_0 KV/context GiB)
+                   <= about 15.0 GiB usable GPU RAM
+```
+
+If the KV/context estimate is no more than 1 GiB, that means the model
+file itself must be about **12.0 GiB or less** (about 12.9 decimal GB
+as displayed by Hugging Face). Longer context lowers the weight
+allowance further. The added Bonsai rows pass this stricter screen:
+
+- **Bonsai-8B Q1_0:** 1.16 GB file = about 1.08 GiB. Its 36-layer,
+  8-KV-head, 128-head-dimension layout needs about 2.25 GiB of
+  `q8_0` KV at the preset 32768 context, so the strict estimate is
+  about **1.08 + 1 + 1 + 2.25 = 5.33 GiB**.
+- **Bonsai-27B Q1_0:** 3.8 GB file = about 3.54 GiB. Only 16 of its
+  64 hybrid-attention layers grow a full-attention KV cache; at 32768
+  that full-attention KV is about 1.0 GiB at `q8_0`, giving about
+  **3.54 + 1 + 1 + 1.0 = 6.54 GiB** (linear-attention state and other
+  work buffers are part of why the separate 1 GiB “other” reserve is
+  kept).
+- **Ternary-Bonsai-27B Q2_g64:** 7.59 GB file = about 7.07 GiB, so
+  about **7.07 + 1 + 1 + 1.0 = 10.07 GiB** at 32768.
+
+Compatibility mattered as much as size. The checked KoboldCpp source
+(`v1.123.1` / `concedo@f41f621...`) defines standard GGML `Q1_0`
+(type 41, group 128) and `Q2_0` (type 42, **group 64**) and contains
+CUDA dequantization/MMQ paths for both:
+<https://github.com/LostRuins/koboldcpp/blob/concedo/ggml/include/ggml.h>
+and
+<https://github.com/LostRuins/koboldcpp/blob/concedo/ggml/src/ggml-common.h>.
+That is why the notebook uses `Bonsai-*-Q1_0.gguf` and
+`Ternary-Bonsai-27B-Q2_g64.gguf`, **not** the similarly named legacy
+group-128 `Q2_0` file or a `PQ2_0` file. PrismML's troubleshooting
+page likewise warns that legacy no-`g64` ternary files use the wrong
+layout for current binaries and that `PQ2_0` needs PrismML's fork:
+<https://docs.prismml.com/resources/troubleshooting>.
+
+**Bonsai 2 is deliberately not a preset yet.** Its smaller
+`PTQ1_0`/`PQ2_0` packs use Prism-private GGML types, and even its
+standard-type `Q2_0` pack needs Bonsai 2's Hadamard activation
+runtime; PrismML says a runtime that knows only the tensor type can
+load it and produce gibberish
+(<https://docs.prismml.com/download/formats>). The checked KoboldCpp
+source does not yet contain `prism_hadamard`, so adding Bonsai 2 now
+could silently produce bad output rather than fail cleanly. Revisit
+it only after KoboldCpp syncs that runtime support.
+
+Fit is not the same as coding quality. PrismML's card reports strong
+benchmarks, but community/reviewer reports are mixed—especially for
+Bonsai-8B code generation—so these rows are added because their
+footprint/context arithmetic is unusually safe, not because this
+session proved they beat Devstral, GPT-OSS, or Qwen3-Coder. Real
+Colab speed, coherence, tool calling, and code quality still need an
+owner run.
+
+Under the same strict screen, four earlier rows do **not** pass even
+before replacing the 1 GiB context minimum with a larger actual KV
+estimate: `Qwen3.5-27B Q3_K_M`, `Devstral-Small-2-24B Q4_K_S`, and
+`Mistral-Small-3.2-24B Q4_K_S` are about 12.57 GiB of weights
+(15.57 GiB after the minimum 3 GiB reserve), and
+`GLM-4.7-Flash Q3_K_S` is about 12.39 GiB (15.39 GiB after reserves).
+They remain available, but should now be read as **tight presets**:
+they may still load when the real CUDA/other/KV usage is below these
+conservative reserves, otherwise use manual `Layers = Auto` and/or a
+lower context. `Qwen3-Coder-30B-A3B UD-IQ3_XXS` (about 14.97 GiB with
+the minimum reserve) and `GPT-OSS-20B MXFP4` (about 14.27 GiB) are
+borderline under the same arithmetic once longer-context KV is taken
+into account.
 
 ## Targeted article/community coding shortlist
 
@@ -98,9 +179,9 @@ shortlist is already in the dropdown:
   system-RAM pool.
 
 The default remains `Qwen3.5-9B Q5_K_M` for the first end-to-end run;
-that is not a claim that it out-codes Devstral, GPT-OSS, or
-Qwen3-Coder. Coding quality and speed on a real Colab T4 still need an
-owner run.
+that is not a claim that it out-codes Devstral, GPT-OSS, Qwen3-Coder,
+or the Bonsai additions. Coding quality and speed on a real Colab T4
+still need an owner run.
 
 ## Colab memory: GPU VRAM and system RAM are separate
 
@@ -138,11 +219,16 @@ owner run.
 - Every preset is one direct, non-split GGUF file (the vision preset is
   one model file plus its separate projector, using upstream's existing
   `CustomMmproj` path).
-- The largest model files were kept to about **13.5 GB or below**
-  (about 12.6 GiB), leaving room for the preset context's `q8_0` KV
-  cache and runtime buffers in roughly 15 GB usable Colab GPU RAM.
-  This is an estimate from file size and architecture, not a guarantee
-  for every Colab allocation or future KoboldCpp build.
+- The original list used a looser first-pass screen (largest files
+  about 13.5 GB / 12.6 GiB). The owner's stricter reserve rule above
+  now supersedes any broad claim that every row is strict-safe: use
+  model GiB + 1 GiB CUDA/driver + 1 GiB other + at least 1 GiB (or the
+  actual longer-context KV estimate) against about 15 GiB usable.
+  The Bonsai additions pass; the four 13.3–13.5 GB rows named above
+  are tight/manual-fallback candidates under that stricter rule.
+  Every figure remains an estimate from file size and architecture,
+  not a guarantee for every Colab allocation or future KoboldCpp
+  build.
 - Quick templates follow upstream behaviour and set GPU layers to 999.
   If a large preset runs out of VRAM on a particular runtime, use the
   manual path instead: check `LoadTextModel`, choose the same model URL,
@@ -180,21 +266,28 @@ larger GPU:
   (<https://insiderllm.com/guides/best-local-coding-models-2026/>), but
   that is not this notebook's full-GPU quick-preset target and no
   successful free-Colab load was proven in this check.
+- **Ternary Bonsai 2:** excluded for runtime compatibility, not size.
+  Its files would pass the strict memory screen, but the checked
+  KoboldCpp build does not yet contain Bonsai 2's Hadamard runtime;
+  see the Bonsai section above.
 
 ## Tested / not tested for this preset update
 
 - **Checked:** each Hugging Face repository/file name and displayed file
-  size on 2026-10-18; the targeted coding-shortlist and Colab-memory
-  sources above; notebook JSON/`nbformat`; the streamlined loader's
-  Python syntax after IPython transformation; local Jupyter execution of
-  the full default notebook, every preset, a manual text override, and
-  a manual Qwen3-VL image-reader selection with stubbed
-  `wget`/`apt`/KoboldCpp commands. Each reached the expected `--model`,
-  context, and (for Qwen3-VL) `--mmproj` arguments, and none emitted a
-  deleted image-generation/speech/TTS/embeddings/music/multiplayer
-  launch fragment.
+  size on 2026-10-18, including the three Bonsai blob pages; the
+  targeted coding-shortlist, Colab-memory, Bonsai-format, and
+  KoboldCpp-source checks above; notebook JSON/`nbformat`; the
+  streamlined loader's Python syntax after IPython transformation;
+  local Jupyter execution of the full default notebook, all 20
+  presets, a manual text override, and a manual Qwen3-VL
+  image-reader selection with stubbed `wget`/`apt`/KoboldCpp
+  commands. Each reached the expected `--model`, context, and (for
+  Qwen3-VL) `--mmproj` arguments, and none emitted a deleted
+  image-generation/speech/TTS/embeddings/music/multiplayer launch
+  fragment.
 - **Not tested here:** downloading every real model in Colab, loading
-  every architecture on a real T4, generation speed, output quality,
+  every architecture (including the new Q1_0/Q2_0 Bonsai tensor types)
+  on a real T4, generation speed, output quality/coherence,
   tool-calling quality, or tunnel/API behaviour. The sandbox cannot use
   the owner's Google account or allocate the owner's Colab GPU. A model
   being listed means its file/context budget was curated for the target,

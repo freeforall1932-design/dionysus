@@ -305,3 +305,39 @@ text override, and a manual Qwen3-VL image-reader selection reached
 the expected fake KoboldCpp launches, with no deleted-feature launch
 fragments. Real Colab allocation/download/GPU fit/speed/quality, a
 real screenshot test, and W-021/Q14 remain unproven/open.
+
+## 10. Bonsai and the owner's strict reserve rule (later on 2026-10-18)
+
+The owner then asked about the Bonsai model and proposed reserving
+1 GB for CUDA, 1 GB for other runtime work, and 1 GB (or more) for
+context, with the model required to fit the remainder. Applied in
+GiB to about 15 GiB usable Colab GPU RAM, the strict screen is:
+
+```text
+model GiB + 1 CUDA/driver + 1 other + max(1, estimated q8 KV) <= 15
+```
+
+Three compatible Bonsai presets were added (20 total), all at context
+32768:
+
+- `Bonsai-8B Q1_0` — 1.16 GB file; strict estimate about 5.33 GiB
+  including its about 2.25 GiB Qwen3-style KV at 32768.
+- `Bonsai-27B Q1_0` — 3.8 GB file; strict estimate about 6.54 GiB.
+- `Ternary-Bonsai-27B Q2_g64` — 7.59 GB official group-64 pack;
+  strict estimate about 10.07 GiB.
+
+The checked KoboldCpp `v1.123.1`/`concedo@f41f621...` source defines
+standard `Q1_0` (type 41) and group-64 `Q2_0` (type 42) with CUDA
+paths. It does **not** contain `prism_hadamard`, so Bonsai 2 packs
+were not added: its `PQ2_0`/`PTQ1_0` types are Prism-private, and its
+standard-type `Q2_0` pack still needs the Bonsai 2 Hadamard runtime
+and can otherwise load but produce gibberish. The legacy group-128
+`Q2_0` file was also avoided in favour of `Q2_g64`.
+
+The same strict arithmetic reclassifies the earlier 13.3–13.5 GB
+presets as tight rather than strict-safe; `MODEL_PRESETS.md` records
+the exact exception list. All 20 presets, the full default notebook,
+the manual text override, and the manual Qwen3-VL path were
+re-executed in the stubbed local Jupyter harness. Real Colab loading
+of the Q1_0/Q2_0 tensor types, speed, coherence, coding quality, and
+tool calling remain unproven.
