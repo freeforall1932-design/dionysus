@@ -12,8 +12,10 @@
 > `/content/kobold-cli` before creating that folder. The replacement does
 > not use that custom folder or custom downloader at all: it starts from
 > upstream's actual `colab.ipynb`, retains upstream's working
-> download/load/launch cell, and changes presets/default settings for
-> coding/API use. The replacement has been executed locally in a Jupyter
+> text-model download/load/launch cell, and changes presets/default
+> settings for coding/API use. It has since been streamlined at the
+> owner's request: unrelated extra model sections are deleted, leaving
+> text/coding models plus one Qwen3-VL image-reader/OCR path. The replacement has been executed locally in a Jupyter
 > kernel with stubbed download/binary commands, but it has **not yet been
 > owner-run in a real Colab GPU runtime**. W-021/Q14 terms evidence is
 > still open.
@@ -54,6 +56,22 @@ README to the `dionysus` branch in one small commit.
 If the run fails, send the last error/output section. Do not paste the API
 password into Git or a public issue.
 
+### Screenshot / image-reader run
+
+To let the model read an app screenshot or perform OCR:
+
+1. Restart the big cell with the quick preset set to
+   **Qwen3-VL-8B-Instruct Q6_K** and leave the manual checkboxes
+   unchecked. That preset loads the matched model and image projector
+   together.
+2. Open the KoboldCpp tunnel URL.
+3. Upload/send the screenshot or image and ask what text/UI state it
+   shows.
+
+The model cannot see your screen automatically; you have to supply the
+image. Avoid uploading screenshots containing passwords, private keys,
+or other sensitive information to a temporary tunnel.
+
 ## Exactly what changed from the official notebook
 
 Base file: `LostRuins/koboldcpp/colab.ipynb`, branch `concedo`, commit
@@ -66,12 +84,18 @@ The adaptation is intentionally narrow:
   coding/API instructions.
 - The 15 upstream quick templates and long roleplay/general model dropdown
   are replaced by 17 plainly named presets (**model name + quantization
-  only**), curated for a 16 GB T4-class runtime in
+  only**), curated for full-GPU loading on a free-Colab T4-class
+  runtime (about 15 GB usable VRAM) in
   [`MODEL_PRESETS.md`](MODEL_PRESETS.md). They span current Qwen3.5,
   Qwen3, Qwen2.5-Coder, Qwen3-Coder, Devstral, Ministral 3, Mistral Small,
   GPT-OSS, Gemma 4, Qwen3-VL, GLM-4.7-Flash, and Phi-4 GGUF files. The
   manual model field still accepts a custom GGUF URL, exactly as
   upstream's manual path does.
+- Upstream's image-generation, speech-recognition, TTS, embeddings,
+  AceStep/music, and multiplayer form sections, command-construction
+  blocks, and final launch fragments are deleted. The only retained
+  non-text loader path is the Qwen3-VL image reader/OCR: one quick
+  preset plus one matched manual projector choice.
 - Manual context defaults to 16384 and offers larger sizes.
 - `DeleteExistingModels` defaults **OFF** instead of upstream's ON, so a
   model already in `/content` during the same runtime is reused.
@@ -100,9 +124,8 @@ The following are not rewritten:
 - optional Google Drive save handling;
 - `%cd /content` (Colab already provides `/content`; no custom
   `/content/kobold-cli` directory is needed);
-- construction of `MdCommand`, `VCommand`, `SCommand`, `WCommand`,
-  `TTSCommand`, `ECommand`, `MuCommand`, and `MPCommand` for upstream's
-  text/vision/image/speech/TTS/embeddings/music/multiplayer options;
+- construction of `MdCommand` for the text model and `VCommand` for
+  the retained Qwen3-VL image-reader projector;
 - the existing model-deletion block (only its default changed);
 - upstream's binary download line, including latest-release URL and
   mirror fallback;
@@ -119,6 +142,23 @@ preset model URLs also follow upstream's style: direct Hugging Face
 `resolve/main/.../*.gguf` links, checked against the file trees on
 2026-10-18 and listed in `MODEL_PRESETS.md`. KoboldCpp's remote-tunnel
 helper remains upstream behaviour.
+
+## Targeted coding-shortlist and memory check
+
+The articles/community posts checked for this streamlining repeatedly
+shortlist **Devstral Small 2 24B**, **GPT-OSS-20B**, and
+**Qwen3-Coder-30B-A3B** for 16 GB-class coding; all three were already
+presets. The evidence and exact fit caveats are in
+[`MODEL_PRESETS.md`](MODEL_PRESETS.md).
+
+The important Colab correction is that “16 GB” is not the whole
+machine, but it is also not one pooled memory budget. A T4 is marketed
+at 16 GB VRAM, Colab commonly exposes about 15 GB usable GPU RAM, and
+a standard runtime has roughly 12–13 GB separate system RAM. Quick
+presets set GPU layers to 999 and are therefore curated for full-GPU
+loading. Manual `Layers = Auto` can spill some layers into system RAM
+at lower speed, but both pools still have to hold their own portions
+plus runtime overhead.
 
 ## Local execution evidence for this replacement
 
@@ -137,12 +177,15 @@ On 2026-10-18, after the owner's real-Colab error report:
   environment variables;
 - the unmodified upstream loader cell was run in the same harness as a
   baseline and reached its fake launch;
-- all 17 adapted presets and a manual override (custom model URL,
-  flash attention off, MMQ off, web search on, generation limit, and an
-  extra draft-model argument) were executed the same way and produced
-  the expected final model/context/projector arguments. The preset file
-  names and sizes were checked in the linked Hugging Face trees in
-  `MODEL_PRESETS.md`.
+- after streamlining, all 17 adapted presets, a manual override
+  (custom model URL, flash attention off, MMQ off, web search on,
+  generation limit, and an extra draft-model argument), and a manual
+  Qwen3-VL image-reader selection were executed the same way and
+  produced the expected final model/context/projector arguments. The
+  fake launches contained none of the deleted
+  image-generation/speech/TTS/embeddings/music/multiplayer fragments.
+  The preset file names and sizes were checked in the linked Hugging
+  Face trees in `MODEL_PRESETS.md`.
 
 That is real execution of the notebook logic, but it is **not** a real
 Colab run: the sandbox cannot allocate the owner's Colab GPU or use the
@@ -159,8 +202,9 @@ Colab run.
   “open this repo notebook in Colab” URL.
 - [`MODEL_PRESETS.md`](MODEL_PRESETS.md) — where the official KoboldCpp
   preset source lives, plus the curated 17-model Hugging Face list,
-  file sizes, preset contexts, fit criteria, and excluded too-large
-  modern models.
+  file sizes, preset contexts, targeted article/community coding
+  shortlist, explicit Colab VRAM/system-RAM findings, fit criteria, and
+  excluded too-large modern models.
 - [COLAB_NOTEBOOK_DISSECTION_2026-10-18.md](COLAB_NOTEBOOK_DISSECTION_2026-10-18.md)
   — primary-source anatomy and flag verdicts, plus a correction note
   recording why the first custom implementation was replaced by this
@@ -171,7 +215,10 @@ Colab run.
 1. Owner opens the rebuilt notebook in Colab and presses Play on the big
    cell with the default `Qwen3.5-9B Q5_K_M` preset; report the
    tunnel/model load result or the exact error.
-2. W-021/Q14: verify current Colab free terms, session/usage rules, and
+2. After that first proof, owner can compare one shortlisted coding
+   preset (Devstral, GPT-OSS, or Qwen3-Coder) and optionally test
+   Qwen3-VL with a non-sensitive app screenshot.
+3. W-021/Q14: verify current Colab free terms, session/usage rules, and
    whether tunnel/API use is acceptable before relying on this endpoint.
-3. Record the first successful real run here: GPU, VRAM, model, context,
+4. Record the first successful real run here: GPU, VRAM, model, context,
    load time, tunnel reachability, and an actual tool-calling probe.

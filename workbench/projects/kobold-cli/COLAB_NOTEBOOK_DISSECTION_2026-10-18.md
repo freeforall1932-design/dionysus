@@ -263,3 +263,45 @@ presets plus the manual override were then re-executed in the local
 stubbed Jupyter harness and reached the expected fake launch arguments.
 Real Colab downloads/loads for these models remain untested by this
 session.
+
+## 9. Streamlining and targeted memory/coder check (later on 2026-10-18)
+
+The owner then noted that the §8 notebook still exposed upstream's
+AceStep/music, image-generation, speech-recognition, TTS, vision,
+embeddings, and other loaders. At that explicit direction, the adapted
+loader was narrowed in place:
+
+- deleted the image-generation, Whisper/speech-recognition, TTS,
+  embeddings, AceStep/music, and multiplayer form sections;
+- deleted their checked-box/manual-print/start-print handling, command
+  construction (`SCommand`, `WCommand`, `TTSCommand`, `ECommand`,
+  `MuCommand`, `MPCommand`), and final launch fragments;
+- retained exactly one image-reader/OCR path: the
+  `Qwen3-VL-8B-Instruct Q6_K` preset and its matched BF16 `mmproj`.
+  The manual projector dropdown now offers only that matched file.
+  Using it still requires uploading/sending an image; it does not let
+  the model watch the owner's screen automatically.
+
+The text-model selection, `--model <URL>`, binary download, GPU check,
+Drive/localtunnel utilities, Dionysus setting fragments, password
+handling, model-deletion block, and final upstream-style launch flow
+were otherwise retained.
+
+A targeted article/community check (not another exhaustive survey)
+found the repeated 16 GB-class coding shortlist—Devstral Small 2,
+GPT-OSS-20B, and Qwen3-Coder-30B-A3B—already present in §8. Explicit
+third-party Colab-memory sources state the important split: a T4 is
+marketed as 16 GB VRAM but exposes about 15 GB usable GPU RAM in
+Colab, while a standard runtime has roughly 12–13 GB separate system
+RAM. Those pools are not unified. The notebook's quick presets set
+GPU layers to 999 and remain curated for full-GPU loading; manual
+`Layers = Auto` (`--gpulayers -1`) may spill layers into system RAM at
+lower speed. Sources and article-specific caveats are recorded in
+[`MODEL_PRESETS.md`](MODEL_PRESETS.md).
+
+The streamlined notebook was re-executed locally in the same stubbed
+Jupyter harness: the full default notebook, all 17 presets, a manual
+text override, and a manual Qwen3-VL image-reader selection reached
+the expected fake KoboldCpp launches, with no deleted-feature launch
+fragments. Real Colab allocation/download/GPU fit/speed/quality, a
+real screenshot test, and W-021/Q14 remain unproven/open.
