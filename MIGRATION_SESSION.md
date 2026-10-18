@@ -70,3 +70,11 @@ inspect CI for its exact revision, then merge only on owner direction. After
 merge, download the three root folders from the repository ZIP or the CI
 portable-dropins artifact; append loaders instead of overwriting existing ones.
 Record source and destination commit IDs in each destination's own handoff.
+
+## First remote CI and follow-up
+
+Push run 39106408930 passed all jobs on commit 53a750e, including ZIP artifact
+upload. It reported upload-artifact v5 targeting deprecated Node 20. Checked
+upstream action metadata on 2026-10-18: v6 declares node24; changed the new
+artifact step to v6. Final-revision CI is reported in the PR/session response.
+PR: https://github.com/freeforall1932-design/dionysus/pull/4

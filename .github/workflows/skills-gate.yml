@@ -124,7 +124,7 @@ jobs:
           done < <(git ls-files -z 'workbench/**/*.json' 'skills/**/*.json' 'gifscythe/**/*.json' 'shotgun-king-anew/**/*.json')
 
       - name: Downloadable drop-in ZIPs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: portable-dropins
           path: dropins/*.zip
