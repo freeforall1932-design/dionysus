@@ -26,6 +26,17 @@
       "last_verified": "2026-10-14"
     },
     {
+      "id": "skills/lua-game-modding",
+      "kind": "skill",
+      "layer": "workload",
+      "stack": "Lua game mods",
+      "entry": "skills/lua-game-modding/SKILL.md",
+      "read_when": "Lua mod hook, engine boundary, input safety or fake-engine testing tasks",
+      "skip_when": "no Lua game mod involved",
+      "session_added": "2026-10-18",
+      "last_verified": "2026-10-18"
+    },
+    {
       "id": "projects/gifscythe",
       "kind": "project-pointer",
       "layer": "project",
@@ -55,12 +66,14 @@
       "id": "projects/ai-team-kit",
       "kind": "project",
       "layer": "project",
-      "stack": "Python / Bash — free-API AI team kit (in-repo, not a pointer)",
-      "entry": "projects/ai-team-kit/README.md",
+      "stack": "Python / Bash \u2014 portable root project; legacy workbench symlink",
+      "entry": "projects/ai-team-kit/MIGRATION.md",
       "read_when": "the task is the AI team kit: quota-aware free-provider pool, adaptive council/Odysseus direction, model scout, or harness code/docs",
       "skip_when": "any other project",
       "session_added": "2026-10-18",
-      "last_verified": "2026-10-18"
+      "last_verified": "2026-10-18",
+      "display_name": "Odysseus API model team kit",
+      "canonical_root": "Odysseus API model team kit"
     },
     {
       "id": "projects/kobold-cli",

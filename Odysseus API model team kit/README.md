@@ -1,4 +1,9 @@
-# AI Team Kit
+# Odysseus API model team kit
+
+> **Migration update:** this project now lives in the root folder named
+> **Odysseus API model team kit** and ships as a fourth portable ZIP. Start with
+> [MIGRATION.md](MIGRATION.md). The original workbench path is a compatibility
+> symlink. This is a packaging/name change, not a completed Odysseus integration.
 
 > **Status on 2026-10-18: extracted, reorganised, and statically audited;
 > intended provider-pool/council direction recorded — waiting for the owner

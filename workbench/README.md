@@ -1,3 +1,14 @@
+> **Team-kit migration update:** the live ai-team-kit project is now the real
+> root folder named Odysseus API model team kit, downloadable as a fourth ZIP.
+> Its old projects/ai-team-kit path remains a compatibility symlink.
+
+> **2026-10-18 migration update:** Dionysus is the skills testing ground. Live
+> reusable skills and the two portable project-support folders now live at the
+> repository root. Old workbench paths below resolve through compatibility
+> symlinks. See the root README and each root MIGRATION.md for download/drop-in
+> instructions. The earlier "everything under workbench" convention below is
+> historical and no longer applies to those three folders.
+
 # workbench — everything in this fork that is not upstream Dionysus
 
 Upstream `pewdiepie-archdaemon/dionysus` is a Hyprland dotfiles repository
@@ -16,6 +27,7 @@ per unit) and the gate fails if a unit is missing from it or from this page.
 | Unit | Open it when | Skip it when |
 |---|---|---|
 | `skills/universal-agent-context` | every session in one of the owner's repos | never (always on) |
+| `skills/lua-game-modding` | Lua mod hooks, engine boundaries, input safety or fake-engine tests | no Lua game mod involved |
 | `skills/qt6-cmake-cpp` | the build entry point is CMake + `find_package(Qt6 …)` | no Qt 6 CMake target |
 | `projects/gifscythe` | the task is in gifscythe (Qt 6 app) | any other repo |
 | `projects/shotgun-king-anew` | the task is in shotgun-king-anew (Lua mod), or you want the REA capture/ledger example | any other repo or topic |

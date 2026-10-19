@@ -1,3 +1,8 @@
+> **Portable entry point:** read [MIGRATION.md](MIGRATION.md) for current
+> dependencies, safe scratch-clone reproduction and installation. This folder
+> is now a real root-level drop-in; older paths below are historical. The new
+> Lua workload lane is available in the separate skills folder.
+
 # shotgun-king-anew — project pointer
 
 **Open this folder only if** the task is in the owner's `shotgun-king-anew`
@@ -11,7 +16,7 @@ skip it; nothing here is needed by the skills or by the other project.
 | Read at | default branch, commit `4c4bf1bcc9e21c4b274736363e88e3f99065f157`, 2026-10-14 |
 | Stack | Lua 5.1 / LuaJIT mod (`sk-rework`) for Shotgun King's SUGAR engine; Python and PowerShell tools; no Qt, no CMake |
 | Overlay files **there** (never copied here) | `HANDOFF.md`, `WORKLIST.md`, `notes/game-internals.md`, `shotgun-king-anew/tools/mod_smoketest.py` (the executable UI↔engine contract, 68 checks × 4 iterator variants) |
-| Skills that apply | `skills/universal-agent-context` (fully); `skills/qt6-cmake-cpp` does **not** load (no Qt target); a `lua-game-modding` lane is a candidate only |
+| Skills that apply | `skills/universal-agent-context` (fully); `skills/qt6-cmake-cpp` does **not** load (no Qt target); the experimental `skills/lua-game-modding` lane now applies |
 
 ## Files in this folder
 

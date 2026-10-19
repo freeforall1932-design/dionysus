@@ -12,10 +12,28 @@ on:
   push:
     paths:
       - "workbench/**"
+      - "skills/**"
+      - "Odysseus API model team kit/**"
+      - "gifscythe/**"
+      - "shotgun-king-anew/**"
+      - "package_dropins.py"
+      - "test_package_dropins.py"
+      - "README.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
       - ".github/workflows/skills-gate.yml"
   pull_request:
     paths:
       - "workbench/**"
+      - "skills/**"
+      - "Odysseus API model team kit/**"
+      - "gifscythe/**"
+      - "shotgun-king-anew/**"
+      - "package_dropins.py"
+      - "test_package_dropins.py"
+      - "README.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
       - ".github/workflows/skills-gate.yml"
   workflow_dispatch:
 
@@ -33,11 +51,22 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Portable drop-ins (isolated extraction, byte integrity, reproducibility)
+        run: |
+          python3 skills/validate_skills.py --root . --layout portable --quiet
+          python3 -m unittest -v test_package_dropins
+          python3 package_dropins.py
+
+      - name: Team-kit shell syntax (no installation or provider calls)
+        run: |
+          bash -n "Odysseus API model team kit/kit/harness/install.sh"
+          bash -n "Odysseus API model team kit/kit/harness/harness.sh"
+
       - name: Python version (the gate targets the runner's stock python3)
         run: python3 --version
 
       - name: Syntax of every Python file under workbench/
-        run: python3 -m compileall -q workbench
+        run: python3 -m compileall -q workbench "Odysseus API model team kit"
 
       - name: qt_lint self-test (the guard must be able to fail)
         run: python3 workbench/skills/qt6-cmake-cpp/scripts/qt_lint.py --selftest
@@ -99,4 +128,12 @@ jobs:
           set -e
           while IFS= read -r -d '' f; do
             python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8')); print('ok', sys.argv[1])" "$f"
-          done < <(git ls-files -z 'workbench/**/*.json')
+          done < <(git ls-files -z 'workbench/**/*.json' 'skills/**/*.json' 'gifscythe/**/*.json' 'shotgun-king-anew/**/*.json')
+
+      - name: Downloadable drop-in ZIPs
+        uses: actions/upload-artifact@v6
+        with:
+          name: portable-dropins
+          path: dropins/*.zip
+          if-no-files-found: error
+          retention-days: 30
