@@ -12,7 +12,7 @@ c799bf6f73496c992673870f1e41aebd3bbc729495a56bfde6f2a51929ba0a9c  ./coding-agent
 34591a387f3ce1027b23a607bacbfc472d6b0fd5571cacf482a5bf1d90d28226  ./coding-agents/packs/claude/skills/qt6-cmake-cpp/references/crash-diagnosis.md
 89335ea2b2a2dae06e7ea9079aa1208b8428606752704a01cd800ea0c7caa2c2  ./coding-agents/packs/claude/skills/qt6-cmake-cpp/references/packaging.md
 04c496c36524d9c380937cc0d66ff1ff37f0d837949642072226d9e3c757a6f0  ./coding-agents/packs/claude/skills/qt6-cmake-cpp/references/platform-notes.md
-6d5ec95e17b4782201e74d736816375efdcc343261a78ce0e41447660821c943  ./coding-agents/packs/claude/skills/qt6-cmake-cpp/references/subprocess-engine.md
+f21af8d6f414916d766a992974799b56e30df13b9b7d59b0c6096faf9eefada9  ./coding-agents/packs/claude/skills/qt6-cmake-cpp/references/subprocess-engine.md
 48c418af179c4d8a1118cf94e299c3a7eb31925911b185ef838ee3ddcfc3a722  ./coding-agents/packs/claude/skills/qt6-cmake-cpp/references/testing.md
 955dbb5c41a8ec2e70f6e286a0b3469608e7867a05c3918d00ec10bc40ca6ce1  ./coding-agents/packs/claude/skills/qt6-cmake-cpp/references/ui-redesign.md
 50194e4e75efca45eb6bdba699a567c380ceeda87806a28e739053ee6a8673c4  ./coding-agents/packs/claude/skills/qt6-cmake-cpp/scripts/qt_lint.py
@@ -43,7 +43,7 @@ c799bf6f73496c992673870f1e41aebd3bbc729495a56bfde6f2a51929ba0a9c  ./coding-agent
 34591a387f3ce1027b23a607bacbfc472d6b0fd5571cacf482a5bf1d90d28226  ./coding-agents/packs/codex/skills/qt6-cmake-cpp/references/crash-diagnosis.md
 89335ea2b2a2dae06e7ea9079aa1208b8428606752704a01cd800ea0c7caa2c2  ./coding-agents/packs/codex/skills/qt6-cmake-cpp/references/packaging.md
 04c496c36524d9c380937cc0d66ff1ff37f0d837949642072226d9e3c757a6f0  ./coding-agents/packs/codex/skills/qt6-cmake-cpp/references/platform-notes.md
-6d5ec95e17b4782201e74d736816375efdcc343261a78ce0e41447660821c943  ./coding-agents/packs/codex/skills/qt6-cmake-cpp/references/subprocess-engine.md
+f21af8d6f414916d766a992974799b56e30df13b9b7d59b0c6096faf9eefada9  ./coding-agents/packs/codex/skills/qt6-cmake-cpp/references/subprocess-engine.md
 48c418af179c4d8a1118cf94e299c3a7eb31925911b185ef838ee3ddcfc3a722  ./coding-agents/packs/codex/skills/qt6-cmake-cpp/references/testing.md
 955dbb5c41a8ec2e70f6e286a0b3469608e7867a05c3918d00ec10bc40ca6ce1  ./coding-agents/packs/codex/skills/qt6-cmake-cpp/references/ui-redesign.md
 50194e4e75efca45eb6bdba699a567c380ceeda87806a28e739053ee6a8673c4  ./coding-agents/packs/codex/skills/qt6-cmake-cpp/scripts/qt_lint.py
@@ -66,7 +66,7 @@ a36688158cf14fe8d032e30252a0611f009d3192d185c340fd6fe273bdf73b05  ./coding-agent
 76f39cb250bad229ff4850505b7e92da858a98900ece88f5dcd1aaaa86fb38d9  ./coding-agents/packs/codex/skills/universal-agent-context/references/ui-behaviour-contract.md
 d313694505ca0b17cce3156afa25efc540f59edcb2c51194252121df4a5d955f  ./coding-agents/packs/codex/unified.md
 3dc0c26482e154b2f3ac96a3630364b766db3cba3be2cbb4ae907718832ce257  ./coding-agents/packs/codex/universal-agent-context.md
-5a6229d61ffe11396f02a7935ea3192cf39f3baba0f41e6932d5252413caf199  ./coding-agents/packs/coding-agents.zip
+18db61a50a2bf1b45f3ea94f391903f3bf2030815854af187dd55fa60bf583b7  ./coding-agents/packs/coding-agents.zip
 db10cb8b31ccd8f925dc613dc55aa44f650213634f48f3ca2a3ee87a22a9a7c2  ./coding-agents/packs/copilot/README.md
 d5cf64d910f9c038d0b6d48f138aad1506015511ad8b6be957b63ef6882af28a  ./coding-agents/packs/copilot/qt6-cmake-cpp.md
 c799bf6f73496c992673870f1e41aebd3bbc729495a56bfde6f2a51929ba0a9c  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/SKILL.md
@@ -75,7 +75,7 @@ c799bf6f73496c992673870f1e41aebd3bbc729495a56bfde6f2a51929ba0a9c  ./coding-agent
 34591a387f3ce1027b23a607bacbfc472d6b0fd5571cacf482a5bf1d90d28226  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/references/crash-diagnosis.md
 89335ea2b2a2dae06e7ea9079aa1208b8428606752704a01cd800ea0c7caa2c2  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/references/packaging.md
 04c496c36524d9c380937cc0d66ff1ff37f0d837949642072226d9e3c757a6f0  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/references/platform-notes.md
-6d5ec95e17b4782201e74d736816375efdcc343261a78ce0e41447660821c943  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/references/subprocess-engine.md
+f21af8d6f414916d766a992974799b56e30df13b9b7d59b0c6096faf9eefada9  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/references/subprocess-engine.md
 48c418af179c4d8a1118cf94e299c3a7eb31925911b185ef838ee3ddcfc3a722  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/references/testing.md
 955dbb5c41a8ec2e70f6e286a0b3469608e7867a05c3918d00ec10bc40ca6ce1  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/references/ui-redesign.md
 50194e4e75efca45eb6bdba699a567c380ceeda87806a28e739053ee6a8673c4  ./coding-agents/packs/copilot/skills/qt6-cmake-cpp/scripts/qt_lint.py
@@ -113,7 +113,7 @@ c799bf6f73496c992673870f1e41aebd3bbc729495a56bfde6f2a51929ba0a9c  ./coding-agent
 34591a387f3ce1027b23a607bacbfc472d6b0fd5571cacf482a5bf1d90d28226  ./coding-agents/packs/gemini/skills/qt6-cmake-cpp/references/crash-diagnosis.md
 89335ea2b2a2dae06e7ea9079aa1208b8428606752704a01cd800ea0c7caa2c2  ./coding-agents/packs/gemini/skills/qt6-cmake-cpp/references/packaging.md
 04c496c36524d9c380937cc0d66ff1ff37f0d837949642072226d9e3c757a6f0  ./coding-agents/packs/gemini/skills/qt6-cmake-cpp/references/platform-notes.md
-6d5ec95e17b4782201e74d736816375efdcc343261a78ce0e41447660821c943  ./coding-agents/packs/gemini/skills/qt6-cmake-cpp/references/subprocess-engine.md
+f21af8d6f414916d766a992974799b56e30df13b9b7d59b0c6096faf9eefada9  ./coding-agents/packs/gemini/skills/qt6-cmake-cpp/references/subprocess-engine.md
 48c418af179c4d8a1118cf94e299c3a7eb31925911b185ef838ee3ddcfc3a722  ./coding-agents/packs/gemini/skills/qt6-cmake-cpp/references/testing.md
 955dbb5c41a8ec2e70f6e286a0b3469608e7867a05c3918d00ec10bc40ca6ce1  ./coding-agents/packs/gemini/skills/qt6-cmake-cpp/references/ui-redesign.md
 50194e4e75efca45eb6bdba699a567c380ceeda87806a28e739053ee6a8673c4  ./coding-agents/packs/gemini/skills/qt6-cmake-cpp/scripts/qt_lint.py
@@ -144,7 +144,7 @@ c799bf6f73496c992673870f1e41aebd3bbc729495a56bfde6f2a51929ba0a9c  ./coding-agent
 34591a387f3ce1027b23a607bacbfc472d6b0fd5571cacf482a5bf1d90d28226  ./coding-agents/packs/opencode/skills/qt6-cmake-cpp/references/crash-diagnosis.md
 89335ea2b2a2dae06e7ea9079aa1208b8428606752704a01cd800ea0c7caa2c2  ./coding-agents/packs/opencode/skills/qt6-cmake-cpp/references/packaging.md
 04c496c36524d9c380937cc0d66ff1ff37f0d837949642072226d9e3c757a6f0  ./coding-agents/packs/opencode/skills/qt6-cmake-cpp/references/platform-notes.md
-6d5ec95e17b4782201e74d736816375efdcc343261a78ce0e41447660821c943  ./coding-agents/packs/opencode/skills/qt6-cmake-cpp/references/subprocess-engine.md
+f21af8d6f414916d766a992974799b56e30df13b9b7d59b0c6096faf9eefada9  ./coding-agents/packs/opencode/skills/qt6-cmake-cpp/references/subprocess-engine.md
 48c418af179c4d8a1118cf94e299c3a7eb31925911b185ef838ee3ddcfc3a722  ./coding-agents/packs/opencode/skills/qt6-cmake-cpp/references/testing.md
 955dbb5c41a8ec2e70f6e286a0b3469608e7867a05c3918d00ec10bc40ca6ce1  ./coding-agents/packs/opencode/skills/qt6-cmake-cpp/references/ui-redesign.md
 50194e4e75efca45eb6bdba699a567c380ceeda87806a28e739053ee6a8673c4  ./coding-agents/packs/opencode/skills/qt6-cmake-cpp/scripts/qt_lint.py
@@ -179,7 +179,7 @@ c799bf6f73496c992673870f1e41aebd3bbc729495a56bfde6f2a51929ba0a9c  ./coding-agent
 34591a387f3ce1027b23a607bacbfc472d6b0fd5571cacf482a5bf1d90d28226  ./coding-agents/packs/qwen/skills/qt6-cmake-cpp/references/crash-diagnosis.md
 89335ea2b2a2dae06e7ea9079aa1208b8428606752704a01cd800ea0c7caa2c2  ./coding-agents/packs/qwen/skills/qt6-cmake-cpp/references/packaging.md
 04c496c36524d9c380937cc0d66ff1ff37f0d837949642072226d9e3c757a6f0  ./coding-agents/packs/qwen/skills/qt6-cmake-cpp/references/platform-notes.md
-6d5ec95e17b4782201e74d736816375efdcc343261a78ce0e41447660821c943  ./coding-agents/packs/qwen/skills/qt6-cmake-cpp/references/subprocess-engine.md
+f21af8d6f414916d766a992974799b56e30df13b9b7d59b0c6096faf9eefada9  ./coding-agents/packs/qwen/skills/qt6-cmake-cpp/references/subprocess-engine.md
 48c418af179c4d8a1118cf94e299c3a7eb31925911b185ef838ee3ddcfc3a722  ./coding-agents/packs/qwen/skills/qt6-cmake-cpp/references/testing.md
 955dbb5c41a8ec2e70f6e286a0b3469608e7867a05c3918d00ec10bc40ca6ce1  ./coding-agents/packs/qwen/skills/qt6-cmake-cpp/references/ui-redesign.md
 50194e4e75efca45eb6bdba699a567c380ceeda87806a28e739053ee6a8673c4  ./coding-agents/packs/qwen/skills/qt6-cmake-cpp/scripts/qt_lint.py
@@ -224,7 +224,7 @@ c799bf6f73496c992673870f1e41aebd3bbc729495a56bfde6f2a51929ba0a9c  ./coding-agent
 298f72b2a7975e952a2c18c15507810a64e779f255e79fe4011bc5b6d1cd5ec4  ./coding-agents/variants/qt6-cmake-cpp/references/crash-diagnosis.md
 99dfacd528683141fbc682afc30fbecae3a06d9e1b9e1d91e0bbdd9b208a3d09  ./coding-agents/variants/qt6-cmake-cpp/references/packaging.md
 1c8eb64888d79f8dfea0df36b8ea07ae37b2a6f156456897c61e7ba1e51c3016  ./coding-agents/variants/qt6-cmake-cpp/references/platform-notes.md
-f9ecccdb1f32705c99b2c2fbe88c773c7bc4197145c0d5f75cfa8c77ed7141de  ./coding-agents/variants/qt6-cmake-cpp/references/subprocess-engine.md
+c4f5c1cf4bc5fb3cbd1e0233df0275baeab113342099922cd59f95a18467d5b2  ./coding-agents/variants/qt6-cmake-cpp/references/subprocess-engine.md
 23882c9a54ce4b1073040a72c6ed0baeb60935093b60450ffd6027d48a461e63  ./coding-agents/variants/qt6-cmake-cpp/references/testing.md
 fe1542d0fe43bf991a0f89b07be50e6e7b094d1cbef2c0d77d0e49d40c64066e  ./coding-agents/variants/qt6-cmake-cpp/references/ui-redesign.md
 50194e4e75efca45eb6bdba699a567c380ceeda87806a28e739053ee6a8673c4  ./coding-agents/variants/qt6-cmake-cpp/scripts/qt_lint.py

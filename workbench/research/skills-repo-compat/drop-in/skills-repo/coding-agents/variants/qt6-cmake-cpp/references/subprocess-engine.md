@@ -90,8 +90,11 @@ process_->start();
 3. **Explode/multi-output modes** verify by **directory diff** against a
    pre-launch snapshot (names + sizes), not by "exit 0".
 4. **Cancel keeps the previous good output.** Cancel = kill, reap, delete the
-   temp file, leave the original untouched, report "Cancelled" (and for modes
-   that already wrote partial frames, say so explicitly).
+   temp file, leave the original untouched, report "Cancelled". **The message
+   describes the WRITE STRATEGY, not the mode name:** a mode that writes in
+   place and already produced partial frames says so explicitly; a mode guarded
+   by staging + promote (rule 1) writes nothing visible on cancel and reports a
+   plain "Cancelled".
 5. **Plan batch targets before starting**: detect two inputs mapping to one
    output, an output equal to an input, and a constant name template over N
    files — refuse up front with a dialog that names the collision.
