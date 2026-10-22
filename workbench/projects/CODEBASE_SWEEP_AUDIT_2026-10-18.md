@@ -41,8 +41,9 @@ environment; the preserved one-run evidence remains 62 passed on
 
 ### SW-01 — P0: AI Team Kit v1 safety/correctness queue is still open
 
-The detailed source audit remains
-[`ai-team-kit/reports/CODE_AUDIT_2026-10-17.md`](ai-team-kit/reports/CODE_AUDIT_2026-10-17.md).
+The detailed source audit lives in `reports/CODE_AUDIT_2026-10-17.md` in the
+migrated AI Team Kit repository
+(<https://github.com/freeforall1932-design/odysseus-fork-but-api-dev>).
 This sweep found no reason to downgrade A-01…A-08:
 
 - NVIDIA/Mistral/Google free status is still encoded as `assume_free` in

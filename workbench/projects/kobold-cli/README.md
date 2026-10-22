@@ -3,8 +3,9 @@
 > **What this folder is for:** the Colab/KoboldCpp arm of the AI team —
 > while a Colab session is online, it should act as one pooled,
 > password-protected, OpenAI-style API endpoint the council can use; when
-> it is offline, the other free APIs carry on. Direction recorded in
-> [the AI Team Kit context](../ai-team-kit/PROJECT_CONTEXT.md).
+> it is offline, the other free APIs carry on. Direction recorded in the
+> migrated AI Team Kit repository
+> (<https://github.com/freeforall1932-design/odysseus-fork-but-api-dev>).
 >
 > **Status (2026-10-18): rebuilt from the official KoboldCpp notebook
 > after the owner reported that the first custom notebook failed in real
