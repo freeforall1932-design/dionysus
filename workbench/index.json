@@ -1,7 +1,7 @@
 {
-  "schema": "workbench-index/1",
-  "purpose": "Triage table for agents: decide from this file alone which units to open and which to skip. One entry per skill, project, research page and tool. Checked by skills/validate_skills.py (every entry path exists, every skills/* and projects/* directory and research page has an entry, every entry is named in README.md).",
-  "updated": "2026-10-18",
+  "schema_version": 1,
+  "generated_for": "workbench/",
+  "rule": "Read only what matches the task; skip everything else. Validate this file with skills/validate_skills.py.",
   "units": [
     {
       "id": "skills/universal-agent-context",
@@ -9,8 +9,8 @@
       "layer": "process",
       "stack": "any",
       "entry": "skills/universal-agent-context/SKILL.md",
-      "read_when": "every coding-agent session in one of the owner's repositories, before inspecting the repo",
-      "skip_when": "never; it is the always-on layer",
+      "read_when": "every coding session in one of this owner's repositories (always first)",
+      "skip_when": "never",
       "session_added": "2026-10-13",
       "last_verified": "2026-10-14"
     },
@@ -23,7 +23,7 @@
       "read_when": "the repository's real build entry point is a CMakeLists.txt that calls find_package(Qt6 ...) or qt_add_executable, or the task names Qt, QWidget, QML, moc, QProcess, QTest, windeployqt",
       "skip_when": "no Qt 6 CMake target in the repo (Lua mods, PyQt, .NET, web, scripts)",
       "session_added": "2026-10-13",
-      "last_verified": "2026-10-14"
+      "last_verified": "2026-10-23"
     },
     {
       "id": "skills/lua-game-modding",
@@ -35,45 +35,6 @@
       "skip_when": "no Lua game mod involved",
       "session_added": "2026-10-18",
       "last_verified": "2026-10-18"
-    },
-    {
-      "id": "projects/gifscythe",
-      "kind": "project-pointer",
-      "layer": "project",
-      "stack": "Qt 6 / CMake / C++",
-      "entry": "projects/gifscythe/NEXT_SESSION.md",
-      "repository": "https://github.com/freeforall1932-design/gifscythe",
-      "pinned_commit": "97b0758",
-      "read_when": "the task is in the gifscythe repository, or you are calibrating the Qt skill or qt_lint against a real tree",
-      "skip_when": "any other repository",
-      "session_added": "2026-10-13",
-      "last_verified": "2026-10-18"
-    },
-    {
-      "id": "projects/shotgun-king-anew",
-      "kind": "project-pointer",
-      "layer": "project",
-      "stack": "Lua 5.1 / LuaJIT mod for the SUGAR engine",
-      "entry": "projects/shotgun-king-anew/README.md",
-      "repository": "https://github.com/freeforall1932-design/shotgun-king-anew",
-      "pinned_commit": "4c4bf1b",
-      "read_when": "the task is in the shotgun-king-anew repository, or you need the executed example of REA process capture + obligation ledger around a mod test harness",
-      "skip_when": "any other repository and any task that is not about mod safety or REA",
-      "session_added": "2026-10-14",
-      "last_verified": "2026-10-18"
-    },
-    {
-      "id": "projects/ai-team-kit",
-      "kind": "project",
-      "layer": "project",
-      "stack": "Python / Bash \u2014 portable root project; legacy workbench symlink",
-      "entry": "projects/ai-team-kit/MIGRATION.md",
-      "read_when": "the task is the AI team kit: quota-aware free-provider pool, adaptive council/Odysseus direction, model scout, or harness code/docs",
-      "skip_when": "any other project",
-      "session_added": "2026-10-18",
-      "last_verified": "2026-10-18",
-      "display_name": "Odysseus API model team kit",
-      "canonical_root": "Odysseus API model team kit"
     },
     {
       "id": "projects/kobold-cli",

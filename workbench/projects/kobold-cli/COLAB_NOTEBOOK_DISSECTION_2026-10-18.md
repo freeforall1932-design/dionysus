@@ -11,8 +11,8 @@
 > sections of `koboldcpp.py`. Notebook opened the linked way at
 > <https://colab.research.google.com/github/LostRuins/koboldcpp/blob/concedo/colab.ipynb>.
 > Nothing was run on Colab. Colab terms/limits are **not** answered here —
-> that stays open as W-021 / Q14 in
-> [the AI Team Kit worklist](../ai-team-kit/WORKLIST.md).
+> that stays open as W-021 / Q14 in the migrated AI Team Kit repository
+> (<https://github.com/freeforall1932-design/odysseus-fork-but-api-dev>).
 
 ## 1. What the official notebook actually is
 

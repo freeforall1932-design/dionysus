@@ -1,4 +1,4 @@
-# Gate for workbench/ (skills/, projects/) — the checks named in workbench/skills/README.md
+# Gate for skills/ and workbench/ — the checks named in skills/README.md
 # ("Rules this directory enforces mechanically"). Pure Python 3, no Qt, no
 # CMake: it validates the skill tree and proves the lint can fail; it does NOT
 # compile the Qt templates (that happens in a consuming project's own CI).
@@ -13,9 +13,6 @@ on:
     paths:
       - "workbench/**"
       - "skills/**"
-      - "Odysseus API model team kit/**"
-      - "gifscythe/**"
-      - "shotgun-king-anew/**"
       - "package_dropins.py"
       - "test_package_dropins.py"
       - "README.md"
@@ -26,9 +23,6 @@ on:
     paths:
       - "workbench/**"
       - "skills/**"
-      - "Odysseus API model team kit/**"
-      - "gifscythe/**"
-      - "shotgun-king-anew/**"
       - "package_dropins.py"
       - "test_package_dropins.py"
       - "README.md"
@@ -57,16 +51,11 @@ jobs:
           python3 -m unittest -v test_package_dropins
           python3 package_dropins.py
 
-      - name: Team-kit shell syntax (no installation or provider calls)
-        run: |
-          bash -n "Odysseus API model team kit/kit/harness/install.sh"
-          bash -n "Odysseus API model team kit/kit/harness/harness.sh"
-
       - name: Python version (the gate targets the runner's stock python3)
         run: python3 --version
 
-      - name: Syntax of every Python file under workbench/
-        run: python3 -m compileall -q workbench "Odysseus API model team kit"
+      - name: Syntax of every Python file under workbench/ and skills/
+        run: python3 -m compileall -q workbench skills package_dropins.py test_package_dropins.py
 
       - name: qt_lint self-test (the guard must be able to fail)
         run: python3 workbench/skills/qt6-cmake-cpp/scripts/qt_lint.py --selftest
@@ -85,12 +74,6 @@ jobs:
           from pathlib import Path
 
           def python_portion(source):
-              # Colab/Jupyter cells may contain IPython shell escapes (!) and
-              # line magics (%cd, etc.), which are not Python syntax. The
-              # official KoboldCpp loader cell uses both. Replace only those
-              # standalone IPython lines with pass so the remaining Python
-              # is still syntax-checked. Cell magics (%%...) are not Python
-              # cell bodies and are skipped.
               lines = source.splitlines()
               if any(line.strip().startswith("%%") for line in lines):
                   return ""
@@ -128,7 +111,7 @@ jobs:
           set -e
           while IFS= read -r -d '' f; do
             python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8')); print('ok', sys.argv[1])" "$f"
-          done < <(git ls-files -z 'workbench/**/*.json' 'skills/**/*.json' 'gifscythe/**/*.json' 'shotgun-king-anew/**/*.json')
+          done < <(git ls-files -z 'workbench/**/*.json' 'skills/**/*.json')
 
       - name: Downloadable drop-in ZIPs
         uses: actions/upload-artifact@v6

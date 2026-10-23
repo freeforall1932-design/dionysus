@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create deterministic, verified ZIPs of the four real root drop-in folders."""
+"""Create deterministic, verified ZIP archive of the root skills/ folder."""
 from __future__ import annotations
 
 import argparse
@@ -11,7 +11,7 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
-NAMES = ("gifscythe", "shotgun-king-anew", "skills", "Odysseus API model team kit")
+NAMES = ("skills",)
 EXCLUDE = {"__pycache__", ".pytest_cache", ".git"}
 MANIFEST = "DROPIN_MANIFEST.sha256"
 
