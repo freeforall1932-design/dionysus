@@ -81,6 +81,17 @@
       "last_verified": "2026-10-14"
     },
     {
+      "id": "tools/opera-sync-export",
+      "kind": "tool",
+      "layer": "standalone",
+      "stack": "research + browser-console captures (no runnable code yet)",
+      "entry": "tools/opera-sync-export/README.md",
+      "read_when": "the task involves exporting data from Opera Sync (sync.opera.com), decoding its captures (IndexedDB dump, sync-internals CSV, HAR), or building the planned converter scripts",
+      "skip_when": "anything not about Opera Sync data; captures in its inbox/ are private and must never be committed",
+      "session_added": "2026-11-10",
+      "last_verified": "2026-11-10"
+    },
+    {
       "id": "research/harness-skill-support-2026-10-14.md",
       "kind": "research",
       "layer": "reference",

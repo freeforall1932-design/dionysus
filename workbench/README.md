@@ -29,6 +29,7 @@ per unit) and the gate fails if a unit is missing from it or from this page.
 | `research/skills-repo-and-unified-2026-10-14.md` | deciding where skills live or how the process layer composes with a writing register | inside-project work |
 | `research/harness-skill-support-2026-10-14.md` | installing the skills into a harness, or adding a harness profile — real skill dirs vs read-by-path vs paste-only, with sources | not about harness installation |
 | `tools/magnet-excavator` | working on that tool | everything else |
+| `tools/opera-sync-export` | exporting data out of Opera Sync (sync.opera.com) or processing its captures — reverse-engineered panel facts, ranked capture routes, git-ignored `inbox/` drop zone | not about Opera Sync data (its `inbox/` is private: never commit or web-upload captures) |
 
 ## Directory map
 
@@ -38,6 +39,7 @@ per unit) and the gate fails if a unit is missing from it or from this page.
 | `projects/` | Remaining in-repo companion project (`projects/kobold-cli/`) and historical codebase sweep audit (`projects/CODEBASE_SWEEP_AUDIT_2026-10-18.md`). The three migrated projects (`gifscythe`, `shotgun-king-anew`, `Odysseus API model team kit`) live in their own repositories. | `projects/README.md` |
 | `research/` | **Dated surveys and assessments** that back a decision, verified on the stated day; executed artefacts for one live in `research/skills-repo-compat/`. | `research/README.md` |
 | `tools/magnet-excavator/` | Stdlib-only Python tool that pulls magnet links out of saved pages, with a local GUI and 142 tests (added by PR #1, moved here from the repo root). | `tools/magnet-excavator/README.md` |
+| `tools/opera-sync-export/` | Research + guided-capture unit for getting personal data out of Opera Sync: verified protocol/IndexedDB facts from the panel's own JS, ranked export routes, and a git-ignored `inbox/` drop zone whose README is the owner-facing capture guide. No runnable code yet (decoders are next session's work). | `tools/opera-sync-export/README.md` |
 | `AGENTS.md` = `CLAUDE.md` | The loader paragraph harnesses read when they work inside this folder. | — |
 
 ## Skills in one paragraph
